@@ -111,7 +111,7 @@ func (dao *HashableDao[T]) Get(id uint64) (*T, error) {
 
 		} else {
 
-			read, err := daoIO.ReadAt(position + 1)
+			read, err := daoIO.ReadAt(position)
 
 			if err != nil {
 

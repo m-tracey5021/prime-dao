@@ -1,7 +1,6 @@
 package dao
 
 import (
-	"errors"
 	"testing"
 	. "transformer/src/lib/component/hashable_component"
 	. "transformer/src/lib/dao_io"
@@ -10,34 +9,16 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-type MockDaoIO[T any] struct {
-	mock.Mock
-}
-
-func (mockDaoIO *MockDaoIO[T]) ReadBoolAt() (bool, error) {
-
-	args := mockDaoIO.Called()
-
-	return args.Bool(0), args.Error(1)
-}
-
-type MockDaoIOFactory[T any] struct {
-	mock.Mock
-}
-
-func (mockFactory *MockDaoIOFactory[T]) Create(filePath string) (IDaoIO[T], error) {
-
-	args := mockFactory.Called()
-
-	return args.Get(0).(*DaoIO[T]), args.Error(1)
-}
-
-func TestNewId(t *testing.T) {
+func TestNewIdAtEmptyPosition(t *testing.T) {
 
 	// Given
 	mockFilePath := "test"
 
 	mockDaoIO := new(MockDaoIO[Index])
+
+	mockDaoIO.On("Close").Return(nil)
+
+	mockDaoIO.On("ReadBoolAt", 25).Return(false, nil)
 
 	mockDaoIOFactory := new(MockDaoIOFactory[Index])
 
@@ -46,11 +27,7 @@ func TestNewId(t *testing.T) {
 	// When
 	dao := NewHashableDao[Index](mockDaoIOFactory, mockFilePath, 10)
 
-	idA, errA := dao.NewId()
-
-	idB, errB := dao.NewId()
-
-	err := errors.Join(errA, errB)
+	id, err := dao.NewId()
 
 	if err != nil {
 
@@ -58,7 +35,151 @@ func TestNewId(t *testing.T) {
 	}
 
 	// Then
-	if !(assert.Equal(t, 0, idA) && assert.Equal(t, 1, idB)) {
+	if !assert.Equal(t, 0, int(id)) {
+
+		t.Fail()
+	}
+}
+
+func TestNewIdAtOccupiedPosition(t *testing.T) { // TODO
+
+	// Given
+	mockFilePath := "test"
+
+	mockIndex := NewIndex(0, 0, 0)
+
+	mockDaoIO := new(MockDaoIO[Index])
+
+	mockDaoIO.On("Close").Return(nil)
+
+	mockDaoIO.On("ReadBoolAt", 25).Return(true, nil)
+
+	mockDaoIO.On("ReadBoolAt", 27).Return(false, nil)
+
+	mockDaoIO.On("ReadAt", 25).Return(&mockIndex, nil)
+
+	mockDaoIOFactory := new(MockDaoIOFactory[Index])
+
+	mockDaoIOFactory.On("Create", mockFilePath).Return(mockDaoIO, nil)
+
+	// When
+	dao := NewHashableDao[Index](mockDaoIOFactory, mockFilePath, 10)
+
+	id, err := dao.NewId()
+
+	if err != nil {
+
+		t.Fatalf("%v", err)
+	}
+
+	// Then
+	if !assert.Equal(t, 1, int(id)) {
+
+		t.Fail()
+	}
+}
+
+func TestGetAtEmptyPosition(t *testing.T) {
+
+	// Given
+	mockFilePath := "test"
+
+	mockDaoIO := new(MockDaoIO[Index])
+
+	mockDaoIO.On("Close").Return(nil)
+
+	mockDaoIO.On("ReadBoolAt", 25).Return(false, nil)
+
+	mockDaoIOFactory := new(MockDaoIOFactory[Index])
+
+	mockDaoIOFactory.On("Create", mockFilePath).Return(mockDaoIO, nil)
+
+	// When
+	dao := NewHashableDao[Index](mockDaoIOFactory, mockFilePath, 10)
+
+	read, err := dao.Get(0)
+
+	if err != nil {
+
+		t.Fatalf("%v", err)
+	}
+
+	// Then
+	if !assert.Nil(t, read) {
+
+		t.Fail()
+	}
+}
+
+func TestGetAtOccupiedPosition(t *testing.T) {
+
+	// Given
+	mockFilePath := "test"
+
+	mockIndex := NewIndex(0, 0, 0)
+
+	mockDaoIO := new(MockDaoIO[Index])
+
+	mockDaoIO.On("Close").Return(nil)
+
+	mockDaoIO.On("ReadBoolAt", 25).Return(true, nil)
+
+	mockDaoIO.On("ReadAt", 25).Return(&mockIndex, nil)
+
+	mockDaoIOFactory := new(MockDaoIOFactory[Index])
+
+	mockDaoIOFactory.On("Create", mockFilePath).Return(mockDaoIO, nil)
+
+	// When
+	dao := NewHashableDao[Index](mockDaoIOFactory, mockFilePath, 10)
+
+	read, err := dao.Get(0)
+
+	if err != nil {
+
+		t.Fatalf("%v", err)
+	}
+
+	// Then
+	if !assert.Equal(t, &mockIndex, read) {
+
+		t.Fail()
+	}
+}
+
+func TestGetAtOccupiedPositionWithCollision(t *testing.T) {
+
+	// Given
+	mockFilePath := "test"
+
+	mockIndexA := NewIndex(1, 0, 0)
+	mockIndexB := NewIndex(2, 0, 0)
+
+	mockDaoIO := new(MockDaoIO[Index])
+
+	mockDaoIO.On("Close").Return(nil)
+
+	mockDaoIO.On("ReadBoolAt", mock.Anything).Return(true, nil)
+
+	mockDaoIO.On("ReadAt", 29).Return(&mockIndexA, nil)
+	mockDaoIO.On("ReadAt", 34).Return(&mockIndexB, nil)
+
+	mockDaoIOFactory := new(MockDaoIOFactory[Index])
+
+	mockDaoIOFactory.On("Create", mockFilePath).Return(mockDaoIO, nil)
+
+	// When
+	dao := NewHashableDao[Index](mockDaoIOFactory, mockFilePath, 10)
+
+	read, err := dao.Get(2)
+
+	if err != nil {
+
+		t.Fatalf("%v", err)
+	}
+
+	// Then
+	if !assert.Equal(t, &mockIndexB, read) {
 
 		t.Fail()
 	}
