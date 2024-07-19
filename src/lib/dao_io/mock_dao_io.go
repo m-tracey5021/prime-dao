@@ -6,6 +6,13 @@ type MockDaoIO[T any] struct {
 	mock.Mock
 }
 
+func (mockDaoIO *MockDaoIO[T]) GoTo(position int) error {
+
+	args := mockDaoIO.Called(position)
+
+	return args.Error(0)
+}
+
 func (mockDaoIO *MockDaoIO[T]) Write(object T) (int, error) {
 
 	args := mockDaoIO.Called(object)
@@ -13,11 +20,25 @@ func (mockDaoIO *MockDaoIO[T]) Write(object T) (int, error) {
 	return args.Int(0), args.Error(1)
 }
 
+func (mockDaoIO *MockDaoIO[T]) WriteBool(value bool) error {
+
+	args := mockDaoIO.Called(value)
+
+	return args.Error(0)
+}
+
 func (mockDaoIO *MockDaoIO[T]) WriteAt(object T, position int) (int, error) {
 
 	args := mockDaoIO.Called(object, position)
 
 	return args.Int(0), args.Error(1)
+}
+
+func (mockDaoIO *MockDaoIO[T]) WriteBoolAt(value bool, position int) error {
+
+	args := mockDaoIO.Called(value, position)
+
+	return args.Error(0)
 }
 
 func (mockDaoIO *MockDaoIO[T]) Read() (*T, error) {

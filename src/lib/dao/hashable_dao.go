@@ -104,12 +104,7 @@ func (dao *HashableDao[T]) Get(id uint64) (*T, error) {
 			}
 			return nil, err
 		}
-		if !occupied {
-
-			// Nothing was found at the requested bucket
-			return nil, nil
-
-		} else {
+		if occupied {
 
 			read, err := daoIO.ReadAt(position)
 
@@ -123,8 +118,239 @@ func (dao *HashableDao[T]) Get(id uint64) (*T, error) {
 
 			} else {
 
-				position = dao.rehash()
+				position += dao.rehash()
 			}
+
+		} else {
+
+			return nil, nil
+		}
+	}
+}
+
+func (dao *HashableDao[T]) GetAll() ([]T, error) {
+
+	daoIO, err := dao.io()
+
+	defer func() {
+
+		if innerErr := daoIO.Close(); innerErr != nil {
+
+			if err != nil {
+
+				err = errors.Join(innerErr, err)
+
+			} else {
+
+				err = innerErr
+			}
+		}
+	}()
+	results := make([]T, 0)
+
+	position := 0
+
+	for {
+
+		occupied, err := daoIO.ReadBoolAt(position)
+
+		if err != nil {
+
+			return nil, err
+		}
+		if occupied {
+
+			read, err := daoIO.Read()
+
+			if err != nil {
+
+				if errors.Is(err, io.EOF) {
+
+					return results, nil
+				}
+				return nil, err
+			}
+			results = append(results, *read)
+
+		} else {
+
+			position += dao.bucketSize
+		}
+	}
+}
+
+func (dao *HashableDao[T]) Save(object T) error {
+
+	daoIO, err := dao.io()
+
+	defer func() {
+
+		if innerErr := daoIO.Close(); innerErr != nil {
+
+			if err != nil {
+
+				err = errors.Join(innerErr, err)
+
+			} else {
+
+				err = innerErr
+			}
+		}
+	}()
+	position := dao.hash(object.Id())
+
+	for {
+
+		occupied, err := daoIO.ReadBoolAt(position)
+
+		if err != nil {
+
+			return err
+		}
+		if occupied {
+
+			read, err := daoIO.Read()
+
+			if err != nil {
+
+				return err
+			}
+			if object.Id() == (*read).Id() {
+
+				return errors.New("object already exists, cannot save new")
+
+			} else {
+
+				position += dao.rehash()
+			}
+
+		} else {
+
+			if err := daoIO.WriteBoolAt(true, position); err != nil {
+
+				return err
+			}
+			if _, err := daoIO.Write(object); err != nil {
+
+				return err
+			}
+			return nil
+		}
+	}
+}
+
+func (dao *HashableDao[T]) Update(object T) error {
+
+	daoIO, err := dao.io()
+
+	defer func() {
+
+		if innerErr := daoIO.Close(); innerErr != nil {
+
+			if err != nil {
+
+				err = errors.Join(innerErr, err)
+
+			} else {
+
+				err = innerErr
+			}
+		}
+	}()
+	position := dao.hash(object.Id())
+
+	for {
+
+		occupied, err := daoIO.ReadBoolAt(position)
+
+		if err != nil {
+
+			return err
+		}
+		if occupied {
+
+			read, err := daoIO.Read()
+
+			if err != nil {
+
+				return err
+			}
+			if object.Id() == (*read).Id() {
+
+				if err := daoIO.UpdateAt(object, position+1); err != nil {
+
+					return err
+				}
+				return nil
+
+			} else {
+
+				position += dao.rehash()
+			}
+
+		} else {
+
+			return errors.New("object does not exist to update")
+		}
+	}
+}
+
+func (dao *HashableDao[T]) Delete(object T) error {
+
+	daoIO, err := dao.io()
+
+	defer func() {
+
+		if innerErr := daoIO.Close(); innerErr != nil {
+
+			if err != nil {
+
+				err = errors.Join(innerErr, err)
+
+			} else {
+
+				err = innerErr
+			}
+		}
+	}()
+	position := dao.hash(object.Id())
+
+	for {
+
+		occupied, err := daoIO.ReadBoolAt(position)
+
+		if err != nil {
+
+			return err
+		}
+		if occupied {
+
+			read, err := daoIO.Read()
+
+			if err != nil {
+
+				return err
+			}
+			if object.Id() == (*read).Id() {
+
+				if err := daoIO.WriteBoolAt(false, position); err != nil {
+
+					return err
+				}
+				if _, err := daoIO.Delete(); err != nil {
+
+					return err
+				}
+				return nil
+
+			} else {
+
+				position += dao.rehash()
+			}
+
+		} else {
+
+			return errors.New("object does not exist to delete")
 		}
 	}
 }

@@ -9,9 +9,15 @@ import (
 )
 
 type IDaoIO[T any] interface {
+	GoTo(position int) error
+
 	Write(object T) (int, error)
 
+	WriteBool(value bool) error
+
 	WriteAt(object T, position int) (int, error)
+
+	WriteBoolAt(value bool, position int) error
 
 	Read() (*T, error)
 
@@ -96,6 +102,15 @@ func (daoIO *DaoIO[T]) Write(object T) (int, error) {
 	return size + 8, nil
 }
 
+func (daoIO *DaoIO[T]) WriteBool(value bool) error {
+
+	if err := binary.Write(daoIO.file, binary.LittleEndian, &value); err != nil {
+
+		return err
+	}
+	return nil
+}
+
 func (daoIO *DaoIO[T]) WriteAt(object T, position int) (int, error) {
 
 	if _, err := daoIO.file.Seek(int64(position), 0); err != nil {
@@ -103,6 +118,15 @@ func (daoIO *DaoIO[T]) WriteAt(object T, position int) (int, error) {
 		return 0, err
 	}
 	return daoIO.Write(object)
+}
+
+func (daoIO *DaoIO[T]) WriteBoolAt(value bool, position int) error {
+
+	if _, err := daoIO.file.Seek(int64(position), 0); err != nil {
+
+		return err
+	}
+	return daoIO.WriteBool(value)
 }
 
 func (daoIO *DaoIO[T]) Read() (*T, error) {
