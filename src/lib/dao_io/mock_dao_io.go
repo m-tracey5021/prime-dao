@@ -97,6 +97,20 @@ func (mockDaoIO *MockDaoIO[T]) DeleteAt(position int) (int, error) {
 	return args.Int(0), args.Error(1)
 }
 
+func (mockDaoIO *MockDaoIO[T]) Zero() error {
+
+	args := mockDaoIO.Called()
+
+	return args.Error(0)
+}
+
+func (mockDaoIO *MockDaoIO[T]) ZeroAt(position int) error {
+
+	args := mockDaoIO.Called(position)
+
+	return args.Error(0)
+}
+
 func (mockDaoIO *MockDaoIO[T]) Close() error {
 
 	args := mockDaoIO.Called()

@@ -337,7 +337,7 @@ func (dao *HashableDao[T]) Delete(object T) error {
 
 					return err
 				}
-				if _, err := daoIO.Delete(); err != nil {
+				if err := daoIO.Zero(); err != nil {
 
 					return err
 				}

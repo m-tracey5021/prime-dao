@@ -6,6 +6,7 @@ import (
 	"encoding/gob"
 	"io"
 	"os"
+	"unsafe"
 )
 
 type IDaoIO[T any] interface {
@@ -35,6 +36,10 @@ type IDaoIO[T any] interface {
 
 	DeleteAt(position int) (int, error)
 
+	Zero() error
+
+	ZeroAt(position int) error
+
 	Close() error
 }
 
@@ -44,7 +49,7 @@ type DaoIO[T any] struct {
 
 func NewDaoIO[T any](filePath string) (*DaoIO[T], error) {
 
-	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0666)
 
 	if err != nil {
 
@@ -341,6 +346,41 @@ func (daoIO *DaoIO[T]) DeleteAt(position int) (int, error) {
 		return 0, err
 	}
 	return daoIO.Delete()
+}
+
+func (daoIO *DaoIO[T]) Zero() error {
+
+	size := int(unsafe.Sizeof(*new(T)))
+
+	zeroBuffer := make([]byte, size)
+
+	_, err := daoIO.file.Write(zeroBuffer)
+
+	if err != nil {
+
+		return err
+	}
+	return nil
+}
+
+func (daoIO *DaoIO[T]) ZeroAt(position int) error {
+
+	if _, err := daoIO.file.Seek(int64(position), 0); err != nil {
+
+		return err
+	}
+	return daoIO.Zero()
+}
+
+func (daoIO *DaoIO[T]) Size() (int64, error) {
+
+	fileInfo, err := daoIO.file.Stat()
+
+	if err != nil {
+
+		return 0, err
+	}
+	return fileInfo.Size(), nil
 }
 
 func (daoIO *DaoIO[T]) Close() error {

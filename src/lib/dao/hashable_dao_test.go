@@ -439,7 +439,7 @@ func TestDeleteAtOccupiedPosition(t *testing.T) {
 
 	mockDaoIO.On("WriteBoolAt", false, secondHash).Return(nil)
 
-	mockDaoIO.On("Delete").Return(0, nil)
+	mockDaoIO.On("Zero").Return(nil)
 
 	// When
 	err := dao.Delete(indexToDelete)
