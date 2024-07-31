@@ -10,76 +10,22 @@ import (
 )
 
 type IDaoIO[T any] interface {
-	GoTo(position int) error
+	WriteSizePrefixed(file *os.File, object T) (int, error)
 
-	Write(object T) (int, error)
+	ReadSizePrefixed(file *os.File) (*T, error)
 
-	WriteBool(value bool) error
+	Update(file *os.File, object T) (int, error)
 
-	WriteAt(object T, position int) (int, error)
+	Delete(file *os.File) (int, error)
 
-	WriteBoolAt(value bool, position int) error
+	Zero(file *os.File) error
 
-	Read() (*T, error)
-
-	ReadBool() (bool, error)
-
-	ReadAt(position int) (*T, error)
-
-	ReadBoolAt(position int) (bool, error)
-
-	Update(object T) error
-
-	UpdateAt(object T, position int) error
-
-	Delete() (int, error)
-
-	DeleteAt(position int) (int, error)
-
-	Zero() error
-
-	ZeroAt(position int) error
-
-	Close() error
+	Size(file *os.File) (int, error) // TODO delete this, duplicate from fileContainer
 }
 
-type DaoIO[T any] struct {
-	file *os.File
-}
+type DaoIO[T any] struct{}
 
-func NewDaoIO[T any](filePath string) (*DaoIO[T], error) {
-
-	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0666)
-
-	if err != nil {
-
-		return nil, err
-	}
-	return &DaoIO[T]{file}, nil
-}
-
-func (daoIO *DaoIO[T]) GoTo(position int) error {
-
-	// fileInfo, err := daoIO.file.Stat()
-
-	// if err != nil {
-
-	// 	return err
-	// }
-	// size := int(fileInfo.Size())
-
-	// if position > size {
-
-	// 	extendedSize :=
-
-	// 	daoIO.file.Truncate()
-	// }
-	_, err := daoIO.file.Seek(int64(position), io.SeekStart)
-
-	return err
-}
-
-func (daoIO *DaoIO[T]) Write(object T) (int, error) {
+func (daoIO DaoIO[T]) WriteSizePrefixed(file *os.File, object T) (int, error) {
 
 	// Encode the object
 	buffer := new(bytes.Buffer)
@@ -94,12 +40,12 @@ func (daoIO *DaoIO[T]) Write(object T) (int, error) {
 	size := buffer.Len()
 
 	// Write size as a prefix
-	if err := binary.Write(daoIO.file, binary.LittleEndian, int64(size)); err != nil {
+	if err := binary.Write(file, binary.LittleEndian, uint64(size)); err != nil {
 
 		return 0, err
 	}
 	// Write encoded object data
-	if _, err := daoIO.file.Write(buffer.Bytes()); err != nil {
+	if _, err := file.Write(buffer.Bytes()); err != nil {
 
 		return 0, err
 	}
@@ -107,46 +53,19 @@ func (daoIO *DaoIO[T]) Write(object T) (int, error) {
 	return size + 8, nil
 }
 
-func (daoIO *DaoIO[T]) WriteBool(value bool) error {
-
-	if err := binary.Write(daoIO.file, binary.LittleEndian, &value); err != nil {
-
-		return err
-	}
-	return nil
-}
-
-func (daoIO *DaoIO[T]) WriteAt(object T, position int) (int, error) {
-
-	if _, err := daoIO.file.Seek(int64(position), 0); err != nil {
-
-		return 0, err
-	}
-	return daoIO.Write(object)
-}
-
-func (daoIO *DaoIO[T]) WriteBoolAt(value bool, position int) error {
-
-	if _, err := daoIO.file.Seek(int64(position), 0); err != nil {
-
-		return err
-	}
-	return daoIO.WriteBool(value)
-}
-
-func (daoIO *DaoIO[T]) Read() (*T, error) {
+func (daoIO DaoIO[T]) ReadSizePrefixed(file *os.File) (*T, error) {
 
 	// Read size prefix
-	var size int64
+	var size uint64
 
-	if err := binary.Read(daoIO.file, binary.LittleEndian, &size); err != nil {
+	if err := binary.Read(file, binary.LittleEndian, &size); err != nil {
 
 		return nil, err
 	}
 	// Read encoded object data
 	data := make([]byte, size)
 
-	if _, err := daoIO.file.Read(data); err != nil {
+	if _, err := file.Read(data); err != nil {
 
 		return nil, err
 	}
@@ -164,116 +83,9 @@ func (daoIO *DaoIO[T]) Read() (*T, error) {
 	return object, nil
 }
 
-func (daoIO *DaoIO[T]) ReadBool() (bool, error) {
+func (daoIO DaoIO[T]) Update(file *os.File, object T) (int, error) {
 
-	var value bool
-
-	if err := binary.Read(daoIO.file, binary.LittleEndian, &value); err != nil {
-
-		return false, err
-	}
-	return value, nil
-}
-
-func (daoIO *DaoIO[T]) ReadAt(position int) (*T, error) {
-
-	if _, err := daoIO.file.Seek(int64(position), 0); err != nil {
-
-		return nil, err
-	}
-	return daoIO.Read()
-}
-
-func (daoIO *DaoIO[T]) ReadBoolAt(position int) (bool, error) {
-
-	if _, err := daoIO.file.Seek(int64(position), 0); err != nil {
-
-		return false, err
-	}
-	return daoIO.ReadBool()
-}
-
-func (daoIO *DaoIO[T]) Update(object T) error {
-
-	fileInfo, err := daoIO.file.Stat()
-
-	if err != nil {
-
-		return err
-	}
-	totalLength := fileInfo.Size()
-
-	// Find the start of the object, make sure cursor is set to this point before passing file in
-	startPosition, err := daoIO.file.Seek(0, io.SeekCurrent)
-
-	if err != nil {
-
-		return err
-	}
-	// Read the object to be updated
-	if _, err := daoIO.Read(); err != nil {
-
-		return err
-	}
-	endPosition, err := daoIO.file.Seek(0, io.SeekCurrent)
-
-	if err != nil {
-
-		return err
-	}
-	initialBuffer := make([]byte, startPosition)
-
-	remainingBuffer := make([]byte, totalLength-endPosition)
-
-	// Go back to beginning of file
-	if _, err = daoIO.file.Seek(0, 0); err != nil {
-
-		return err
-	}
-	// Read everything either side of the object to be updated into a buffer
-	if _, err = daoIO.file.Read(initialBuffer); err != nil {
-
-		return err
-	}
-	if _, err = daoIO.file.Seek(endPosition, 0); err != nil {
-
-		return err
-	}
-	if _, err = daoIO.file.Read(remainingBuffer); err != nil {
-
-		return err
-	}
-	if err = daoIO.file.Truncate(0); err != nil {
-
-		return err
-	}
-	if _, err = daoIO.file.Write(initialBuffer); err != nil {
-
-		return err
-	}
-	if _, err := daoIO.Write(object); err != nil {
-
-		return err
-	}
-	if _, err = daoIO.file.Write(remainingBuffer); err != nil {
-
-		return err
-	}
-	return nil
-}
-
-func (daoIO *DaoIO[T]) UpdateAt(object T, position int) error {
-
-	if _, err := daoIO.file.Seek(int64(position), 0); err != nil {
-
-		return err
-	}
-	return daoIO.Update(object)
-}
-
-func (daoIO *DaoIO[T]) Delete() (int, error) {
-
-	fileInfo, err := daoIO.file.Stat()
+	fileInfo, err := file.Stat()
 
 	if err != nil {
 
@@ -282,20 +94,18 @@ func (daoIO *DaoIO[T]) Delete() (int, error) {
 	totalLength := fileInfo.Size()
 
 	// Find the start of the object, make sure cursor is set to this point before passing file in
-	startPosition, err := daoIO.file.Seek(0, io.SeekCurrent)
+	startPosition, err := file.Seek(0, io.SeekCurrent)
 
 	if err != nil {
 
 		return 0, err
 	}
 	// Read the object to be updated
-	if _, err := daoIO.Read(); err != nil {
+	if _, err := daoIO.ReadSizePrefixed(file); err != nil {
 
 		return 0, err
 	}
-	endPosition, err := daoIO.file.Seek(0, io.SeekCurrent)
-
-	sizeDeleted := endPosition - startPosition
+	endPosition, err := file.Seek(0, io.SeekCurrent)
 
 	if err != nil {
 
@@ -306,32 +116,113 @@ func (daoIO *DaoIO[T]) Delete() (int, error) {
 	remainingBuffer := make([]byte, totalLength-endPosition)
 
 	// Go back to beginning of file
-	if _, err = daoIO.file.Seek(0, 0); err != nil {
+	if _, err = file.Seek(0, 0); err != nil {
 
 		return 0, err
 	}
 	// Read everything either side of the object to be updated into a buffer
-	if _, err = daoIO.file.Read(initialBuffer); err != nil {
+	if _, err = file.Read(initialBuffer); err != nil {
 
 		return 0, err
 	}
-	if _, err = daoIO.file.Seek(endPosition, 0); err != nil {
+	if _, err = file.Seek(endPosition, 0); err != nil {
 
 		return 0, err
 	}
-	if _, err = daoIO.file.Read(remainingBuffer); err != nil {
+	if _, err = file.Read(remainingBuffer); err != nil {
 
 		return 0, err
 	}
-	if err = daoIO.file.Truncate(0); err != nil {
+	if err = file.Truncate(0); err != nil {
 
 		return 0, err
 	}
-	if _, err = daoIO.file.Write(initialBuffer); err != nil {
+	if _, err = file.Seek(0, 0); err != nil {
 
 		return 0, err
 	}
-	if _, err = daoIO.file.Write(remainingBuffer); err != nil {
+	if _, err = file.Write(initialBuffer); err != nil {
+
+		return 0, err
+	}
+	if _, err := daoIO.WriteSizePrefixed(file, object); err != nil {
+
+		return 0, err
+	}
+	if _, err = file.Write(remainingBuffer); err != nil {
+
+		return 0, err
+	}
+	updatedLength := fileInfo.Size()
+
+	return int(updatedLength - totalLength), nil
+}
+
+func (daoIO DaoIO[T]) Delete(file *os.File) (int, error) {
+
+	fileInfo, err := file.Stat()
+
+	if err != nil {
+
+		return 0, err
+	}
+	totalLength := fileInfo.Size()
+
+	// Find the start of the object, make sure cursor is set to this point before passing file in
+	startPosition, err := file.Seek(0, io.SeekCurrent)
+
+	if err != nil {
+
+		return 0, err
+	}
+	// Read the object to be updated
+	if _, err := daoIO.ReadSizePrefixed(file); err != nil {
+
+		return 0, err
+	}
+	endPosition, err := file.Seek(0, io.SeekCurrent)
+
+	sizeDeleted := endPosition - startPosition // NOT RIGHT
+
+	if err != nil {
+
+		return 0, err
+	}
+	initialBuffer := make([]byte, startPosition)
+
+	remainingBuffer := make([]byte, totalLength-endPosition)
+
+	// Go back to beginning of file
+	if _, err = file.Seek(0, 0); err != nil {
+
+		return 0, err
+	}
+	// Read everything either side of the object to be updated into a buffer
+	if _, err = file.Read(initialBuffer); err != nil {
+
+		return 0, err
+	}
+	if _, err = file.Seek(endPosition, 0); err != nil {
+
+		return 0, err
+	}
+	if _, err = file.Read(remainingBuffer); err != nil {
+
+		return 0, err
+	}
+	if err = file.Truncate(0); err != nil {
+
+		return 0, err
+	}
+	if _, err = file.Seek(0, 0); err != nil {
+
+		return 0, err
+	}
+	if _, err = file.Write(initialBuffer); err != nil {
+
+		return 0, err
+	}
+	if _, err = file.Write(remainingBuffer); err != nil {
 
 		return 0, err
 	}
@@ -339,22 +230,13 @@ func (daoIO *DaoIO[T]) Delete() (int, error) {
 	return int(sizeDeleted), nil
 }
 
-func (daoIO *DaoIO[T]) DeleteAt(position int) (int, error) {
-
-	if _, err := daoIO.file.Seek(int64(position), 0); err != nil {
-
-		return 0, err
-	}
-	return daoIO.Delete()
-}
-
-func (daoIO *DaoIO[T]) Zero() error {
+func (daoIO DaoIO[T]) Zero(file *os.File) error {
 
 	size := int(unsafe.Sizeof(*new(T)))
 
 	zeroBuffer := make([]byte, size)
 
-	_, err := daoIO.file.Write(zeroBuffer)
+	_, err := file.Write(zeroBuffer)
 
 	if err != nil {
 
@@ -363,27 +245,13 @@ func (daoIO *DaoIO[T]) Zero() error {
 	return nil
 }
 
-func (daoIO *DaoIO[T]) ZeroAt(position int) error {
+func (daoIO DaoIO[T]) Size(file *os.File) (int, error) {
 
-	if _, err := daoIO.file.Seek(int64(position), 0); err != nil {
-
-		return err
-	}
-	return daoIO.Zero()
-}
-
-func (daoIO *DaoIO[T]) Size() (int64, error) {
-
-	fileInfo, err := daoIO.file.Stat()
+	fileInfo, err := file.Stat()
 
 	if err != nil {
 
 		return 0, err
 	}
-	return fileInfo.Size(), nil
-}
-
-func (daoIO *DaoIO[T]) Close() error {
-
-	return daoIO.file.Close()
+	return int(fileInfo.Size()), nil
 }

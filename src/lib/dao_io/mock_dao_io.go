@@ -1,119 +1,53 @@
 package daoIO
 
-import "github.com/stretchr/testify/mock"
+import (
+	"os"
+
+	"github.com/stretchr/testify/mock"
+)
 
 type MockDaoIO[T any] struct {
 	mock.Mock
 }
 
-func (mockDaoIO *MockDaoIO[T]) GoTo(position int) error {
+func (mockDaoIO *MockDaoIO[T]) WriteSizePrefixed(file *os.File, object T) (int, error) {
 
-	args := mockDaoIO.Called(position)
-
-	return args.Error(0)
-}
-
-func (mockDaoIO *MockDaoIO[T]) Write(object T) (int, error) {
-
-	args := mockDaoIO.Called(object)
+	args := mockDaoIO.Called(file, object)
 
 	return args.Int(0), args.Error(1)
 }
 
-func (mockDaoIO *MockDaoIO[T]) WriteBool(value bool) error {
+func (mockDaoIO *MockDaoIO[T]) ReadSizePrefixed(file *os.File) (*T, error) {
 
-	args := mockDaoIO.Called(value)
-
-	return args.Error(0)
-}
-
-func (mockDaoIO *MockDaoIO[T]) WriteAt(object T, position int) (int, error) {
-
-	args := mockDaoIO.Called(object, position)
-
-	return args.Int(0), args.Error(1)
-}
-
-func (mockDaoIO *MockDaoIO[T]) WriteBoolAt(value bool, position int) error {
-
-	args := mockDaoIO.Called(value, position)
-
-	return args.Error(0)
-}
-
-func (mockDaoIO *MockDaoIO[T]) Read() (*T, error) {
-
-	args := mockDaoIO.Called()
+	args := mockDaoIO.Called(file)
 
 	return args.Get(0).(*T), args.Error(1)
 }
 
-func (mockDaoIO *MockDaoIO[T]) ReadBool() (bool, error) {
+func (mockDaoIO *MockDaoIO[T]) Update(file *os.File, object T) (int, error) {
 
-	args := mockDaoIO.Called()
-
-	return args.Bool(0), args.Error(1)
-}
-
-func (mockDaoIO *MockDaoIO[T]) ReadAt(position int) (*T, error) {
-
-	args := mockDaoIO.Called(position)
-
-	return args.Get(0).(*T), args.Error(1)
-}
-
-func (mockDaoIO *MockDaoIO[T]) ReadBoolAt(position int) (bool, error) {
-
-	args := mockDaoIO.Called(position)
-
-	return args.Bool(0), args.Error(1)
-}
-
-func (mockDaoIO *MockDaoIO[T]) Update(object T) error {
-
-	args := mockDaoIO.Called(object)
-
-	return args.Error(0)
-}
-
-func (mockDaoIO *MockDaoIO[T]) UpdateAt(object T, position int) error {
-
-	args := mockDaoIO.Called(object, position)
-
-	return args.Error(0)
-}
-
-func (mockDaoIO *MockDaoIO[T]) Delete() (int, error) {
-
-	args := mockDaoIO.Called()
+	args := mockDaoIO.Called(file, object)
 
 	return args.Int(0), args.Error(1)
 }
 
-func (mockDaoIO *MockDaoIO[T]) DeleteAt(position int) (int, error) {
+func (mockDaoIO *MockDaoIO[T]) Delete(file *os.File) (int, error) {
 
-	args := mockDaoIO.Called(position)
+	args := mockDaoIO.Called(file)
 
 	return args.Int(0), args.Error(1)
 }
 
-func (mockDaoIO *MockDaoIO[T]) Zero() error {
+func (mockDaoIO *MockDaoIO[T]) Zero(file *os.File) error {
 
-	args := mockDaoIO.Called()
-
-	return args.Error(0)
-}
-
-func (mockDaoIO *MockDaoIO[T]) ZeroAt(position int) error {
-
-	args := mockDaoIO.Called(position)
+	args := mockDaoIO.Called(file)
 
 	return args.Error(0)
 }
 
-func (mockDaoIO *MockDaoIO[T]) Close() error {
+func (mockDaoIO *MockDaoIO[T]) Size(file *os.File) (int, error) {
 
-	args := mockDaoIO.Called()
+	args := mockDaoIO.Called(file)
 
-	return args.Error(0)
+	return args.Int(0), args.Error(1)
 }
