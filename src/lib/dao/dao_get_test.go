@@ -17,13 +17,13 @@ func TestGetAtEmptyPosition(t *testing.T) {
 
 	id := uint64(0)
 
-	mockBucketHeader := DaoBucketHeader{}
+	bucketHeader := DaoBucketHeader{}
 
 	hash := dao.hash(id)
 
 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
 
-	mockBucketHeaderIO.On("Read", mockMainTable).Return(mockBucketHeader, io.EOF)
+	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, io.EOF)
 
 	// When
 	read, err := dao.Get(id)
@@ -41,29 +41,29 @@ func TestGetAtEmptyPosition(t *testing.T) {
 	mockBucketHeaderIO.AssertExpectations(t)
 }
 
-func TestGetAtOccupiedPosition(t *testing.T) {
+func TestGetAtEmptyPositionPreviouslyDeleted(t *testing.T) {
 
 	// Given
 	mockFileContainer, _, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
 
-	_, mockMainTable, _ := setupMockFiles(mockFileContainer)
+	_, mockMainTable, mockCollisionTable := setupMockFiles(mockFileContainer)
 
-	mockId := uint64(0)
+	id := uint64(0)
 
-	mockObjectA := MockHashable{mockId}
+	objectToRetrieve := MockHashable{id}
 
-	mockBucketHeader := DaoBucketHeader{true, false, 0}
+	bucketHeader := DaoBucketHeader{false, true, 0}
 
-	hash := dao.hash(mockId)
+	hash := dao.hash(id)
 
 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
 
-	mockBucketHeaderIO.On("Read", mockMainTable).Return(mockBucketHeader, nil)
+	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
 
-	mockObjectIO.On("Read", mockMainTable).Return(mockObjectA, nil)
+	mockObjectIO.On("Read", mockCollisionTable).Return(objectToRetrieve, nil)
 
 	// When
-	read, err := dao.Get(mockId)
+	read, err := dao.Get(id)
 
 	if err != nil {
 
@@ -71,7 +71,44 @@ func TestGetAtOccupiedPosition(t *testing.T) {
 	}
 
 	// Then
-	assert.Equal(t, &mockObjectA, read)
+	assert.Equal(t, &objectToRetrieve, read)
+
+	mockFileContainer.AssertCalled(t, "MainTable")
+
+	mockBucketHeaderIO.AssertExpectations(t)
+}
+
+func TestGetAtOccupiedPosition(t *testing.T) {
+
+	// Given
+	mockFileContainer, _, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
+
+	_, mockMainTable, _ := setupMockFiles(mockFileContainer)
+
+	id := uint64(0)
+
+	objectToRetrieveA := MockHashable{id}
+
+	bucketHeader := DaoBucketHeader{true, false, 0}
+
+	hash := dao.hash(id)
+
+	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
+
+	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
+
+	mockObjectIO.On("Read", mockMainTable).Return(objectToRetrieveA, nil)
+
+	// When
+	read, err := dao.Get(id)
+
+	if err != nil {
+
+		t.Fatalf("%v", err)
+	}
+
+	// Then
+	assert.Equal(t, &objectToRetrieveA, read)
 
 	mockFileContainer.AssertCalled(t, "MainTable")
 
@@ -87,26 +124,26 @@ func TestGetAtOccupiedPositionWithCollision(t *testing.T) {
 
 	_, mockMainTable, mockCollisionTable := setupMockFiles(mockFileContainer)
 
-	mockId := uint64(0)
+	id := uint64(0)
 
-	mockObjectA := MockHashable{1}
+	objectToRetrieveA := MockHashable{1}
 
-	mockObjectB := MockHashable{mockId}
+	objectToRetrieveB := MockHashable{id}
 
-	mockBucketHeader := DaoBucketHeader{true, true, 0}
+	bucketHeader := DaoBucketHeader{true, true, 0}
 
-	hash := dao.hash(mockId)
+	hash := dao.hash(id)
 
 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
 
-	mockBucketHeaderIO.On("Read", mockMainTable).Return(mockBucketHeader, nil)
+	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
 
-	mockObjectIO.On("Read", mockMainTable).Return(mockObjectA, nil).Once()
+	mockObjectIO.On("Read", mockMainTable).Return(objectToRetrieveA, nil).Once()
 
-	mockObjectIO.On("Read", mockCollisionTable).Return(mockObjectB, nil)
+	mockObjectIO.On("Read", mockCollisionTable).Return(objectToRetrieveB, nil)
 
 	// When
-	read, err := dao.Get(mockId)
+	read, err := dao.Get(id)
 
 	if err != nil {
 
@@ -114,7 +151,7 @@ func TestGetAtOccupiedPositionWithCollision(t *testing.T) {
 	}
 
 	// Then
-	assert.Equal(t, &mockObjectB, read)
+	assert.Equal(t, &objectToRetrieveB, read)
 
 	mockFileContainer.AssertCalled(t, "MainTable")
 
@@ -132,26 +169,26 @@ func TestGetAtOccupiedPositionWithCollisionNoResult(t *testing.T) {
 
 	_, mockMainTable, mockCollisionTable := setupMockFiles(mockFileContainer)
 
-	mockId := uint64(0)
+	id := uint64(0)
 
-	mockObjectA := MockHashable{1}
+	objectToRetrieveA := MockHashable{1}
 
-	mockObjectB := MockHashable{mockId}
+	objectToRetrieveB := MockHashable{id}
 
-	mockBucketHeader := DaoBucketHeader{true, true, 0}
+	bucketHeader := DaoBucketHeader{true, true, 0}
 
-	hash := dao.hash(mockId)
+	hash := dao.hash(id)
 
 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
 
-	mockBucketHeaderIO.On("Read", mockMainTable).Return(mockBucketHeader, nil)
+	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
 
-	mockObjectIO.On("Read", mockMainTable).Return(mockObjectA, nil).Once()
+	mockObjectIO.On("Read", mockMainTable).Return(objectToRetrieveA, nil).Once()
 
-	mockObjectIO.On("Read", mockCollisionTable).Return(mockObjectB, io.EOF)
+	mockObjectIO.On("Read", mockCollisionTable).Return(objectToRetrieveB, io.EOF)
 
 	// When
-	read, err := dao.Get(mockId)
+	read, err := dao.Get(id)
 
 	if err != nil {
 

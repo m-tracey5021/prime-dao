@@ -19,13 +19,13 @@ func TestUpdateAtEmptyPosition(t *testing.T) {
 
 	objectToUpdate := MockHashable{id}
 
-	mockBucketHeader := DaoBucketHeader{false, false, 0}
+	bucketHeader := DaoBucketHeader{false, false, 0}
 
 	hash := dao.hash(id)
 
 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
 
-	mockBucketHeaderIO.On("Read", mockMainTable).Return(mockBucketHeader, nil)
+	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
 
 	// When
 	err := dao.Update(objectToUpdate)
@@ -53,13 +53,13 @@ func TestUpdateAtEmptyPositionAndEOF(t *testing.T) {
 
 	objectToUpdate := MockHashable{id}
 
-	mockBucketHeader := DaoBucketHeader{}
+	bucketHeader := DaoBucketHeader{}
 
 	hash := dao.hash(id)
 
 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
 
-	mockBucketHeaderIO.On("Read", mockMainTable).Return(mockBucketHeader, io.EOF)
+	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, io.EOF)
 
 	// When
 	err := dao.Update(objectToUpdate)
@@ -89,13 +89,13 @@ func TestUpdateAtOccupiedPosition(t *testing.T) {
 
 	objectToUpdate := MockHashable{id}
 
-	mockBucketHeader := DaoBucketHeader{true, false, 0}
+	bucketHeader := DaoBucketHeader{true, false, 0}
 
 	hash := dao.hash(id)
 
 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
 
-	mockBucketHeaderIO.On("Read", mockMainTable).Return(mockBucketHeader, nil)
+	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
 
 	mockObjectIO.On("Read", mockMainTable).Return(savedObject, nil)
 
@@ -129,13 +129,13 @@ func TestUpdateAtOccupiedPositionWithCollision(t *testing.T) {
 
 	objectToUpdate := MockHashable{id}
 
-	mockBucketHeader := DaoBucketHeader{true, false, 0}
+	bucketHeader := DaoBucketHeader{true, false, 0}
 
 	hash := dao.hash(id)
 
 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil).Once()
 
-	mockBucketHeaderIO.On("Read", mockMainTable).Return(mockBucketHeader, nil)
+	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
 
 	mockObjectIO.On("Read", mockMainTable).Return(collision, nil).Once()
 
@@ -175,13 +175,13 @@ func TestUpdateAtOccupiedPositionWithCollisionAndEOF(t *testing.T) {
 
 	objectToUpdate := MockHashable{id}
 
-	mockBucketHeader := DaoBucketHeader{true, false, 0}
+	bucketHeader := DaoBucketHeader{true, false, 0}
 
 	hash := dao.hash(id)
 
 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil).Once()
 
-	mockBucketHeaderIO.On("Read", mockMainTable).Return(mockBucketHeader, nil)
+	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
 
 	mockObjectIO.On("Read", mockMainTable).Return(collision, nil).Once()
 

@@ -74,6 +74,8 @@ func (dao *FixedSizeDao[T]) Save(object T) error {
 
 		if errors.Is(err, io.EOF) {
 
+			err = nil
+
 			bucketHeader = DaoBucketHeader{false, false, 0}
 
 		} else {

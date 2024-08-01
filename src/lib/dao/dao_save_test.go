@@ -17,13 +17,13 @@ func TestSaveAtEmptyPosition(t *testing.T) {
 
 	objectToSave := MockHashable{0}
 
-	mockBucketHeader := DaoBucketHeader{}
+	bucketHeader := DaoBucketHeader{}
 
 	hash := dao.hash(objectToSave.Id())
 
 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
 
-	mockBucketHeaderIO.On("Read", mockMainTable).Return(mockBucketHeader, io.EOF)
+	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, io.EOF)
 
 	mockBucketHeaderIO.On("Write", mockMainTable, mock.AnythingOfType("DaoBucketHeader")).Return(nil)
 
@@ -59,13 +59,13 @@ func TestSaveAtOccupiedPositionFirstCollision(t *testing.T) {
 
 	collision := MockHashable{1}
 
-	mockBucketHeader := DaoBucketHeader{true, false, 0}
+	bucketHeader := DaoBucketHeader{true, false, 0}
 
 	hash := dao.hash(objectToSave.Id())
 
 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
 
-	mockBucketHeaderIO.On("Read", mockMainTable).Return(mockBucketHeader, nil)
+	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
 
 	mockObjectIO.On("Read", mockMainTable).Return(collision, nil).Once()
 
@@ -103,13 +103,13 @@ func TestSaveAtOccupiedPositionFirstCollisionWithExistingId(t *testing.T) {
 
 	collision := MockHashable{0}
 
-	mockBucketHeader := DaoBucketHeader{true, false, 0}
+	bucketHeader := DaoBucketHeader{true, false, 0}
 
 	hash := dao.hash(objectToSave.Id())
 
 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
 
-	mockBucketHeaderIO.On("Read", mockMainTable).Return(mockBucketHeader, nil)
+	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
 
 	mockObjectIO.On("Read", mockMainTable).Return(collision, nil)
 
@@ -143,13 +143,13 @@ func TestSaveAtOccupiedPositionNonFirstCollision(t *testing.T) {
 
 	collisionB := MockHashable{2}
 
-	mockBucketHeader := DaoBucketHeader{true, true, 0}
+	bucketHeader := DaoBucketHeader{true, true, 0}
 
 	hash := dao.hash(objectToSave.Id())
 
 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
 
-	mockBucketHeaderIO.On("Read", mockMainTable).Return(mockBucketHeader, nil)
+	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
 
 	mockObjectIO.On("Read", mockMainTable).Return(collisionA, nil).Once()
 
@@ -189,13 +189,13 @@ func TestSaveAtOccupiedPositionNonFirstCollisionWithExistingId(t *testing.T) {
 
 	collisionB := MockHashable{0}
 
-	mockBucketHeader := DaoBucketHeader{true, false, 0}
+	bucketHeader := DaoBucketHeader{true, false, 0}
 
 	hash := dao.hash(objectToSave.Id())
 
 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
 
-	mockBucketHeaderIO.On("Read", mockMainTable).Return(mockBucketHeader, nil)
+	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
 
 	mockObjectIO.On("Read", mockMainTable).Return(collisionA, nil).Once()
 
