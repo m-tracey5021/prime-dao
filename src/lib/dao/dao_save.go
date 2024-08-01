@@ -9,6 +9,10 @@ func (dao *FixedSizeDao[T]) SaveNewObjectId(id uint64) error {
 
 	managingFile, err := dao.fileContainer.ManagingFile()
 
+	if err != nil {
+
+		return err
+	}
 	defer func() {
 
 		if innerErr := dao.fileContainer.Close(managingFile); innerErr != nil {
@@ -24,27 +28,25 @@ func (dao *FixedSizeDao[T]) SaveNewObjectId(id uint64) error {
 		}
 	}()
 
-	if err != nil {
+	dao.identifierCache.ObjectIds = append(dao.identifierCache.ObjectIds, id)
 
-		return err
-	}
-	currentCache := dao.identifierCache
-
-	currentCache.ObjectIds = append(currentCache.ObjectIds, id)
-
-	_, err = dao.cacheIO.WriteSizePrefixed(managingFile, currentCache)
+	_, err = dao.cacheIO.WriteSizePrefixed(managingFile, dao.identifierCache)
 
 	if err != nil {
 
 		return err
 	}
-	return nil
+	return err
 }
 
 func (dao *FixedSizeDao[T]) Save(object T) error {
 
 	mainTable, err := dao.fileContainer.MainTable()
 
+	if err != nil {
+
+		return err
+	}
 	defer func() {
 
 		if innerErr := dao.fileContainer.Close(mainTable); innerErr != nil {
@@ -62,96 +64,94 @@ func (dao *FixedSizeDao[T]) Save(object T) error {
 
 	position := dao.hash(object.Id())
 
-	for {
+	if err := dao.fileContainer.GoTo(position, mainTable); err != nil {
 
-		if err := dao.fileContainer.GoTo(position, mainTable); err != nil {
+		return err
+	}
+	bucketHeader, err := dao.bucketHeaderIO.Read(mainTable)
 
-			return err
-		}
-		bucketHeader, err := dao.bucketHeaderIO.Read(mainTable)
+	if err != nil {
 
-		if err != nil {
+		if errors.Is(err, io.EOF) {
 
-			if errors.Is(err, io.EOF) {
-
-				bucketHeader = DaoBucketHeader{false, false, 0}
-
-			} else {
-
-				return err
-			}
-		}
-		if bucketHeader.occupied {
-
-			readObject, err := dao.objectIO.Read(mainTable)
-
-			if err != nil {
-
-				return err
-			}
-			if object.Id() == readObject.Id() {
-
-				return errors.New("object already exists, cannot save new")
-			}
-			if !bucketHeader.previousCollision {
-
-				collisionTableId := dao.NewCollisionTableId()
-
-				if err := dao.SaveForCollision(object, collisionTableId); err != nil {
-
-					return err
-				}
-				updatedBucketHeader := DaoBucketHeader{true, true, collisionTableId}
-
-				if err := dao.fileContainer.GoTo(position, mainTable); err != nil {
-
-					return err
-				}
-				if err := dao.bucketHeaderIO.Write(mainTable, updatedBucketHeader); err != nil {
-
-					return nil
-				}
-				break
-
-			} else {
-
-				if err := dao.SaveForCollision(object, bucketHeader.collisionTableId); err != nil {
-
-					return err
-				}
-				break
-			}
+			bucketHeader = DaoBucketHeader{false, false, 0}
 
 		} else {
 
-			bucketHeader = DaoBucketHeader{true, false, 0}
+			return err
+		}
+	}
+	if bucketHeader.occupied {
+
+		readObject, err := dao.objectIO.Read(mainTable)
+
+		if err != nil {
+
+			return err
+		}
+		if object.Id() == readObject.Id() {
+
+			return errors.New("object already exists, cannot save new")
+		}
+		if !bucketHeader.previousCollision {
+
+			collisionTableId := dao.NewCollisionTableId()
+
+			if err := dao.SaveForCollision(object, collisionTableId); err != nil {
+
+				return err
+			}
+			updatedBucketHeader := DaoBucketHeader{true, true, collisionTableId}
 
 			if err := dao.fileContainer.GoTo(position, mainTable); err != nil {
 
 				return err
 			}
-			if err := dao.bucketHeaderIO.Write(mainTable, bucketHeader); err != nil {
+			if err := dao.bucketHeaderIO.Write(mainTable, updatedBucketHeader); err != nil {
+
+				return nil
+			}
+
+		} else {
+
+			if err := dao.SaveForCollision(object, bucketHeader.collisionTableId); err != nil {
 
 				return err
 			}
-			if err := dao.objectIO.Write(mainTable, object); err != nil {
+		}
 
-				return err
-			}
-			break
+	} else {
+
+		bucketHeader = DaoBucketHeader{true, false, 0}
+
+		if err := dao.fileContainer.GoTo(position, mainTable); err != nil {
+
+			return err
+		}
+		if err := dao.bucketHeaderIO.Write(mainTable, bucketHeader); err != nil {
+
+			return err
+		}
+		if err := dao.objectIO.Write(mainTable, object); err != nil {
+
+			return err
 		}
 	}
 	if err := dao.SaveNewObjectId(object.Id()); err != nil {
 
 		return err
 	}
-	return nil
+	return err
 }
 
 func (dao *FixedSizeDao[T]) SaveForCollision(object T, collisionTableId uint64) error {
 
 	collisionTable, err := dao.fileContainer.CollisionTable(collisionTableId)
 
+	if err != nil {
+
+		return err
+	}
 	defer func() {
 
 		if innerErr := dao.fileContainer.Close(collisionTable); innerErr != nil {
@@ -179,7 +179,9 @@ func (dao *FixedSizeDao[T]) SaveForCollision(object T, collisionTableId uint64) 
 
 					return err
 				}
-				return nil
+				err = nil
+
+				return err
 			}
 			return err
 		}

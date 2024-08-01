@@ -9,6 +9,10 @@ func (dao *FixedSizeDao[T]) Update(object T) error {
 
 	mainTable, err := dao.fileContainer.MainTable()
 
+	if err != nil {
+
+		return err
+	}
 	defer func() {
 
 		if innerErr := dao.fileContainer.Close(mainTable); innerErr != nil {
@@ -24,57 +28,50 @@ func (dao *FixedSizeDao[T]) Update(object T) error {
 		}
 	}()
 
-	if err != nil {
+	position := dao.hash(object.Id())
+
+	if err := dao.fileContainer.GoTo(position, mainTable); err != nil {
 
 		return err
 	}
-	position := dao.hash(object.Id())
+	bucketHeader, err := dao.bucketHeaderIO.Read(mainTable)
 
-	for {
+	if err != nil {
 
-		if err := dao.fileContainer.GoTo(position, mainTable); err != nil {
-
-			return err
-		}
-		bucketHeader, err := dao.bucketHeaderIO.Read(mainTable)
-
-		if err != nil {
-
-			if errors.Is(err, io.EOF) {
-
-				return errors.New("object does not exist to update")
-			}
-			return err
-		}
-		if bucketHeader.occupied {
-
-			readObject, err := dao.objectIO.Read(mainTable)
-
-			if err != nil {
-
-				return err
-			}
-			if object.Id() == readObject.Id() {
-
-				if err := dao.fileContainer.GoTo(position, mainTable); err != nil {
-
-					return err
-				}
-				if err := dao.objectIO.Write(mainTable, object); err != nil {
-
-					return err
-				}
-				return nil
-
-			} else {
-
-				return dao.UpdateForCollision(object, bucketHeader.collisionTableId)
-			}
-
-		} else {
+		if errors.Is(err, io.EOF) {
 
 			return errors.New("object does not exist to update")
 		}
+		return err
+	}
+	if bucketHeader.occupied {
+
+		readObject, err := dao.objectIO.Read(mainTable)
+
+		if err != nil {
+
+			return err
+		}
+		if object.Id() == readObject.Id() {
+
+			if err := dao.fileContainer.GoTo(position, mainTable); err != nil {
+
+				return err
+			}
+			if err := dao.objectIO.Write(mainTable, object); err != nil {
+
+				return err
+			}
+			return err
+
+		} else {
+
+			return dao.UpdateForCollision(object, bucketHeader.collisionTableId)
+		}
+
+	} else {
+
+		return errors.New("object does not exist to update")
 	}
 }
 
@@ -82,6 +79,10 @@ func (dao *FixedSizeDao[T]) UpdateForCollision(object T, collisionTableId uint64
 
 	collisionTable, err := dao.fileContainer.CollisionTable(collisionTableId)
 
+	if err != nil {
+
+		return err
+	}
 	defer func() {
 
 		if innerErr := dao.fileContainer.Close(collisionTable); innerErr != nil {
@@ -125,7 +126,7 @@ func (dao *FixedSizeDao[T]) UpdateForCollision(object T, collisionTableId uint64
 
 				return err
 			}
-			return nil
+			return err
 		}
 	}
 }

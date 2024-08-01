@@ -9,6 +9,10 @@ func (dao *FixedSizeDao[T]) Get(id uint64) (*T, error) {
 
 	mainTable, err := dao.fileContainer.MainTable()
 
+	if err != nil {
+
+		return nil, err
+	}
 	defer func() {
 
 		if innerErr := dao.fileContainer.Close(mainTable); innerErr != nil {
@@ -24,49 +28,49 @@ func (dao *FixedSizeDao[T]) Get(id uint64) (*T, error) {
 		}
 	}()
 
-	if err != nil {
+	position := dao.hash(id)
+
+	if err := dao.fileContainer.GoTo(position, mainTable); err != nil {
 
 		return nil, err
 	}
-	position := dao.hash(id)
+	bucketHeader, err := dao.bucketHeaderIO.Read(mainTable)
 
-	for {
+	if err != nil {
 
-		if err := dao.fileContainer.GoTo(position, mainTable); err != nil {
+		if errors.Is(err, io.EOF) {
+
+			err = nil
 
 			return nil, err
 		}
-		bucketHeader, err := dao.bucketHeaderIO.Read(mainTable)
+		return nil, err
+	}
+	// Need to check for previous collision here too in case the original has been deleted
+	if bucketHeader.occupied {
+
+		object, err := dao.objectIO.Read(mainTable)
 
 		if err != nil {
 
-			if errors.Is(err, io.EOF) {
-
-				return nil, nil
-			}
 			return nil, err
 		}
-		if bucketHeader.occupied {
+		if id == object.Id() {
 
-			object, err := dao.objectIO.Read(mainTable)
-
-			if err != nil {
-
-				return nil, err
-			}
-			if id == object.Id() {
-
-				return &object, nil
-
-			} else {
-
-				return dao.GetForCollision(id, bucketHeader.collisionTableId)
-			}
+			return &object, err
 
 		} else {
 
-			return nil, nil
+			return dao.GetForCollision(id, bucketHeader.collisionTableId)
 		}
+
+	} else {
+
+		if bucketHeader.previousCollision {
+
+			return dao.GetForCollision(id, bucketHeader.collisionTableId)
+		}
+		return nil, err
 	}
 }
 
@@ -105,13 +109,15 @@ func (dao *FixedSizeDao[T]) GetForCollision(id, collisionTableId uint64) (*T, er
 
 			if errors.Is(err, io.EOF) {
 
-				return nil, nil
+				err = nil
+
+				return nil, err
 			}
 			return nil, err
 		}
 		if id == object.Id() {
 
-			return &object, nil
+			return &object, err
 		}
 	}
 }
