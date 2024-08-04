@@ -5,9 +5,9 @@ import (
 	"io"
 )
 
-func (dao *FixedSizeDao[T]) SaveNewObjectId(id uint64) error {
+func (dao *TSFHashTable[T]) SaveNewCollisionTableId(id uint64) error {
 
-	managingFile, err := dao.fileContainer.ManagingFile()
+	managingFile, err := dao.fileContainer.Open(HashTableManagingFile, dao.id)
 
 	if err != nil {
 
@@ -28,7 +28,7 @@ func (dao *FixedSizeDao[T]) SaveNewObjectId(id uint64) error {
 		}
 	}()
 
-	dao.identifierCache.ObjectIds = append(dao.identifierCache.ObjectIds, id)
+	dao.identifierCache.CollisionTableIds = append(dao.identifierCache.CollisionTableIds, id)
 
 	_, err = dao.cacheIO.WriteSizePrefixed(managingFile, dao.identifierCache)
 
@@ -39,9 +39,9 @@ func (dao *FixedSizeDao[T]) SaveNewObjectId(id uint64) error {
 	return err
 }
 
-func (dao *FixedSizeDao[T]) Save(object T) error {
+func (dao *TSFHashTable[T]) Save(object T) error {
 
-	mainTable, err := dao.fileContainer.MainTable()
+	mainTable, err := dao.fileContainer.Open(HashTableMainTable, dao.id)
 
 	if err != nil {
 
@@ -76,7 +76,7 @@ func (dao *FixedSizeDao[T]) Save(object T) error {
 
 			err = nil
 
-			bucketHeader = DaoBucketHeader{false, false, 0}
+			bucketHeader = HashTableBucketHeader{false, false, 0}
 
 		} else {
 
@@ -93,7 +93,7 @@ func (dao *FixedSizeDao[T]) Save(object T) error {
 		}
 		if object.Id() == readObject.Id() {
 
-			return errors.New("object already exists, cannot save new")
+			return NewDaoError(ObjectAlreadyExists)
 		}
 		if !bucketHeader.previousCollision {
 
@@ -103,7 +103,11 @@ func (dao *FixedSizeDao[T]) Save(object T) error {
 
 				return err
 			}
-			updatedBucketHeader := DaoBucketHeader{true, true, collisionTableId}
+			if err := dao.SaveNewCollisionTableId(collisionTableId); err != nil {
+
+				return err
+			}
+			updatedBucketHeader := HashTableBucketHeader{true, true, collisionTableId}
 
 			if err := dao.fileContainer.GoTo(position, mainTable); err != nil {
 
@@ -124,7 +128,7 @@ func (dao *FixedSizeDao[T]) Save(object T) error {
 
 	} else {
 
-		bucketHeader = DaoBucketHeader{true, false, 0}
+		bucketHeader = HashTableBucketHeader{true, false, 0}
 
 		if err := dao.fileContainer.GoTo(position, mainTable); err != nil {
 
@@ -139,16 +143,12 @@ func (dao *FixedSizeDao[T]) Save(object T) error {
 			return err
 		}
 	}
-	if err := dao.SaveNewObjectId(object.Id()); err != nil {
-
-		return err
-	}
 	return err
 }
 
-func (dao *FixedSizeDao[T]) SaveForCollision(object T, collisionTableId uint64) error {
+func (dao *TSFHashTable[T]) SaveForCollision(object T, collisionTableId uint64) error {
 
-	collisionTable, err := dao.fileContainer.CollisionTable(collisionTableId)
+	collisionTable, err := dao.fileContainer.Open(HashTableCollisionTable, collisionTableId)
 
 	if err != nil {
 
@@ -189,7 +189,7 @@ func (dao *FixedSizeDao[T]) SaveForCollision(object T, collisionTableId uint64) 
 		}
 		if object.Id() == readObject.Id() {
 
-			return errors.New("object already exists, cannot save new")
+			return NewDaoError(ObjectAlreadyExists)
 		}
 	}
 }

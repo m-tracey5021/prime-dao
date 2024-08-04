@@ -17,7 +17,7 @@ func TestSaveAtEmptyPosition(t *testing.T) {
 
 	objectToSave := MockHashable{0}
 
-	bucketHeader := DaoBucketHeader{}
+	bucketHeader := HashTableBucketHeader{}
 
 	hash := dao.hash(objectToSave.Id())
 
@@ -37,9 +37,9 @@ func TestSaveAtEmptyPosition(t *testing.T) {
 	// Then
 	assert.Nil(t, err)
 
-	mockFileContainer.AssertCalled(t, "ManagingFile")
+	mockFileContainer.AssertCalled(t, "File", HashTableManagingFile, mock.AnythingOfType("uint64"))
 
-	mockFileContainer.AssertCalled(t, "MainTable")
+	mockFileContainer.AssertCalled(t, "File", HashTableMainTable, mock.AnythingOfType("uint64"))
 
 	mockCacheIO.AssertExpectations(t)
 
@@ -59,7 +59,7 @@ func TestSaveAtOccupiedPositionFirstCollision(t *testing.T) {
 
 	collision := MockHashable{1}
 
-	bucketHeader := DaoBucketHeader{true, false, 0}
+	bucketHeader := HashTableBucketHeader{true, false, 0}
 
 	hash := dao.hash(objectToSave.Id())
 
@@ -103,7 +103,7 @@ func TestSaveAtOccupiedPositionFirstCollisionWithExistingId(t *testing.T) {
 
 	collision := MockHashable{0}
 
-	bucketHeader := DaoBucketHeader{true, false, 0}
+	bucketHeader := HashTableBucketHeader{true, false, 0}
 
 	hash := dao.hash(objectToSave.Id())
 
@@ -121,7 +121,7 @@ func TestSaveAtOccupiedPositionFirstCollisionWithExistingId(t *testing.T) {
 
 	assert.Equal(t, "object already exists, cannot save new", err.Error())
 
-	mockFileContainer.AssertCalled(t, "MainTable")
+	mockFileContainer.AssertCalled(t, "File", HashTableMainTable, mock.AnythingOfType("uint64"))
 
 	mockCacheIO.AssertExpectations(t)
 
@@ -143,7 +143,7 @@ func TestSaveAtOccupiedPositionNonFirstCollision(t *testing.T) {
 
 	collisionB := MockHashable{2}
 
-	bucketHeader := DaoBucketHeader{true, true, 0}
+	bucketHeader := HashTableBucketHeader{true, true, 0}
 
 	hash := dao.hash(objectToSave.Id())
 
@@ -189,7 +189,7 @@ func TestSaveAtOccupiedPositionNonFirstCollisionWithExistingId(t *testing.T) {
 
 	collisionB := MockHashable{0}
 
-	bucketHeader := DaoBucketHeader{true, false, 0}
+	bucketHeader := HashTableBucketHeader{true, false, 0}
 
 	hash := dao.hash(objectToSave.Id())
 
@@ -209,9 +209,9 @@ func TestSaveAtOccupiedPositionNonFirstCollisionWithExistingId(t *testing.T) {
 
 	assert.Equal(t, "object already exists, cannot save new", err.Error())
 
-	mockFileContainer.AssertCalled(t, "MainTable")
+	mockFileContainer.AssertCalled(t, "File", HashTableMainTable, mock.AnythingOfType("uint64"))
 
-	mockFileContainer.AssertCalled(t, "CollisionTable", mock.AnythingOfType("uint64"))
+	mockFileContainer.AssertCalled(t, "File", HashTableCollisionTable, mock.AnythingOfType("uint64"))
 
 	mockCacheIO.AssertExpectations(t)
 

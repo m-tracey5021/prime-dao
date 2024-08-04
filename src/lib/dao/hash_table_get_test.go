@@ -17,7 +17,7 @@ func TestGetAtEmptyPosition(t *testing.T) {
 
 	id := uint64(0)
 
-	bucketHeader := DaoBucketHeader{}
+	bucketHeader := HashTableBucketHeader{}
 
 	hash := dao.hash(id)
 
@@ -36,7 +36,7 @@ func TestGetAtEmptyPosition(t *testing.T) {
 	// Then
 	assert.Nil(t, read)
 
-	mockFileContainer.AssertCalled(t, "MainTable")
+	mockFileContainer.AssertCalled(t, "File", HashTableMainTable, mock.AnythingOfType("uint64"))
 
 	mockBucketHeaderIO.AssertExpectations(t)
 }
@@ -52,7 +52,7 @@ func TestGetAtEmptyPositionPreviouslyDeleted(t *testing.T) {
 
 	objectToRetrieve := MockHashable{id}
 
-	bucketHeader := DaoBucketHeader{false, true, 0}
+	bucketHeader := HashTableBucketHeader{false, true, 0}
 
 	hash := dao.hash(id)
 
@@ -73,7 +73,7 @@ func TestGetAtEmptyPositionPreviouslyDeleted(t *testing.T) {
 	// Then
 	assert.Equal(t, &objectToRetrieve, read)
 
-	mockFileContainer.AssertCalled(t, "MainTable")
+	mockFileContainer.AssertCalled(t, "File", HashTableMainTable, mock.AnythingOfType("uint64"))
 
 	mockBucketHeaderIO.AssertExpectations(t)
 }
@@ -89,7 +89,7 @@ func TestGetAtOccupiedPosition(t *testing.T) {
 
 	objectToRetrieveA := MockHashable{id}
 
-	bucketHeader := DaoBucketHeader{true, false, 0}
+	bucketHeader := HashTableBucketHeader{true, false, 0}
 
 	hash := dao.hash(id)
 
@@ -110,7 +110,7 @@ func TestGetAtOccupiedPosition(t *testing.T) {
 	// Then
 	assert.Equal(t, &objectToRetrieveA, read)
 
-	mockFileContainer.AssertCalled(t, "MainTable")
+	mockFileContainer.AssertCalled(t, "File", HashTableMainTable, mock.AnythingOfType("uint64"))
 
 	mockBucketHeaderIO.AssertExpectations(t)
 
@@ -130,7 +130,7 @@ func TestGetAtOccupiedPositionWithCollision(t *testing.T) {
 
 	objectToRetrieveB := MockHashable{id}
 
-	bucketHeader := DaoBucketHeader{true, true, 0}
+	bucketHeader := HashTableBucketHeader{true, true, 0}
 
 	hash := dao.hash(id)
 
@@ -153,9 +153,9 @@ func TestGetAtOccupiedPositionWithCollision(t *testing.T) {
 	// Then
 	assert.Equal(t, &objectToRetrieveB, read)
 
-	mockFileContainer.AssertCalled(t, "MainTable")
+	mockFileContainer.AssertCalled(t, "File", HashTableMainTable, mock.AnythingOfType("uint64"))
 
-	mockFileContainer.AssertCalled(t, "CollisionTable", mock.AnythingOfType("uint64"))
+	mockFileContainer.AssertCalled(t, "File", HashTableCollisionTable, mock.AnythingOfType("uint64"))
 
 	mockBucketHeaderIO.AssertExpectations(t)
 
@@ -175,7 +175,7 @@ func TestGetAtOccupiedPositionWithCollisionNoResult(t *testing.T) {
 
 	objectToRetrieveB := MockHashable{id}
 
-	bucketHeader := DaoBucketHeader{true, true, 0}
+	bucketHeader := HashTableBucketHeader{true, true, 0}
 
 	hash := dao.hash(id)
 
@@ -198,9 +198,9 @@ func TestGetAtOccupiedPositionWithCollisionNoResult(t *testing.T) {
 	// Then
 	assert.Nil(t, read)
 
-	mockFileContainer.AssertCalled(t, "MainTable")
+	mockFileContainer.AssertCalled(t, "File", HashTableMainTable, mock.AnythingOfType("uint64"))
 
-	mockFileContainer.AssertCalled(t, "CollisionTable", mock.AnythingOfType("uint64"))
+	mockFileContainer.AssertCalled(t, "File", HashTableCollisionTable, mock.AnythingOfType("uint64"))
 
 	mockBucketHeaderIO.AssertExpectations(t)
 

@@ -7,7 +7,7 @@ import (
 )
 
 type DaoIndex struct {
-	indexId uint64
+	id uint64
 
 	fileId uint64
 
@@ -16,7 +16,7 @@ type DaoIndex struct {
 
 func (index DaoIndex) Id() uint64 {
 
-	return index.indexId
+	return index.id
 }
 
 func (index DaoIndex) Size() int {
@@ -26,7 +26,7 @@ func (index DaoIndex) Size() int {
 
 func (index DaoIndex) WriteSelf(file *os.File) error {
 
-	if err := binary.Write(file, binary.LittleEndian, index.indexId); err != nil {
+	if err := binary.Write(file, binary.LittleEndian, index.id); err != nil {
 
 		return err
 	}

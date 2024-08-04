@@ -19,7 +19,7 @@ func TestUpdateAtEmptyPosition(t *testing.T) {
 
 	objectToUpdate := MockHashable{id}
 
-	bucketHeader := DaoBucketHeader{false, false, 0}
+	bucketHeader := HashTableBucketHeader{false, false, 0}
 
 	hash := dao.hash(id)
 
@@ -35,7 +35,7 @@ func TestUpdateAtEmptyPosition(t *testing.T) {
 
 	assert.Equal(t, "object does not exist to update", err.Error())
 
-	mockFileContainer.AssertCalled(t, "MainTable")
+	mockFileContainer.AssertCalled(t, "File", HashTableMainTable, mock.AnythingOfType("uint64"))
 
 	mockBucketHeaderIO.AssertExpectations(t)
 
@@ -53,7 +53,7 @@ func TestUpdateAtEmptyPositionAndEOF(t *testing.T) {
 
 	objectToUpdate := MockHashable{id}
 
-	bucketHeader := DaoBucketHeader{}
+	bucketHeader := HashTableBucketHeader{}
 
 	hash := dao.hash(id)
 
@@ -69,7 +69,7 @@ func TestUpdateAtEmptyPositionAndEOF(t *testing.T) {
 
 	assert.Equal(t, "object does not exist to update", err.Error())
 
-	mockFileContainer.AssertCalled(t, "MainTable")
+	mockFileContainer.AssertCalled(t, "File", HashTableMainTable, mock.AnythingOfType("uint64"))
 
 	mockBucketHeaderIO.AssertExpectations(t)
 
@@ -89,7 +89,7 @@ func TestUpdateAtOccupiedPosition(t *testing.T) {
 
 	objectToUpdate := MockHashable{id}
 
-	bucketHeader := DaoBucketHeader{true, false, 0}
+	bucketHeader := HashTableBucketHeader{true, false, 0}
 
 	hash := dao.hash(id)
 
@@ -107,7 +107,7 @@ func TestUpdateAtOccupiedPosition(t *testing.T) {
 	// Then
 	assert.Nil(t, err)
 
-	mockFileContainer.AssertCalled(t, "MainTable")
+	mockFileContainer.AssertCalled(t, "File", HashTableMainTable, mock.AnythingOfType("uint64"))
 
 	mockBucketHeaderIO.AssertExpectations(t)
 
@@ -129,7 +129,7 @@ func TestUpdateAtOccupiedPositionWithCollision(t *testing.T) {
 
 	objectToUpdate := MockHashable{id}
 
-	bucketHeader := DaoBucketHeader{true, false, 0}
+	bucketHeader := HashTableBucketHeader{true, false, 0}
 
 	hash := dao.hash(id)
 
@@ -153,9 +153,9 @@ func TestUpdateAtOccupiedPositionWithCollision(t *testing.T) {
 	// Then
 	assert.Nil(t, err)
 
-	mockFileContainer.AssertCalled(t, "MainTable")
+	mockFileContainer.AssertCalled(t, "File", HashTableMainTable, mock.AnythingOfType("uint64"))
 
-	mockFileContainer.AssertCalled(t, "CollisionTable", mock.AnythingOfType("uint64"))
+	mockFileContainer.AssertCalled(t, "File", HashTableCollisionTable, mock.AnythingOfType("uint64"))
 
 	mockBucketHeaderIO.AssertExpectations(t)
 
@@ -175,7 +175,7 @@ func TestUpdateAtOccupiedPositionWithCollisionAndEOF(t *testing.T) {
 
 	objectToUpdate := MockHashable{id}
 
-	bucketHeader := DaoBucketHeader{true, false, 0}
+	bucketHeader := HashTableBucketHeader{true, false, 0}
 
 	hash := dao.hash(id)
 
@@ -197,9 +197,9 @@ func TestUpdateAtOccupiedPositionWithCollisionAndEOF(t *testing.T) {
 
 	assert.Equal(t, "object does not exist to update", err.Error())
 
-	mockFileContainer.AssertCalled(t, "MainTable")
+	mockFileContainer.AssertCalled(t, "File", HashTableMainTable, mock.AnythingOfType("uint64"))
 
-	mockFileContainer.AssertCalled(t, "CollisionTable", mock.AnythingOfType("uint64"))
+	mockFileContainer.AssertCalled(t, "File", HashTableCollisionTable, mock.AnythingOfType("uint64"))
 
 	mockBucketHeaderIO.AssertExpectations(t)
 

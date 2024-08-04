@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"os"
 	"transformer/src/lib/dao/schema"
-	daoIO "transformer/src/lib/dao_io"
+	"transformer/src/lib/daoio"
 	"unsafe"
 
 	"github.com/stretchr/testify/mock"
@@ -46,42 +46,41 @@ func (obj MockHashable) ReadSelf(file *os.File) (schema.FixedSize, error) {
 
 func setupMockDao() (
 
-	*MockDaoFileContainer,
+	*MockFileManager,
 
-	*daoIO.MockDaoIO[DaoIdentifierCache],
+	*daoio.MockDaoIO[HashTableIdentifierCache],
 
-	*daoIO.MockFixedSizeDao[DaoBucketHeader],
+	*daoio.MockFixedSizeDao[HashTableBucketHeader],
 
-	*daoIO.MockFixedSizeDao[MockHashable],
+	*daoio.MockFixedSizeDao[MockHashable],
 
-	FixedSizeDao[MockHashable],
+	TSFHashTable[MockHashable],
 
 ) {
+	id := uint64(0)
 
-	mockFileContainer := new(MockDaoFileContainer)
+	mockFileContainer := new(MockFileManager)
 
-	mockCacheIO := new(daoIO.MockDaoIO[DaoIdentifierCache])
+	mockCacheIO := new(daoio.MockDaoIO[HashTableIdentifierCache])
 
-	mockBucketHeaderIO := new(daoIO.MockFixedSizeDao[DaoBucketHeader])
+	mockBucketHeaderIO := new(daoio.MockFixedSizeDao[HashTableBucketHeader])
 
-	mockObjectIO := new(daoIO.MockFixedSizeDao[MockHashable])
+	mockObjectIO := new(daoio.MockFixedSizeDao[MockHashable])
 
-	bucketSize := int(unsafe.Sizeof(*new(DaoBucketHeader)) + unsafe.Sizeof(*new(MockHashable)))
+	bucketSize := int(unsafe.Sizeof(*new(HashTableBucketHeader)) + unsafe.Sizeof(*new(MockHashable)))
 
 	tableSize := 10
 
-	objectIds := make([]uint64, 0)
+	collisionTableIds := make([]uint64, 0)
 
-	fileIds := make([]uint64, 0)
+	identifierCache := HashTableIdentifierCache{collisionTableIds}
 
-	identifierCache := DaoIdentifierCache{objectIds, fileIds}
-
-	dao := Default[MockHashable](bucketSize, tableSize, mockFileContainer, identifierCache, mockCacheIO, mockBucketHeaderIO, mockObjectIO)
+	dao := Default[MockHashable](id, bucketSize, tableSize, mockFileContainer, identifierCache, mockCacheIO, mockBucketHeaderIO, mockObjectIO)
 
 	return mockFileContainer, mockCacheIO, mockBucketHeaderIO, mockObjectIO, dao
 }
 
-func setupMockFiles(mockFileContainer *MockDaoFileContainer) (*os.File, *os.File, *os.File) {
+func setupMockFiles(mockFileContainer *MockFileManager) (*os.File, *os.File, *os.File) {
 
 	mockManagingFile := new(os.File)
 
@@ -91,11 +90,11 @@ func setupMockFiles(mockFileContainer *MockDaoFileContainer) (*os.File, *os.File
 
 	mockFileContainer.On("Close", mock.AnythingOfType("*os.File")).Return(nil)
 
-	mockFileContainer.On("ManagingFile").Return(mockManagingFile, nil)
+	mockFileContainer.On("File", HashTableManagingFile, mock.AnythingOfType("uint64")).Return(mockManagingFile, nil)
 
-	mockFileContainer.On("MainTable").Return(mockMainTable, nil)
+	mockFileContainer.On("File", HashTableMainTable, mock.AnythingOfType("uint64")).Return(mockMainTable, nil)
 
-	mockFileContainer.On("CollisionTable", mock.AnythingOfType("uint64")).Return(mockCollisionTable, nil)
+	mockFileContainer.On("File", HashTableCollisionTable, mock.AnythingOfType("uint64")).Return(mockCollisionTable, nil)
 
 	return mockManagingFile, mockMainTable, mockCollisionTable
 }

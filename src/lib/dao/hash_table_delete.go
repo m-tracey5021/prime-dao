@@ -3,54 +3,53 @@ package dao
 import (
 	"errors"
 	"io"
-	"slices"
 )
 
-func (dao *FixedSizeDao[T]) DeleteObjectId(id uint64) error {
+// func (dao *TSFHashTable[T]) DeleteObjectId(id uint64) error {
 
-	initialSize := len(dao.identifierCache.ObjectIds)
+// 	initialSize := len(dao.identifierCache.ObjectIds)
 
-	matches := func(element uint64) bool {
+// 	matches := func(element uint64) bool {
 
-		return element == id
-	}
-	dao.identifierCache.ObjectIds = slices.DeleteFunc(dao.identifierCache.ObjectIds, matches)
+// 		return element == id
+// 	}
+// 	dao.identifierCache.ObjectIds = slices.DeleteFunc(dao.identifierCache.ObjectIds, matches)
 
-	sizeAfterDelete := len(dao.identifierCache.ObjectIds)
+// 	sizeAfterDelete := len(dao.identifierCache.ObjectIds)
 
-	if sizeAfterDelete == initialSize {
+// 	if sizeAfterDelete == initialSize {
 
-		return errors.New("id does not exist to delete")
-	}
-	managingFile, err := dao.fileContainer.ManagingFile()
+// 		return errors.New("id does not exist to delete")
+// 	}
+// 	managingFile, err := dao.fileContainer.File(HashTableManagingFile, dao.id)
 
-	if err != nil {
+// 	if err != nil {
 
-		return err
-	}
-	defer func() {
+// 		return err
+// 	}
+// 	defer func() {
 
-		if innerErr := dao.fileContainer.Close(managingFile); innerErr != nil {
+// 		if innerErr := dao.fileContainer.Close(managingFile); innerErr != nil {
 
-			if err != nil {
+// 			if err != nil {
 
-				err = errors.Join(innerErr, err)
+// 				err = errors.Join(innerErr, err)
 
-			} else {
+// 			} else {
 
-				err = innerErr
-			}
-		}
-	}()
+// 				err = innerErr
+// 			}
+// 		}
+// 	}()
 
-	_, err = dao.cacheIO.WriteSizePrefixed(managingFile, dao.identifierCache)
+// 	_, err = dao.cacheIO.WriteSizePrefixed(managingFile, dao.identifierCache)
 
-	return err
-}
+// 	return err
+// }
 
-func (dao *FixedSizeDao[T]) Delete(id uint64) error {
+func (dao *TSFHashTable[T]) Delete(id uint64) error {
 
-	mainTable, err := dao.fileContainer.MainTable()
+	mainTable, err := dao.fileContainer.Open(HashTableMainTable, dao.id)
 
 	if err != nil {
 
@@ -119,10 +118,10 @@ func (dao *FixedSizeDao[T]) Delete(id uint64) error {
 				return err
 			}
 		}
-		if err := dao.DeleteObjectId(id); err != nil {
+		// if err := dao.DeleteObjectId(id); err != nil {
 
-			return err
-		}
+		// 	return err
+		// }
 		return err
 
 	} else {
@@ -131,9 +130,9 @@ func (dao *FixedSizeDao[T]) Delete(id uint64) error {
 	}
 }
 
-func (dao *FixedSizeDao[T]) DeleteForCollision(id uint64, collisionTableId uint64) error {
+func (dao *TSFHashTable[T]) DeleteForCollision(id uint64, collisionTableId uint64) error {
 
-	collisionTable, err := dao.fileContainer.CollisionTable(collisionTableId)
+	collisionTable, err := dao.fileContainer.Open(HashTableCollisionTable, collisionTableId)
 
 	if err != nil {
 

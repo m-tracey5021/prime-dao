@@ -1,4 +1,4 @@
-package daoIO
+package daoio
 
 import (
 	"errors"

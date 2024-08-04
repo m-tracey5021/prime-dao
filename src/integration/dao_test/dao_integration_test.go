@@ -13,13 +13,17 @@ func TestHashableDao(t *testing.T) {
 
 	descriptor := "obj_test"
 
-	hashableDao, err := dao.Wrapped[dao.MockHashable](path, descriptor)
+	fileManager := dao.NewFileContainer(path, descriptor)
+
+	daoId := uint64(0)
+
+	hashableDao, err := dao.Wrapped[dao.MockHashable](fileManager, daoId)
 
 	if err != nil {
 
 		t.Fatalf("%v", err)
 	}
-	id := hashableDao.NewObjectId()
+	id := uint64(0)
 
 	testObject := dao.MockHashable{id}
 
@@ -40,7 +44,11 @@ func TestHashableDaoWithCollision(t *testing.T) {
 
 	descriptor := "obj_test"
 
-	hashableDao, err := dao.Wrapped[dao.MockHashable](path, descriptor)
+	fileManager := dao.NewFileContainer(path, descriptor)
+
+	daoId := uint64(0)
+
+	hashableDao, err := dao.Wrapped[dao.MockHashable](fileManager, daoId)
 
 	if err != nil {
 
@@ -87,7 +95,11 @@ func TestHashableDaoWithCollisionAndDelete(t *testing.T) {
 
 	descriptor := "obj_test"
 
-	hashableDao, err := dao.Wrapped[dao.MockHashable](path, descriptor)
+	fileManager := dao.NewFileContainer(path, descriptor)
+
+	daoId := uint64(0)
+
+	hashableDao, err := dao.Wrapped[dao.MockHashable](fileManager, daoId)
 
 	if err != nil {
 

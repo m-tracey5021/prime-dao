@@ -5,9 +5,9 @@ import (
 	"io"
 )
 
-func (dao *FixedSizeDao[T]) Update(object T) error {
+func (dao *TSFHashTable[T]) Update(object T) error {
 
-	mainTable, err := dao.fileContainer.MainTable()
+	mainTable, err := dao.fileContainer.Open(HashTableMainTable, dao.id)
 
 	if err != nil {
 
@@ -75,9 +75,9 @@ func (dao *FixedSizeDao[T]) Update(object T) error {
 	}
 }
 
-func (dao *FixedSizeDao[T]) UpdateForCollision(object T, collisionTableId uint64) error {
+func (dao *TSFHashTable[T]) UpdateForCollision(object T, collisionTableId uint64) error {
 
-	collisionTable, err := dao.fileContainer.CollisionTable(collisionTableId)
+	collisionTable, err := dao.fileContainer.Open(HashTableCollisionTable, collisionTableId)
 
 	if err != nil {
 

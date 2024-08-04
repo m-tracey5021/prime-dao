@@ -17,7 +17,7 @@ func TestDeleteAtEmptyPosition(t *testing.T) {
 
 	idToDelete := uint64(0)
 
-	bucketHeader := DaoBucketHeader{false, false, 0}
+	bucketHeader := HashTableBucketHeader{false, false, 0}
 
 	hash := dao.hash(idToDelete)
 
@@ -33,7 +33,7 @@ func TestDeleteAtEmptyPosition(t *testing.T) {
 
 	assert.Equal(t, "object does not exist to delete", err.Error())
 
-	mockFileContainer.AssertCalled(t, "MainTable")
+	mockFileContainer.AssertCalled(t, "File", HashTableMainTable, mock.AnythingOfType("uint64"))
 
 	mockBucketHeaderIO.AssertExpectations(t)
 
@@ -49,7 +49,7 @@ func TestDeleteAtEmptyPositionAndEOF(t *testing.T) {
 
 	idToDelete := uint64(0)
 
-	bucketHeader := DaoBucketHeader{}
+	bucketHeader := HashTableBucketHeader{}
 
 	hash := dao.hash(idToDelete)
 
@@ -65,7 +65,7 @@ func TestDeleteAtEmptyPositionAndEOF(t *testing.T) {
 
 	assert.Equal(t, "object does not exist to delete", err.Error())
 
-	mockFileContainer.AssertCalled(t, "MainTable")
+	mockFileContainer.AssertCalled(t, "File", HashTableMainTable, mock.AnythingOfType("uint64"))
 
 	mockBucketHeaderIO.AssertExpectations(t)
 
@@ -75,21 +75,21 @@ func TestDeleteAtEmptyPositionAndEOF(t *testing.T) {
 func TestDeleteAtOccupiedPosition(t *testing.T) {
 
 	// Given
-	mockFileContainer, mockCacheIO, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
+	mockFileContainer, _, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
 
-	mockManagingFile, mockMainTable, _ := setupMockFiles(mockFileContainer)
+	_, mockMainTable, _ := setupMockFiles(mockFileContainer)
 
 	idToDelete := uint64(0)
 
 	savedObject := MockHashable{idToDelete}
 
-	bucketHeader := DaoBucketHeader{true, false, 0}
+	bucketHeader := HashTableBucketHeader{true, false, 0}
 
 	hash := dao.hash(idToDelete)
 
-	dao.identifierCache.ObjectIds = append(dao.identifierCache.ObjectIds, idToDelete)
+	// dao.identifierCache.ObjectIds = append(dao.identifierCache.ObjectIds, idToDelete)
 
-	cacheAfterDeletion := DaoIdentifierCache{make([]uint64, 0), make([]uint64, 0)}
+	// cacheAfterDeletion := HashTableIdentifierCache{make([]uint64, 0), make([]uint64, 0)}
 
 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
 
@@ -101,7 +101,7 @@ func TestDeleteAtOccupiedPosition(t *testing.T) {
 
 	mockObjectIO.On("Zero", mockMainTable).Return(nil)
 
-	mockCacheIO.On("WriteSizePrefixed", mockManagingFile, cacheAfterDeletion).Return(0, nil)
+	// mockCacheIO.On("WriteSizePrefixed", mockManagingFile, cacheAfterDeletion).Return(0, nil)
 
 	// When
 	err := dao.Delete(idToDelete)
@@ -109,7 +109,7 @@ func TestDeleteAtOccupiedPosition(t *testing.T) {
 	// Then
 	assert.Nil(t, err)
 
-	mockFileContainer.AssertCalled(t, "MainTable")
+	mockFileContainer.AssertCalled(t, "File", HashTableMainTable, mock.AnythingOfType("uint64"))
 
 	mockBucketHeaderIO.AssertExpectations(t)
 
@@ -119,9 +119,9 @@ func TestDeleteAtOccupiedPosition(t *testing.T) {
 func TestDeleteAtOccupiedPositionWithCollision(t *testing.T) {
 
 	// Given
-	mockFileContainer, mockCacheIO, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
+	mockFileContainer, _, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
 
-	mockManagingFile, mockMainTable, mockCollisionTable := setupMockFiles(mockFileContainer)
+	_, mockMainTable, mockCollisionTable := setupMockFiles(mockFileContainer)
 
 	idToDelete := uint64(0)
 
@@ -129,13 +129,13 @@ func TestDeleteAtOccupiedPositionWithCollision(t *testing.T) {
 
 	collision := MockHashable{1}
 
-	bucketHeader := DaoBucketHeader{true, false, 0}
+	bucketHeader := HashTableBucketHeader{true, false, 0}
 
 	hash := dao.hash(idToDelete)
 
-	dao.identifierCache.ObjectIds = append(dao.identifierCache.ObjectIds, idToDelete)
+	// dao.identifierCache.ObjectIds = append(dao.identifierCache.ObjectIds, idToDelete)
 
-	cacheAfterDeletion := DaoIdentifierCache{make([]uint64, 0), make([]uint64, 0)}
+	// cacheAfterDeletion := HashTableIdentifierCache{make([]uint64, 0), make([]uint64, 0)}
 
 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil).Once()
 
@@ -151,7 +151,7 @@ func TestDeleteAtOccupiedPositionWithCollision(t *testing.T) {
 
 	mockObjectIO.On("Delete", mockCollisionTable).Return(nil)
 
-	mockCacheIO.On("WriteSizePrefixed", mockManagingFile, cacheAfterDeletion).Return(0, nil)
+	// mockCacheIO.On("WriteSizePrefixed", mockManagingFile, cacheAfterDeletion).Return(0, nil)
 
 	// When
 	err := dao.Delete(idToDelete)
@@ -159,9 +159,9 @@ func TestDeleteAtOccupiedPositionWithCollision(t *testing.T) {
 	// Then
 	assert.Nil(t, err)
 
-	mockFileContainer.AssertCalled(t, "MainTable")
+	mockFileContainer.AssertCalled(t, "File", HashTableMainTable, mock.AnythingOfType("uint64"))
 
-	mockFileContainer.AssertCalled(t, "CollisionTable", mock.AnythingOfType("uint64"))
+	mockFileContainer.AssertCalled(t, "File", HashTableCollisionTable, mock.AnythingOfType("uint64"))
 
 	mockBucketHeaderIO.AssertExpectations(t)
 
@@ -179,7 +179,7 @@ func TestDeleteAtOccupiedPositionWithCollisionAndEOF(t *testing.T) {
 
 	collision := MockHashable{1}
 
-	bucketHeader := DaoBucketHeader{true, false, 0}
+	bucketHeader := HashTableBucketHeader{true, false, 0}
 
 	hash := dao.hash(idToDelete)
 
@@ -201,9 +201,9 @@ func TestDeleteAtOccupiedPositionWithCollisionAndEOF(t *testing.T) {
 
 	assert.Equal(t, "object does not exist to delete", err.Error())
 
-	mockFileContainer.AssertCalled(t, "MainTable")
+	mockFileContainer.AssertCalled(t, "File", HashTableMainTable, mock.AnythingOfType("uint64"))
 
-	mockFileContainer.AssertCalled(t, "CollisionTable", mock.AnythingOfType("uint64"))
+	mockFileContainer.AssertCalled(t, "File", HashTableCollisionTable, mock.AnythingOfType("uint64"))
 
 	mockBucketHeaderIO.AssertExpectations(t)
 

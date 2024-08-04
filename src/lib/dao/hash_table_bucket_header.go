@@ -6,11 +6,8 @@ import (
 	"transformer/src/lib/dao/schema"
 )
 
-type DaoBucketHeader struct {
+type HashTableBucketHeader struct {
 	occupied bool
-
-	// If the original item has been deleted, dont bother searching for a collision
-	// deleted bool
 
 	// This flag checks whether or not a collision table has been created prior
 	previousCollision bool
@@ -19,21 +16,19 @@ type DaoBucketHeader struct {
 	collisionTableId uint64
 }
 
-func NewHeader(occupied bool) DaoBucketHeader {
+func NewHeader(occupied bool) HashTableBucketHeader {
 
-	return DaoBucketHeader{}
+	return HashTableBucketHeader{}
 }
 
-func (header DaoBucketHeader) Size() int {
+func (header HashTableBucketHeader) Size() int {
 
 	return 10
 }
 
-func (header DaoBucketHeader) WriteSelf(file *os.File) error {
+func (header HashTableBucketHeader) WriteSelf(file *os.File) error {
 
 	occupied := boolToByte(header.occupied)
-
-	// deleted := boolToByte(header.deleted)
 
 	previousCollision := boolToByte(header.previousCollision)
 
@@ -41,10 +36,6 @@ func (header DaoBucketHeader) WriteSelf(file *os.File) error {
 
 		return err
 	}
-	// if err := binary.Write(file, binary.LittleEndian, deleted); err != nil {
-
-	// 	return err
-	// }
 	if err := binary.Write(file, binary.LittleEndian, previousCollision); err != nil {
 
 		return err
@@ -56,11 +47,9 @@ func (header DaoBucketHeader) WriteSelf(file *os.File) error {
 	return nil
 }
 
-func (header DaoBucketHeader) ReadSelf(file *os.File) (schema.FixedSize, error) {
+func (header HashTableBucketHeader) ReadSelf(file *os.File) (schema.FixedSize, error) {
 
 	var occupied byte
-
-	// var deleted byte
 
 	var previousCollision byte
 
@@ -70,10 +59,6 @@ func (header DaoBucketHeader) ReadSelf(file *os.File) (schema.FixedSize, error) 
 
 		return nil, err
 	}
-	// if err := binary.Read(file, binary.LittleEndian, &deleted); err != nil {
-
-	// 	return nil, err
-	// }
 	if err := binary.Read(file, binary.LittleEndian, &previousCollision); err != nil {
 
 		return nil, err
@@ -82,5 +67,5 @@ func (header DaoBucketHeader) ReadSelf(file *os.File) (schema.FixedSize, error) 
 
 		return nil, err
 	}
-	return DaoBucketHeader{byteToBool(occupied), byteToBool(previousCollision), collisionTableId}, nil
+	return HashTableBucketHeader{byteToBool(occupied), byteToBool(previousCollision), collisionTableId}, nil
 }
