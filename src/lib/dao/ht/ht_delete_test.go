@@ -1,8 +1,9 @@
-package dao
+package ht
 
 import (
 	"io"
 	"testing"
+	"transformer/src/lib/dao/fm"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -33,7 +34,7 @@ func TestDeleteAtEmptyPosition(t *testing.T) {
 
 	assert.Equal(t, "object does not exist to delete", err.Error())
 
-	mockFileContainer.AssertCalled(t, "File", HashTableMainTable, mock.AnythingOfType("uint64"))
+	mockFileContainer.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
 
 	mockBucketHeaderIO.AssertExpectations(t)
 
@@ -65,7 +66,7 @@ func TestDeleteAtEmptyPositionAndEOF(t *testing.T) {
 
 	assert.Equal(t, "object does not exist to delete", err.Error())
 
-	mockFileContainer.AssertCalled(t, "File", HashTableMainTable, mock.AnythingOfType("uint64"))
+	mockFileContainer.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
 
 	mockBucketHeaderIO.AssertExpectations(t)
 
@@ -109,7 +110,7 @@ func TestDeleteAtOccupiedPosition(t *testing.T) {
 	// Then
 	assert.Nil(t, err)
 
-	mockFileContainer.AssertCalled(t, "File", HashTableMainTable, mock.AnythingOfType("uint64"))
+	mockFileContainer.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
 
 	mockBucketHeaderIO.AssertExpectations(t)
 
@@ -159,9 +160,9 @@ func TestDeleteAtOccupiedPositionWithCollision(t *testing.T) {
 	// Then
 	assert.Nil(t, err)
 
-	mockFileContainer.AssertCalled(t, "File", HashTableMainTable, mock.AnythingOfType("uint64"))
+	mockFileContainer.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
 
-	mockFileContainer.AssertCalled(t, "File", HashTableCollisionTable, mock.AnythingOfType("uint64"))
+	mockFileContainer.AssertCalled(t, "File", fm.HashTableCollisionTable, mock.AnythingOfType("uint64"))
 
 	mockBucketHeaderIO.AssertExpectations(t)
 
@@ -201,9 +202,9 @@ func TestDeleteAtOccupiedPositionWithCollisionAndEOF(t *testing.T) {
 
 	assert.Equal(t, "object does not exist to delete", err.Error())
 
-	mockFileContainer.AssertCalled(t, "File", HashTableMainTable, mock.AnythingOfType("uint64"))
+	mockFileContainer.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
 
-	mockFileContainer.AssertCalled(t, "File", HashTableCollisionTable, mock.AnythingOfType("uint64"))
+	mockFileContainer.AssertCalled(t, "File", fm.HashTableCollisionTable, mock.AnythingOfType("uint64"))
 
 	mockBucketHeaderIO.AssertExpectations(t)
 

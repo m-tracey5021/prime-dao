@@ -1,13 +1,14 @@
-package dao
+package ht
 
 import (
 	"errors"
 	"io"
+	"transformer/src/lib/dao/fm"
 )
 
 func (dao *TSFHashTable[T]) Update(object T) error {
 
-	mainTable, err := dao.fileContainer.Open(HashTableMainTable, dao.id)
+	mainTable, err := dao.fileContainer.Open(fm.HashTableMainTable, dao.id)
 
 	if err != nil {
 
@@ -77,7 +78,7 @@ func (dao *TSFHashTable[T]) Update(object T) error {
 
 func (dao *TSFHashTable[T]) UpdateForCollision(object T, collisionTableId uint64) error {
 
-	collisionTable, err := dao.fileContainer.Open(HashTableCollisionTable, collisionTableId)
+	collisionTable, err := dao.fileContainer.Open(fm.HashTableMainTable, string(collisionTableId))
 
 	if err != nil {
 

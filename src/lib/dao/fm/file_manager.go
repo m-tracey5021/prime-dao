@@ -1,4 +1,4 @@
-package dao
+package fm
 
 import (
 	"errors"
@@ -8,7 +8,7 @@ import (
 )
 
 type IFileManager interface {
-	Open(fileAlias FileAlias, id uint64) (*os.File, error)
+	Open(fileAlias FileAlias, id string) (*os.File, error)
 
 	GoTo(position int, file *os.File) error
 
@@ -43,20 +43,20 @@ func NewFileContainer(path, descriptor string) FileManager {
 
 	fileMap := map[FileAlias]string{
 
-		HashTableManagingFile: fmt.Sprintf("%v/%v_fs_dao", path, descriptor),
+		HashTableManagingFile: fmt.Sprintf("%v/%v_ht", path, descriptor),
 
-		HashTableMainTable: fmt.Sprintf("%v/%v_fs_tbl", path, descriptor),
+		HashTableMainTable: fmt.Sprintf("%v/%v_ht_tbl", path, descriptor),
 
-		HashTableCollisionTable: fmt.Sprintf("%v/%v_fs_c_tbl", path, descriptor),
+		HashTableCollisionTable: fmt.Sprintf("%v/%v_ht_c_tbl", path, descriptor),
 
 		DaoManagingFile: fmt.Sprintf("%v/%v_dao", path, descriptor),
 
-		DaoTable: fmt.Sprintf("%v/%v_tbl", path, descriptor),
+		DaoTable: fmt.Sprintf("%v/%v_dao_tbl", path, descriptor),
 	}
 	return FileManager{fileMap}
 }
 
-func (fileManager FileManager) Open(fileAlias FileAlias, id uint64) (*os.File, error) {
+func (fileManager FileManager) Open(fileAlias FileAlias, id string) (*os.File, error) {
 
 	filePath, ok := fileManager.fileMap[fileAlias]
 

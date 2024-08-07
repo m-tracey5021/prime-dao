@@ -1,8 +1,9 @@
-package dao
+package ht
 
 import (
 	"encoding/binary"
 	"os"
+	"transformer/src/lib"
 	"transformer/src/lib/dao/schema"
 )
 
@@ -16,11 +17,6 @@ type HashTableBucketHeader struct {
 	collisionTableId uint64
 }
 
-func NewHeader(occupied bool) HashTableBucketHeader {
-
-	return HashTableBucketHeader{}
-}
-
 func (header HashTableBucketHeader) Size() int {
 
 	return 10
@@ -28,9 +24,9 @@ func (header HashTableBucketHeader) Size() int {
 
 func (header HashTableBucketHeader) WriteSelf(file *os.File) error {
 
-	occupied := boolToByte(header.occupied)
+	occupied := lib.BoolToByte(header.occupied)
 
-	previousCollision := boolToByte(header.previousCollision)
+	previousCollision := lib.BoolToByte(header.previousCollision)
 
 	if err := binary.Write(file, binary.LittleEndian, occupied); err != nil {
 
@@ -67,5 +63,5 @@ func (header HashTableBucketHeader) ReadSelf(file *os.File) (schema.FixedSize, e
 
 		return nil, err
 	}
-	return HashTableBucketHeader{byteToBool(occupied), byteToBool(previousCollision), collisionTableId}, nil
+	return HashTableBucketHeader{lib.ByteToBool(occupied), lib.ByteToBool(previousCollision), collisionTableId}, nil
 }

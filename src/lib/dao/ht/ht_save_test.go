@@ -1,8 +1,9 @@
-package dao
+package ht
 
 import (
 	"io"
 	"testing"
+	"transformer/src/lib/dao/fm"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -37,9 +38,9 @@ func TestSaveAtEmptyPosition(t *testing.T) {
 	// Then
 	assert.Nil(t, err)
 
-	mockFileContainer.AssertCalled(t, "File", HashTableManagingFile, mock.AnythingOfType("uint64"))
+	mockFileContainer.AssertCalled(t, "File", fm.HashTableManagingFile, mock.AnythingOfType("uint64"))
 
-	mockFileContainer.AssertCalled(t, "File", HashTableMainTable, mock.AnythingOfType("uint64"))
+	mockFileContainer.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
 
 	mockCacheIO.AssertExpectations(t)
 
@@ -121,7 +122,7 @@ func TestSaveAtOccupiedPositionFirstCollisionWithExistingId(t *testing.T) {
 
 	assert.Equal(t, "object already exists, cannot save new", err.Error())
 
-	mockFileContainer.AssertCalled(t, "File", HashTableMainTable, mock.AnythingOfType("uint64"))
+	mockFileContainer.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
 
 	mockCacheIO.AssertExpectations(t)
 
@@ -209,9 +210,9 @@ func TestSaveAtOccupiedPositionNonFirstCollisionWithExistingId(t *testing.T) {
 
 	assert.Equal(t, "object already exists, cannot save new", err.Error())
 
-	mockFileContainer.AssertCalled(t, "File", HashTableMainTable, mock.AnythingOfType("uint64"))
+	mockFileContainer.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
 
-	mockFileContainer.AssertCalled(t, "File", HashTableCollisionTable, mock.AnythingOfType("uint64"))
+	mockFileContainer.AssertCalled(t, "File", fm.HashTableCollisionTable, mock.AnythingOfType("uint64"))
 
 	mockCacheIO.AssertExpectations(t)
 

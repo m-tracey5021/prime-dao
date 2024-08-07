@@ -1,8 +1,9 @@
-package dao
+package ht
 
 import (
 	"errors"
 	"io"
+	"transformer/src/lib/dao/fm"
 )
 
 // func (dao *TSFHashTable[T]) DeleteObjectId(id uint64) error {
@@ -21,7 +22,7 @@ import (
 
 // 		return errors.New("id does not exist to delete")
 // 	}
-// 	managingFile, err := dao.fileContainer.File(HashTableManagingFile, dao.id)
+// 	managingFile, err := dao.fileContainer.File(fm.HashTableManagingFile, dao.id)
 
 // 	if err != nil {
 
@@ -49,7 +50,7 @@ import (
 
 func (dao *TSFHashTable[T]) Delete(id uint64) error {
 
-	mainTable, err := dao.fileContainer.Open(HashTableMainTable, dao.id)
+	mainTable, err := dao.fileContainer.Open(fm.HashTableMainTable, string(dao.id))
 
 	if err != nil {
 
@@ -132,7 +133,7 @@ func (dao *TSFHashTable[T]) Delete(id uint64) error {
 
 func (dao *TSFHashTable[T]) DeleteForCollision(id uint64, collisionTableId uint64) error {
 
-	collisionTable, err := dao.fileContainer.Open(HashTableCollisionTable, collisionTableId)
+	collisionTable, err := dao.fileContainer.Open(fm.HashTableCollisionTable, string(collisionTableId))
 
 	if err != nil {
 

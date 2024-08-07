@@ -1,8 +1,9 @@
-package dao
+package ht
 
 import (
 	"encoding/binary"
 	"os"
+	"transformer/src/lib/dao/fm"
 	"transformer/src/lib/dao/schema"
 	"transformer/src/lib/daoio"
 	"unsafe"
@@ -46,7 +47,7 @@ func (obj MockHashable) ReadSelf(file *os.File) (schema.FixedSize, error) {
 
 func setupMockDao() (
 
-	*MockFileManager,
+	*fm.MockFileManager,
 
 	*daoio.MockDaoIO[HashTableIdentifierCache],
 
@@ -59,7 +60,7 @@ func setupMockDao() (
 ) {
 	id := uint64(0)
 
-	mockFileContainer := new(MockFileManager)
+	mockFileContainer := new(fm.MockFileManager)
 
 	mockCacheIO := new(daoio.MockDaoIO[HashTableIdentifierCache])
 
@@ -80,7 +81,7 @@ func setupMockDao() (
 	return mockFileContainer, mockCacheIO, mockBucketHeaderIO, mockObjectIO, dao
 }
 
-func setupMockFiles(mockFileContainer *MockFileManager) (*os.File, *os.File, *os.File) {
+func setupMockFiles(mockFileContainer *fm.MockFileManager) (*os.File, *os.File, *os.File) {
 
 	mockManagingFile := new(os.File)
 
@@ -90,11 +91,11 @@ func setupMockFiles(mockFileContainer *MockFileManager) (*os.File, *os.File, *os
 
 	mockFileContainer.On("Close", mock.AnythingOfType("*os.File")).Return(nil)
 
-	mockFileContainer.On("File", HashTableManagingFile, mock.AnythingOfType("uint64")).Return(mockManagingFile, nil)
+	mockFileContainer.On("File", fm.HashTableManagingFile, mock.AnythingOfType("uint64")).Return(mockManagingFile, nil)
 
-	mockFileContainer.On("File", HashTableMainTable, mock.AnythingOfType("uint64")).Return(mockMainTable, nil)
+	mockFileContainer.On("File", fm.HashTableMainTable, mock.AnythingOfType("uint64")).Return(mockMainTable, nil)
 
-	mockFileContainer.On("File", HashTableCollisionTable, mock.AnythingOfType("uint64")).Return(mockCollisionTable, nil)
+	mockFileContainer.On("File", fm.HashTableMainTable, mock.AnythingOfType("uint64")).Return(mockCollisionTable, nil)
 
 	return mockManagingFile, mockMainTable, mockCollisionTable
 }

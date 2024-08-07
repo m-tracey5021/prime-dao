@@ -1,13 +1,16 @@
-package dao
+package ht
 
 import (
 	"errors"
-	. "transformer/src/lib/dao/schema"
+	"fmt"
+	"transformer/src/lib"
+	"transformer/src/lib/dao/fm"
+	"transformer/src/lib/dao/schema"
 	"transformer/src/lib/daoio"
 	"unsafe"
 )
 
-type ITSFHashTable[T FixedSizeIdentifiable] interface {
+type ITSFHashTable[T schema.FixedSizeIdentifiable] interface {
 	Save(object T) error
 
 	Get(id uint64) (*T, error)
@@ -17,15 +20,17 @@ type ITSFHashTable[T FixedSizeIdentifiable] interface {
 	Delete(id uint64) error
 }
 
-type TSFHashTable[T FixedSizeIdentifiable] struct {
+type TSFHashTable[T schema.FixedSizeIdentifiable] struct {
 	id uint64
 
 	bucketSize int
 
 	tableSize int
 
+	maxCollisions int
+
 	// Controls file operations and maintains file name consistency
-	fileContainer IFileManager
+	fileContainer fm.IFileManager
 
 	identifierCache HashTableIdentifierCache
 
@@ -35,18 +40,23 @@ type TSFHashTable[T FixedSizeIdentifiable] struct {
 	// Controls IO of the bucket headers which contain info on hashing collisions
 	bucketHeaderIO daoio.IFixedSizeDaoIO[HashTableBucketHeader]
 
+	// Controls IO of the table headers which contain info on individual collision tables
+	tableHeaderIO daoio.IFixedSizeDaoIO[HashTableCollisionTableHeader]
+
 	// Controls IO of the actual object to be hashed and saved in the main table
 	objectIO daoio.IFixedSizeDaoIO[T]
 }
 
-func Default[T FixedSizeIdentifiable](
+func Default[T schema.FixedSizeIdentifiable](
 	id uint64,
 
 	bucketSize int,
 
 	tableSize int,
 
-	fileContainer IFileManager,
+	maxCollisions int,
+
+	fileContainer fm.IFileManager,
 
 	identifierCache HashTableIdentifierCache,
 
@@ -54,21 +64,25 @@ func Default[T FixedSizeIdentifiable](
 
 	bucketHeaderIO daoio.IFixedSizeDaoIO[HashTableBucketHeader],
 
+	tableHeaderIO daoio.IFixedSizeDaoIO[HashTableCollisionTableHeader],
+
 	objectIO daoio.IFixedSizeDaoIO[T],
 
 ) TSFHashTable[T] {
 
-	return TSFHashTable[T]{id, bucketSize, tableSize, fileContainer, identifierCache, cacheIO, bucketHeaderIO, objectIO}
+	return TSFHashTable[T]{id, bucketSize, tableSize, maxCollisions, fileContainer, identifierCache, cacheIO, bucketHeaderIO, tableHeaderIO, objectIO}
 }
 
-func New[T FixedSizeIdentifiable](
+func Initialise[T schema.FixedSizeIdentifiable](
 	id uint64,
 
-	fileManager IFileManager,
+	fileManager fm.IFileManager,
 
 	cacheIO daoio.IDaoIO[HashTableIdentifierCache],
 
 	bucketHeaderIO daoio.IFixedSizeDaoIO[HashTableBucketHeader],
+
+	tableHeaderIO daoio.IFixedSizeDaoIO[HashTableCollisionTableHeader],
 
 	objectIO daoio.IFixedSizeDaoIO[T],
 
@@ -78,7 +92,9 @@ func New[T FixedSizeIdentifiable](
 
 	tableSize := 10 // TODO get from config
 
-	managingFile, err := fileManager.Open(HashTableManagingFile, id)
+	maxCollisions := 5 // Get from config, but should be pretty small
+
+	managingFile, err := fileManager.Open(fm.HashTableManagingFile, id)
 
 	if err != nil {
 
@@ -125,30 +141,43 @@ func New[T FixedSizeIdentifiable](
 			return &TSFHashTable[T]{}, err
 		}
 	}
-	return &TSFHashTable[T]{id, bucketSize, tableSize, fileManager, *identifierCache, cacheIO, bucketHeaderIO, objectIO}, err
+	return &TSFHashTable[T]{id, bucketSize, tableSize, maxCollisions, fileManager, *identifierCache, cacheIO, bucketHeaderIO, tableHeaderIO, objectIO}, err
 }
 
-func Wrapped[T FixedSizeIdentifiable](fileManager IFileManager, id uint64) (ITSFHashTable[T], error) {
-
-	// fileManager := NewFileContainer(path, descriptor)
+func New[T schema.FixedSizeIdentifiable](fileManager fm.IFileManager, id uint64) (ITSFHashTable[T], error) {
 
 	cacheIO := daoio.DaoIO[HashTableIdentifierCache]{}
 
 	bucketHeaderIO := daoio.FixedSizeDaoIO[HashTableBucketHeader]{}
 
+	tableHeaderIO := daoio.FixedSizeDaoIO[HashTableCollisionTableHeader]{}
+
 	objectIO := daoio.FixedSizeDaoIO[T]{}
 
-	return New(id, fileManager, cacheIO, bucketHeaderIO, objectIO)
+	return Initialise(id, fileManager, cacheIO, bucketHeaderIO, tableHeaderIO, objectIO)
 }
 
-func (dao *TSFHashTable[T]) hash(id uint64) int {
+func (ht *TSFHashTable[T]) hash(id uint64) int {
 
-	hash := (int(id)*2 + 1) % dao.tableSize
+	hash := (int(id)*2 + 1) % ht.tableSize
 
-	return hash * dao.bucketSize
+	return hash * ht.bucketSize
 }
 
-func (dao *TSFHashTable[T]) NewCollisionTableId() uint64 {
+func (ht *TSFHashTable[T]) hashCollision(id uint64, hash int) (int, string) {
 
-	return smallestMissing(dao.identifierCache.CollisionTableIds)
+	// Calculate the order of the collision
+	collisionPosition := (int(id) / ht.tableSize) * ht.bucketSize
+
+	// Calculate the file/partition in which the collision will be stored
+	collisionTable := collisionPosition / ht.maxCollisions
+
+	collisionTableId := fmt.Sprintf("%v_%v", hash, collisionTable)
+
+	return collisionPosition, collisionTableId
+}
+
+func (ht *TSFHashTable[T]) NewCollisionTableId() uint64 {
+
+	return lib.NewId(ht.identifierCache.CollisionTableIds)
 }
