@@ -72,11 +72,13 @@ func setupMockDao() (
 
 	tableSize := 10
 
+	maxCollisions := 5
+
 	collisionTableIds := make([]uint64, 0)
 
 	identifierCache := HashTableIdentifierCache{collisionTableIds}
 
-	dao := Default[MockHashable](id, bucketSize, tableSize, mockFileContainer, identifierCache, mockCacheIO, mockBucketHeaderIO, mockObjectIO)
+	dao := Default[MockHashable](id, bucketSize, tableSize, maxCollisions, mockFileContainer, identifierCache, mockCacheIO, mockBucketHeaderIO, mockObjectIO)
 
 	return mockFileContainer, mockCacheIO, mockBucketHeaderIO, mockObjectIO, dao
 }

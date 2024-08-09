@@ -10,8 +10,8 @@ import (
 type HashTableBucketHeader struct {
 	occupied bool
 
-	// This flag checks whether or not a collision table has been created prior
-	previousCollision bool
+	// This flag checks whether or not this bucket has been deleted
+	deleted bool
 
 	// This value corresponds to the fileId where the collisions are stored
 	collisionTableId uint64
@@ -26,13 +26,13 @@ func (header HashTableBucketHeader) WriteSelf(file *os.File) error {
 
 	occupied := lib.BoolToByte(header.occupied)
 
-	previousCollision := lib.BoolToByte(header.previousCollision)
+	deleted := lib.BoolToByte(header.deleted)
 
 	if err := binary.Write(file, binary.LittleEndian, occupied); err != nil {
 
 		return err
 	}
-	if err := binary.Write(file, binary.LittleEndian, previousCollision); err != nil {
+	if err := binary.Write(file, binary.LittleEndian, deleted); err != nil {
 
 		return err
 	}
@@ -47,7 +47,7 @@ func (header HashTableBucketHeader) ReadSelf(file *os.File) (schema.FixedSize, e
 
 	var occupied byte
 
-	var previousCollision byte
+	var deleted byte
 
 	var collisionTableId uint64
 
@@ -55,7 +55,7 @@ func (header HashTableBucketHeader) ReadSelf(file *os.File) (schema.FixedSize, e
 
 		return nil, err
 	}
-	if err := binary.Read(file, binary.LittleEndian, &previousCollision); err != nil {
+	if err := binary.Read(file, binary.LittleEndian, &deleted); err != nil {
 
 		return nil, err
 	}
@@ -63,5 +63,5 @@ func (header HashTableBucketHeader) ReadSelf(file *os.File) (schema.FixedSize, e
 
 		return nil, err
 	}
-	return HashTableBucketHeader{lib.ByteToBool(occupied), lib.ByteToBool(previousCollision), collisionTableId}, nil
+	return HashTableBucketHeader{lib.ByteToBool(occupied), lib.ByteToBool(deleted), collisionTableId}, nil
 }

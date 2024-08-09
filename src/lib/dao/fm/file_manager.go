@@ -8,7 +8,7 @@ import (
 )
 
 type IFileManager interface {
-	Open(fileAlias FileAlias, id string) (*os.File, error)
+	Open(fileAlias FileAlias, idChain ...uint64) (*os.File, error)
 
 	GoTo(position int, file *os.File) error
 
@@ -18,7 +18,7 @@ type IFileManager interface {
 
 	Remove(file *os.File) error
 
-	Close(file *os.File) error
+	Close(file *os.File, err *error) error
 }
 
 type FileAlias int
@@ -56,14 +56,16 @@ func NewFileContainer(path, descriptor string) FileManager {
 	return FileManager{fileMap}
 }
 
-func (fileManager FileManager) Open(fileAlias FileAlias, id string) (*os.File, error) {
+func (fileManager FileManager) Open(fileAlias FileAlias, idChain ...uint64) (*os.File, error) {
 
 	filePath, ok := fileManager.fileMap[fileAlias]
 
 	if ok {
 
-		filePath += fmt.Sprintf("_%v", id)
+		for _, id := range idChain {
 
+			filePath += fmt.Sprintf("_%v", id)
+		}
 		return os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0666)
 	}
 	return nil, errors.New("file alias does not exist")
@@ -105,7 +107,18 @@ func (fileManager FileManager) Remove(file *os.File) error {
 	return os.Remove(file.Name())
 }
 
-func (fileManager FileManager) Close(file *os.File) error {
+func (fileManager FileManager) Close(file *os.File, err *error) error {
 
-	return file.Close()
+	if innerErr := file.Close(); innerErr != nil {
+
+		if *err != nil {
+
+			*err = errors.Join(innerErr, *err)
+
+		} else {
+
+			*err = innerErr
+		}
+	}
+	return *err
 }

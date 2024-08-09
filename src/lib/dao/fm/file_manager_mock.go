@@ -10,9 +10,9 @@ type MockFileManager struct {
 	mock.Mock
 }
 
-func (mockFileManager *MockFileManager) Open(fileAlias FileAlias, id uint64) (*os.File, error) {
+func (mockFileManager *MockFileManager) Open(fileAlias FileAlias, idChain ...uint64) (*os.File, error) {
 
-	args := mockFileManager.Called(fileAlias, id)
+	args := mockFileManager.Called(fileAlias, idChain)
 
 	return args.Get(0).(*os.File), args.Error(1)
 }
@@ -45,9 +45,9 @@ func (mockFileManager *MockFileManager) Remove(file *os.File) error {
 	return args.Error(0)
 }
 
-func (mockFileManager *MockFileManager) Close(file *os.File) error {
+func (mockFileManager *MockFileManager) Close(file *os.File, err *error) error {
 
-	args := mockFileManager.Called(file)
+	args := mockFileManager.Called(file, err)
 
 	return args.Error(0)
 }

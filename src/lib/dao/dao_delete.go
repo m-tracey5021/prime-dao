@@ -1,7 +1,6 @@
 package dao
 
 import (
-	"errors"
 	"transformer/src/lib/dao/fm"
 )
 
@@ -19,20 +18,7 @@ func (dao TSFDao[T]) Delete(object DaoIdentifiable[T]) (int, error) {
 
 		return 0, err
 	}
-	defer func() {
-
-		if innerErr := dao.fileManager.Close(table); innerErr != nil {
-
-			if err != nil {
-
-				err = errors.Join(innerErr, err)
-
-			} else {
-
-				err = innerErr
-			}
-		}
-	}()
+	defer dao.fileManager.Close(table, &err)
 
 	if err := dao.fileManager.GoTo(int(index.filePosition), table); err != nil {
 

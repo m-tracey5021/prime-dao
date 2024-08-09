@@ -2,7 +2,8 @@ package ht
 
 import (
 	"errors"
-	"fmt"
+	"io"
+	"os"
 	"transformer/src/lib"
 	"transformer/src/lib/dao/fm"
 	"transformer/src/lib/dao/schema"
@@ -40,9 +41,6 @@ type TSFHashTable[T schema.FixedSizeIdentifiable] struct {
 	// Controls IO of the bucket headers which contain info on hashing collisions
 	bucketHeaderIO daoio.IFixedSizeDaoIO[HashTableBucketHeader]
 
-	// Controls IO of the table headers which contain info on individual collision tables
-	tableHeaderIO daoio.IFixedSizeDaoIO[HashTableCollisionTableHeader]
-
 	// Controls IO of the actual object to be hashed and saved in the main table
 	objectIO daoio.IFixedSizeDaoIO[T]
 }
@@ -64,13 +62,11 @@ func Default[T schema.FixedSizeIdentifiable](
 
 	bucketHeaderIO daoio.IFixedSizeDaoIO[HashTableBucketHeader],
 
-	tableHeaderIO daoio.IFixedSizeDaoIO[HashTableCollisionTableHeader],
-
 	objectIO daoio.IFixedSizeDaoIO[T],
 
 ) TSFHashTable[T] {
 
-	return TSFHashTable[T]{id, bucketSize, tableSize, maxCollisions, fileContainer, identifierCache, cacheIO, bucketHeaderIO, tableHeaderIO, objectIO}
+	return TSFHashTable[T]{id, bucketSize, tableSize, maxCollisions, fileContainer, identifierCache, cacheIO, bucketHeaderIO, objectIO}
 }
 
 func Initialise[T schema.FixedSizeIdentifiable](
@@ -81,8 +77,6 @@ func Initialise[T schema.FixedSizeIdentifiable](
 	cacheIO daoio.IDaoIO[HashTableIdentifierCache],
 
 	bucketHeaderIO daoio.IFixedSizeDaoIO[HashTableBucketHeader],
-
-	tableHeaderIO daoio.IFixedSizeDaoIO[HashTableCollisionTableHeader],
 
 	objectIO daoio.IFixedSizeDaoIO[T],
 
@@ -96,25 +90,12 @@ func Initialise[T schema.FixedSizeIdentifiable](
 
 	managingFile, err := fileManager.Open(fm.HashTableManagingFile, id)
 
+	defer fileManager.Close(managingFile, &err)
+
 	if err != nil {
 
 		return &TSFHashTable[T]{}, err
 	}
-	defer func() {
-
-		if innerErr := fileManager.Close(managingFile); innerErr != nil {
-
-			if err != nil {
-
-				err = errors.Join(innerErr, err)
-
-			} else {
-
-				err = innerErr
-			}
-		}
-	}()
-
 	size, err := fileManager.Size(managingFile)
 
 	if err != nil {
@@ -141,7 +122,7 @@ func Initialise[T schema.FixedSizeIdentifiable](
 			return &TSFHashTable[T]{}, err
 		}
 	}
-	return &TSFHashTable[T]{id, bucketSize, tableSize, maxCollisions, fileManager, *identifierCache, cacheIO, bucketHeaderIO, tableHeaderIO, objectIO}, err
+	return &TSFHashTable[T]{id, bucketSize, tableSize, maxCollisions, fileManager, *identifierCache, cacheIO, bucketHeaderIO, objectIO}, err
 }
 
 func New[T schema.FixedSizeIdentifiable](fileManager fm.IFileManager, id uint64) (ITSFHashTable[T], error) {
@@ -150,34 +131,190 @@ func New[T schema.FixedSizeIdentifiable](fileManager fm.IFileManager, id uint64)
 
 	bucketHeaderIO := daoio.FixedSizeDaoIO[HashTableBucketHeader]{}
 
-	tableHeaderIO := daoio.FixedSizeDaoIO[HashTableCollisionTableHeader]{}
-
 	objectIO := daoio.FixedSizeDaoIO[T]{}
 
-	return Initialise(id, fileManager, cacheIO, bucketHeaderIO, tableHeaderIO, objectIO)
+	return Initialise(id, fileManager, cacheIO, bucketHeaderIO, objectIO)
 }
 
 func (ht *TSFHashTable[T]) hash(id uint64) int {
 
-	hash := (int(id)*2 + 1) % ht.tableSize
+	hash := int(id) % ht.tableSize
 
 	return hash * ht.bucketSize
 }
 
-func (ht *TSFHashTable[T]) hashCollision(id uint64, hash int) (int, string) {
+func (ht *TSFHashTable[T]) hashCollision(id uint64) Hash {
 
-	// Calculate the order of the collision
-	collisionPosition := (int(id) / ht.tableSize) * ht.bucketSize
+	// Calculate the table group to store the data in
+	hash := int(id) % ht.tableSize
 
-	// Calculate the file/partition in which the collision will be stored
-	collisionTable := collisionPosition / ht.maxCollisions
+	// Calculate the order of the hash i.e. where it sits in relation to the others if hashed
+	order := int(id) / ht.tableSize
 
-	collisionTableId := fmt.Sprintf("%v_%v", hash, collisionTable)
+	// Calculate the file/partition in which the data is stored
+	tableNumber := order / ht.maxCollisions
 
-	return collisionPosition, collisionTableId
+	// Calculate the actual position in the file based on bucket size and table number
+	position := (order - (ht.maxCollisions * tableNumber)) * ht.bucketSize
+
+	return Hash{hash, tableNumber, position}
 }
 
 func (ht *TSFHashTable[T]) NewCollisionTableId() uint64 {
 
 	return lib.NewId(ht.identifierCache.CollisionTableIds)
+}
+
+func (ht *TSFHashTable[T]) ReadBucketHeader(position int, table *os.File) (HashTableBucketHeader, error) {
+
+	if err := ht.fileContainer.GoTo(position, table); err != nil {
+
+		return HashTableBucketHeader{}, err
+	}
+	bucketHeader, err := ht.bucketHeaderIO.Read(table)
+
+	if err != nil {
+
+		if errors.Is(err, io.EOF) {
+
+			return HashTableBucketHeader{}, nil
+		}
+	}
+	return bucketHeader, err
+}
+
+func (ht *TSFHashTable[T]) LocateForTableAndPosition(id uint64, table *os.File, position int) (*HashTableBucket[T], error) {
+
+	bucketHeader, err := ht.ReadBucketHeader(position, table)
+
+	if err != nil {
+
+		return nil, err
+	}
+	if bucketHeader.occupied {
+
+		objectPosition, err := ht.fileContainer.CurrentPosition(table)
+
+		if err != nil {
+
+			return nil, err
+		}
+		object, err := ht.objectIO.Read(table)
+
+		if err != nil {
+
+			return nil, err
+		}
+		if id == object.Id() {
+
+			return &HashTableBucket[T]{position, objectPosition, bucketHeader, object}, nil
+
+		} else {
+
+			return nil, nil
+		}
+
+	} else {
+
+		return nil, nil
+	}
+}
+
+func (ht *TSFHashTable[T]) LocateEmptyForTableAndPosition(id uint64, table *os.File, position int) (*int, error) {
+
+	bucketHeader, err := ht.ReadBucketHeader(position, table)
+
+	if err != nil {
+
+		return nil, err
+	}
+	if bucketHeader.occupied {
+
+		object, err := ht.objectIO.Read(table)
+
+		if err != nil {
+
+			return nil, err
+		}
+		if id == object.Id() {
+
+			return nil, ObjectAlreadyExists
+
+		} else {
+
+			return nil, nil
+		}
+
+	} else {
+
+		return &position, nil
+	}
+}
+
+func (ht *TSFHashTable[T]) Locate(id uint64) (*os.File, HashTableBucket[T], error) {
+
+	closeTable := true
+
+	hash := ht.hashCollision(id)
+
+	table, err := ht.fileContainer.Open(fm.HashTableCollisionTable, uint64(hash.tableGroup), uint64(hash.tableNumber))
+
+	defer ht.CloseConditionally(&closeTable, table, &err)
+
+	if err != nil {
+
+		return nil, HashTableBucket[T]{}, err
+	}
+	location, err := ht.LocateForTableAndPosition(id, table, hash.position)
+
+	if err != nil {
+
+		return nil, HashTableBucket[T]{}, err
+	}
+	if location != nil {
+
+		closeTable = false
+
+		return table, *location, err
+	}
+	return nil, HashTableBucket[T]{}, ObjectDoesNotExist
+}
+
+func (ht *TSFHashTable[T]) LocateEmpty(id uint64) (*os.File, int, error) {
+
+	closeTable := true
+
+	hash := ht.hashCollision(id)
+
+	table, err := ht.fileContainer.Open(fm.HashTableCollisionTable, uint64(hash.tableGroup), uint64(hash.tableNumber))
+
+	defer ht.CloseConditionally(&closeTable, table, &err)
+
+	if err != nil {
+
+		return nil, 0, err
+	}
+	location, err := ht.LocateEmptyForTableAndPosition(id, table, hash.position)
+
+	if err != nil {
+
+		return nil, 0, err
+	}
+	if location != nil {
+
+		closeTable = false
+
+		return table, *location, nil
+	}
+	return nil, 0, BucketOccupied
+}
+
+// Closes the file conditionally so that defer will run only if it needs to
+func (ht *TSFHashTable[T]) CloseConditionally(close *bool, table *os.File, err *error) error {
+
+	if *close {
+
+		return ht.fileContainer.Close(table, err)
+	}
+	return *err
 }

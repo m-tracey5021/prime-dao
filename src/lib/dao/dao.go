@@ -55,21 +55,12 @@ func Initialise[T any](
 
 	managingFile, err := fileManager.Open(fm.DaoManagingFile, id)
 
-	defer func() {
+	defer fileManager.Close(managingFile, &err)
 
-		if innerErr := fileManager.Close(managingFile); innerErr != nil {
+	if err != nil {
 
-			if err != nil {
-
-				err = errors.Join(innerErr, err)
-
-			} else {
-
-				err = innerErr
-			}
-		}
-	}()
-
+		return TSFDao[T]{}, err
+	}
 	size, err := fileManager.Size(managingFile)
 
 	if err != nil {
@@ -139,25 +130,12 @@ func (dao *TSFDao[T]) SaveCacheAlteration(id uint64, alteration func(id uint64))
 
 	managingFile, err := dao.fileManager.Open(fm.DaoManagingFile, dao.id)
 
+	defer dao.fileManager.Close(managingFile, &err)
+
 	if err != nil {
 
 		return err
 	}
-	defer func() {
-
-		if innerErr := dao.fileManager.Close(managingFile); innerErr != nil {
-
-			if err != nil {
-
-				err = errors.Join(innerErr, err)
-
-			} else {
-
-				err = innerErr
-			}
-		}
-	}()
-
 	alteration(id)
 
 	_, err = dao.infoIO.WriteSizePrefixed(managingFile, dao.managingInfo)

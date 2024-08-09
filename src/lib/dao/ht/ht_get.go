@@ -1,124 +1,14 @@
 package ht
 
-import (
-	"errors"
-	"io"
-	"transformer/src/lib/dao/fm"
-)
+func (ht *TSFHashTable[T]) Get(id uint64) (*T, error) {
 
-func (dao *TSFHashTable[T]) Get(id uint64) (*T, error) {
+	table, bucket, err := ht.Locate(id)
 
-	mainTable, err := dao.fileContainer.Open(fm.HashTableMainTable, dao.id)
+	defer ht.fileContainer.Close(table, &err)
 
 	if err != nil {
 
 		return nil, err
 	}
-	defer func() {
-
-		if innerErr := dao.fileContainer.Close(mainTable); innerErr != nil {
-
-			if err != nil {
-
-				err = errors.Join(innerErr, err)
-
-			} else {
-
-				err = innerErr
-			}
-		}
-	}()
-
-	position := dao.hash(id)
-
-	if err := dao.fileContainer.GoTo(position, mainTable); err != nil {
-
-		return nil, err
-	}
-	bucketHeader, err := dao.bucketHeaderIO.Read(mainTable)
-
-	if err != nil {
-
-		if errors.Is(err, io.EOF) {
-
-			err = nil
-
-			return nil, err
-		}
-		return nil, err
-	}
-	// Need to check for previous collision here too in case the original has been deleted
-	if bucketHeader.occupied {
-
-		object, err := dao.objectIO.Read(mainTable)
-
-		if err != nil {
-
-			return nil, err
-		}
-		if id == object.Id() {
-
-			return &object, err
-
-		} else {
-
-			return dao.GetForCollision(id, bucketHeader.collisionTableId)
-		}
-
-	} else {
-
-		if bucketHeader.previousCollision {
-
-			return dao.GetForCollision(id, bucketHeader.collisionTableId)
-		}
-		return nil, err
-	}
-}
-
-func (dao *TSFHashTable[T]) GetForCollision(id, collisionTableId uint64) (*T, error) {
-
-	collisionTable, err := dao.fileContainer.Open(fm.HashTableCollisionTable, string(collisionTableId))
-
-	if err != nil {
-
-		return nil, err
-	}
-	defer func() {
-
-		if innerErr := dao.fileContainer.Close(collisionTable); innerErr != nil {
-
-			if err != nil {
-
-				err = errors.Join(innerErr, err)
-
-			} else {
-
-				err = innerErr
-			}
-		}
-	}()
-
-	if err != nil {
-
-		return nil, err
-	}
-	for {
-
-		object, err := dao.objectIO.Read(collisionTable)
-
-		if err != nil {
-
-			if errors.Is(err, io.EOF) {
-
-				err = nil
-
-				return nil, err
-			}
-			return nil, err
-		}
-		if id == object.Id() {
-
-			return &object, err
-		}
-	}
+	return &bucket.object, nil
 }
