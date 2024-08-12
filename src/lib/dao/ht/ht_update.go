@@ -4,13 +4,13 @@ func (ht *TSFHashTable[T]) Update(object T) error {
 
 	table, bucket, err := ht.Locate(object.Id())
 
-	defer ht.fileContainer.Close(table, &err)
+	defer ht.fileManager.Close(table, &err)
 
 	if err != nil {
 
 		return err
 	}
-	if err := ht.fileContainer.GoTo(bucket.objectLocation, table); err != nil {
+	if err := ht.fileManager.GoTo(bucket.objectLocation, table); err != nil {
 
 		return err
 	}

@@ -4,13 +4,13 @@ func (ht *TSFHashTable[T]) Delete(id uint64) error {
 
 	table, bucket, err := ht.Locate(id)
 
-	defer ht.fileContainer.Close(table, &err)
+	defer ht.fileManager.Close(table, &err)
 
 	if err != nil {
 
 		return err
 	}
-	if err := ht.fileContainer.GoTo(bucket.bucketLocation, table); err != nil {
+	if err := ht.fileManager.GoTo(bucket.bucketLocation, table); err != nil {
 
 		return err
 	}

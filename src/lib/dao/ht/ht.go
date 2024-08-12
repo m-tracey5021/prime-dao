@@ -14,7 +14,11 @@ import (
 type ITSFHashTable[T schema.FixedSizeIdentifiable] interface {
 	Save(object T) error
 
+	SaveConcurrent(objects ...T) error
+
 	Get(id uint64) (*T, error)
+
+	GetConcurrent(ids ...uint64) ([]*T, error)
 
 	Update(object T) error
 
@@ -31,7 +35,7 @@ type TSFHashTable[T schema.FixedSizeIdentifiable] struct {
 	maxCollisions int
 
 	// Controls file operations and maintains file name consistency
-	fileContainer fm.IFileManager
+	fileManager fm.IFileManager
 
 	identifierCache HashTableIdentifierCache
 
@@ -167,7 +171,7 @@ func (ht *TSFHashTable[T]) NewCollisionTableId() uint64 {
 
 func (ht *TSFHashTable[T]) ReadBucketHeader(position int, table *os.File) (HashTableBucketHeader, error) {
 
-	if err := ht.fileContainer.GoTo(position, table); err != nil {
+	if err := ht.fileManager.GoTo(position, table); err != nil {
 
 		return HashTableBucketHeader{}, err
 	}
@@ -193,7 +197,7 @@ func (ht *TSFHashTable[T]) LocateForTableAndPosition(id uint64, table *os.File, 
 	}
 	if bucketHeader.occupied {
 
-		objectPosition, err := ht.fileContainer.CurrentPosition(table)
+		objectPosition, err := ht.fileManager.CurrentPosition(table)
 
 		if err != nil {
 
@@ -257,7 +261,7 @@ func (ht *TSFHashTable[T]) Locate(id uint64) (*os.File, HashTableBucket[T], erro
 
 	hash := ht.hashCollision(id)
 
-	table, err := ht.fileContainer.Open(fm.HashTableCollisionTable, uint64(hash.tableGroup), uint64(hash.tableNumber))
+	table, err := ht.fileManager.Open(fm.HashTableCollisionTable, uint64(hash.tableGroup), uint64(hash.tableNumber))
 
 	defer ht.CloseConditionally(&closeTable, table, &err)
 
@@ -286,7 +290,7 @@ func (ht *TSFHashTable[T]) LocateEmpty(id uint64) (*os.File, int, error) {
 
 	hash := ht.hashCollision(id)
 
-	table, err := ht.fileContainer.Open(fm.HashTableCollisionTable, uint64(hash.tableGroup), uint64(hash.tableNumber))
+	table, err := ht.fileManager.Open(fm.HashTableCollisionTable, uint64(hash.tableGroup), uint64(hash.tableNumber))
 
 	defer ht.CloseConditionally(&closeTable, table, &err)
 
@@ -314,7 +318,7 @@ func (ht *TSFHashTable[T]) CloseConditionally(close *bool, table *os.File, err *
 
 	if *close {
 
-		return ht.fileContainer.Close(table, err)
+		return ht.fileManager.Close(table, err)
 	}
 	return *err
 }
