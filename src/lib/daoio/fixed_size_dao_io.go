@@ -25,7 +25,33 @@ func (daoIO FixedSizeDaoIO[T]) Write(file *os.File, object T) error {
 	return object.WriteSelf(file)
 }
 
+func Write[T schema.FixedSize](file *os.File, object T) error {
+
+	return object.WriteSelf(file)
+}
+
 func (daoIO FixedSizeDaoIO[T]) Read(file *os.File) (T, error) {
+
+	var object T
+
+	read, err := object.ReadSelf(file)
+
+	if err != nil {
+
+		return object, err
+	}
+	object, ok := read.(T)
+
+	if !ok {
+
+		errString := fmt.Sprintf("type assertion to %T failed", object)
+
+		return object, errors.New(errString)
+	}
+	return object, nil
+}
+
+func Read[T schema.FixedSize](file *os.File) (T, error) {
 
 	var object T
 
@@ -109,6 +135,21 @@ func (daoIO FixedSizeDaoIO[T]) Delete(file *os.File) error {
 }
 
 func (daoIO FixedSizeDaoIO[T]) Zero(file *os.File) error {
+
+	var object T
+
+	size := object.Size()
+
+	zeroBytes := make([]byte, size)
+
+	if _, err := file.Write(zeroBytes); err != nil {
+
+		return err
+	}
+	return nil
+}
+
+func Zero[T schema.FixedSize](file *os.File) error {
 
 	var object T
 
