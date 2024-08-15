@@ -2,37 +2,67 @@ package ht
 
 import (
 	"sync"
-	"transformer/src/lib"
 	"transformer/src/lib/dao/schema"
 )
 
-type CommandQueue[T schema.FixedSizeIdentifiable] struct {
+type CommandQueueResult[T any] struct {
+	request IRequest[T]
+
+	result IResult[T]
+}
+
+type CommandQueue[T any] struct {
 	numberOfWorkers int
 
 	batchSize int
 
-	channel chan []IRequest[T]
-
-	results chan IResult[T]
-
-	wg sync.WaitGroup
-
-	requestsProcessed []uint64
+	bufferSize int
 
 	requestProcessor IRequestProcessor[T]
+
+	channel chan []IRequest[T]
+
+	results chan CommandQueueResult[T]
+
+	requestIds []uint64
+
+	requestsProcessed []CommandQueueResult[T]
+
+	requestsWaitGroup sync.WaitGroup
+
+	resultsWaitGroup sync.WaitGroup
+
+	mu sync.Mutex
 }
 
-func NewCommandQueue[T schema.FixedSizeIdentifiable](numberOfWorkers int, batchSize int, requestProcessor IRequestProcessor[T]) *CommandQueue[T] {
+func NewCommandQueue[T schema.FixedSizeIdentifiable](numberOfWorkers int, batchSize int, bufferSize int, requestProcessor IRequestProcessor[T]) *CommandQueue[T] {
 
 	return &CommandQueue[T]{
 
 		numberOfWorkers:   numberOfWorkers,
 		batchSize:         batchSize,
-		channel:           make(chan []IRequest[T], numberOfWorkers),
-		results:           make(chan IResult[T], numberOfWorkers),
-		requestsProcessed: make([]uint64, 0),
+		bufferSize:        bufferSize,
 		requestProcessor:  requestProcessor,
+		channel:           make(chan []IRequest[T], bufferSize),
+		results:           make(chan CommandQueueResult[T], bufferSize),
+		requestIds:        make([]uint64, 0),
+		requestsProcessed: make([]CommandQueueResult[T], 0),
 	}
+}
+
+func (cq *CommandQueue[T]) NewRequestId() uint64 {
+
+	return 0
+
+	// id := lib.NewId(cq.requestIds)
+
+	// cq.mu.Lock()
+
+	// cq.requestIds = append(cq.requestIds, id)
+
+	// cq.mu.Unlock()
+
+	// return id
 }
 
 func (cq *CommandQueue[T]) Processor() IRequestProcessor[T] {
@@ -40,20 +70,15 @@ func (cq *CommandQueue[T]) Processor() IRequestProcessor[T] {
 	return cq.requestProcessor
 }
 
-func (cq *CommandQueue[T]) NewRequestId() uint64 {
-
-	return lib.NewId(cq.requestsProcessed)
-}
-
 func (cq *CommandQueue[T]) StartWorkers() {
 
 	for i := 0; i < cq.numberOfWorkers; i++ {
 
-		cq.wg.Add(1)
+		cq.requestsWaitGroup.Add(1)
 
 		go func(workerId int) {
 
-			defer cq.wg.Done()
+			defer cq.requestsWaitGroup.Done()
 
 			for batch := range cq.channel {
 
@@ -61,13 +86,28 @@ func (cq *CommandQueue[T]) StartWorkers() {
 
 					result := cq.requestProcessor.Process(request)
 
-					result.SetAssociatedRequestId(request.RequestId())
-
-					cq.results <- result
+					cq.results <- CommandQueueResult[T]{request, result}
 				}
 			}
 		}(i)
 	}
+	cq.resultsWaitGroup.Add(1)
+
+	go func() {
+
+		defer cq.resultsWaitGroup.Done()
+
+		for result := range cq.results {
+
+			// fmt.Println("%v", result)
+
+			cq.mu.Lock()
+
+			cq.requestsProcessed = append(cq.requestsProcessed, result)
+
+			cq.mu.Unlock()
+		}
+	}()
 }
 
 func (cq *CommandQueue[T]) AddTask(task IRequest[T]) {
@@ -97,46 +137,50 @@ func (cq *CommandQueue[T]) AddTasks(tasks []IRequest[T]) {
 	}
 }
 
-func (cq *CommandQueue[T]) GetResults() []IResult[T] {
+// func (cq *CommandQueue[T]) GetResults() []IResult[T] {
 
-	var mu sync.Mutex
+// 	var mu sync.Mutex
 
-	var wg sync.WaitGroup
+// 	var wg sync.WaitGroup
 
-	results := []IResult[T]{}
+// 	results := []IResult[T]{}
 
-	wg.Add(1)
+// 	wg.Add(1)
 
-	go func() {
+// 	go func() {
 
-		defer wg.Done()
+// 		defer wg.Done()
 
-		for result := range cq.results {
+// 		for result := range cq.results {
 
-			mu.Lock()
+// 			mu.Lock()
 
-			results = append(results, result)
+// 			results = append(results, result)
 
-			mu.Unlock()
-		}
-	}()
+// 			mu.Unlock()
+// 		}
+// 	}()
+
+// 	close(cq.channel)
+
+// 	cq.wg.Wait()
+
+// 	close(cq.results)
+
+// 	wg.Wait() // Wait for the results collection goroutine to finish
+
+// 	return results
+// }
+
+func (cq *CommandQueue[T]) Stop() []CommandQueueResult[T] {
 
 	close(cq.channel)
 
-	cq.wg.Wait()
+	cq.requestsWaitGroup.Wait()
 
 	close(cq.results)
 
-	wg.Wait() // Wait for the results collection goroutine to finish
+	cq.resultsWaitGroup.Wait()
 
-	return results
-}
-
-func (cq *CommandQueue[T]) Stop() {
-
-	close(cq.channel)
-
-	cq.wg.Wait()
-
-	close(cq.results)
+	return cq.requestsProcessed
 }

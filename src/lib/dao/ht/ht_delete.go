@@ -2,27 +2,33 @@ package ht
 
 func (ht *TSFHashTable[T]) Delete(id uint64) error {
 
-	table, bucket, err := ht.Locate(id)
+	requestId := ht.queue.NewRequestId()
 
-	defer ht.fileManager.Close(table, &err)
+	request := HashTableDeleteRequest[T]{requestId, id}
 
-	if err != nil {
+	result := ht.queue.Processor().Process(&request)
 
-		return err
+	return result.Error()
+}
+
+func (ht *TSFHashTable[T]) QueueDelete(id uint64) {
+
+	requestId := ht.queue.NewRequestId()
+
+	request := HashTableDeleteRequest[T]{requestId, id}
+
+	ht.queue.AddTask(&request)
+}
+
+func (ht *TSFHashTable[T]) QueueDeletes(ids ...uint64) {
+
+	requests := make([]IRequest[T], 0)
+
+	for _, id := range ids {
+
+		requestId := ht.queue.NewRequestId()
+
+		requests = append(requests, &HashTableDeleteRequest[T]{requestId, id})
 	}
-	if err := ht.fileManager.GoTo(bucket.bucketLocation, table); err != nil {
-
-		return err
-	}
-	bucketHeader := HashTableBucketHeader{false, true, 0}
-
-	if err := ht.bucketHeaderIO.Write(table, bucketHeader); err != nil {
-
-		return err
-	}
-	if err := ht.objectIO.Zero(table); err != nil {
-
-		return err
-	}
-	return err
+	ht.queue.AddTasks(requests)
 }

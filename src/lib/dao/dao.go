@@ -53,9 +53,9 @@ func Initialise[T any](
 
 ) (TSFDao[T], error) {
 
-	managingFile, err := fileManager.Open(fm.DaoManagingFile, id)
+	managingFile, err := fileManager.OpenAndLock(fm.DaoManagingFile, id)
 
-	defer fileManager.Close(managingFile, &err)
+	defer fileManager.CloseAndUnlock(managingFile, &err)
 
 	if err != nil {
 
@@ -128,9 +128,9 @@ func (dao *TSFDao[T]) RemoveTableIdFromCache(id uint64) {
 
 func (dao *TSFDao[T]) SaveCacheAlteration(id uint64, alteration func(id uint64)) error {
 
-	managingFile, err := dao.fileManager.Open(fm.DaoManagingFile, dao.id)
+	managingFile, err := dao.fileManager.OpenAndLock(fm.DaoManagingFile, dao.id)
 
-	defer dao.fileManager.Close(managingFile, &err)
+	defer dao.fileManager.CloseAndUnlock(managingFile, &err)
 
 	if err != nil {
 

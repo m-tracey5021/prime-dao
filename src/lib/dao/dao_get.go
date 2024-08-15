@@ -12,13 +12,13 @@ func (dao TSFDao[T]) Get(id uint64) (*DaoIdentifiable[T], error) {
 
 		return nil, err
 	}
-	table, err := dao.fileManager.Open(fm.DaoTable, index.id)
+	table, err := dao.fileManager.OpenAndLock(fm.DaoTable, index.id)
 
 	if err != nil {
 
 		return nil, err
 	}
-	defer dao.fileManager.Close(table, &err)
+	defer dao.fileManager.CloseAndUnlock(table, &err)
 
 	if err := dao.fileManager.GoTo(int(index.filePosition), table); err != nil {
 

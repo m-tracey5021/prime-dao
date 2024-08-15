@@ -2,32 +2,33 @@ package ht
 
 func (ht *TSFHashTable[T]) Save(object T) error {
 
-	id := ht.saveQueue.NewRequestId()
+	requestId := ht.queue.NewRequestId()
 
-	request := HashTableSaveRequest[T]{id, object}
+	request := HashTableSaveRequest[T]{requestId, object}
 
-	return ht.saveQueue.Processor().Process(&request).Error()
+	return ht.queue.Processor().Process(&request).Error()
 }
 
 func (ht *TSFHashTable[T]) QueueSave(object T) {
 
-	id := ht.saveQueue.NewRequestId()
+	requestId := ht.queue.NewRequestId()
 
-	request := HashTableSaveRequest[T]{id, object}
+	request := HashTableSaveRequest[T]{requestId, object}
 
-	ht.saveQueue.AddTask(&request)
+	ht.queue.AddTask(&request)
 }
 
 func (ht *TSFHashTable[T]) QueueSaves(objects ...T) {
 
+	requests := make([]IRequest[T], 0)
+
 	for _, object := range objects {
 
-		id := ht.saveQueue.NewRequestId()
+		requestId := ht.queue.NewRequestId()
 
-		request := HashTableSaveRequest[T]{id, object}
-
-		ht.saveQueue.AddTask(&request)
+		requests = append(requests, &HashTableSaveRequest[T]{requestId, object})
 	}
+	ht.queue.AddTasks(requests)
 }
 
 // func (ht *TSFHashTable[T]) Save(object T) error {

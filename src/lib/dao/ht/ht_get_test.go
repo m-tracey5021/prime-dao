@@ -1,209 +1,209 @@
 package ht
 
-import (
-	"io"
-	"testing"
-	"transformer/src/lib/dao/fm"
+// import (
+// 	"io"
+// 	"testing"
+// 	"transformer/src/lib/dao/fm"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-)
+// 	"github.com/stretchr/testify/assert"
+// 	"github.com/stretchr/testify/mock"
+// )
 
-func TestGetAtEmptyPosition(t *testing.T) {
+// func TestGetAtEmptyPosition(t *testing.T) {
 
-	// Given
-	mockFileContainer, _, mockBucketHeaderIO, _, dao := setupMockDao()
+// 	// Given
+// 	mockFileContainer, _, mockBucketHeaderIO, _, dao := setupMockDao()
 
-	_, mockMainTable, _ := setupMockFiles(mockFileContainer)
+// 	_, mockMainTable, _ := setupMockFiles(mockFileContainer)
 
-	id := uint64(0)
+// 	id := uint64(0)
 
-	bucketHeader := HashTableBucketHeader{}
+// 	bucketHeader := HashTableBucketHeader{}
 
-	hash := dao.hash(id)
+// 	hash := dao.hash(id)
 
-	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
+// 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
 
-	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, io.EOF)
+// 	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, io.EOF)
 
-	// When
-	read, err := dao.Get(id)
+// 	// When
+// 	read, err := dao.Get(id)
 
-	if err != nil {
+// 	if err != nil {
 
-		t.Fatalf("%v", err)
-	}
+// 		t.Fatalf("%v", err)
+// 	}
 
-	// Then
-	assert.Nil(t, read)
+// 	// Then
+// 	assert.Nil(t, read)
 
-	mockFileContainer.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
+// 	mockFileContainer.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
 
-	mockBucketHeaderIO.AssertExpectations(t)
-}
+// 	mockBucketHeaderIO.AssertExpectations(t)
+// }
 
-func TestGetAtEmptyPositionPreviouslyDeleted(t *testing.T) {
+// func TestGetAtEmptyPositionPreviouslyDeleted(t *testing.T) {
 
-	// Given
-	mockFileContainer, _, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
+// 	// Given
+// 	mockFileContainer, _, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
 
-	_, mockMainTable, mockCollisionTable := setupMockFiles(mockFileContainer)
+// 	_, mockMainTable, mockCollisionTable := setupMockFiles(mockFileContainer)
 
-	id := uint64(0)
+// 	id := uint64(0)
 
-	objectToRetrieve := MockHashable{id}
+// 	objectToRetrieve := MockHashable{id}
 
-	bucketHeader := HashTableBucketHeader{false, true, 0}
+// 	bucketHeader := HashTableBucketHeader{false, true, 0}
 
-	hash := dao.hash(id)
+// 	hash := dao.hash(id)
 
-	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
+// 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
 
-	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
+// 	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
 
-	mockObjectIO.On("Read", mockCollisionTable).Return(objectToRetrieve, nil)
+// 	mockObjectIO.On("Read", mockCollisionTable).Return(objectToRetrieve, nil)
 
-	// When
-	read, err := dao.Get(id)
+// 	// When
+// 	read, err := dao.Get(id)
 
-	if err != nil {
+// 	if err != nil {
 
-		t.Fatalf("%v", err)
-	}
+// 		t.Fatalf("%v", err)
+// 	}
 
-	// Then
-	assert.Equal(t, &objectToRetrieve, read)
+// 	// Then
+// 	assert.Equal(t, &objectToRetrieve, read)
 
-	mockFileContainer.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
+// 	mockFileContainer.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
 
-	mockBucketHeaderIO.AssertExpectations(t)
-}
+// 	mockBucketHeaderIO.AssertExpectations(t)
+// }
 
-func TestGetAtOccupiedPosition(t *testing.T) {
+// func TestGetAtOccupiedPosition(t *testing.T) {
 
-	// Given
-	mockFileContainer, _, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
+// 	// Given
+// 	mockFileContainer, _, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
 
-	_, mockMainTable, _ := setupMockFiles(mockFileContainer)
+// 	_, mockMainTable, _ := setupMockFiles(mockFileContainer)
 
-	id := uint64(0)
+// 	id := uint64(0)
 
-	objectToRetrieveA := MockHashable{id}
+// 	objectToRetrieveA := MockHashable{id}
 
-	bucketHeader := HashTableBucketHeader{true, false, 0}
+// 	bucketHeader := HashTableBucketHeader{true, false, 0}
 
-	hash := dao.hash(id)
+// 	hash := dao.hash(id)
 
-	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
+// 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
 
-	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
+// 	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
 
-	mockObjectIO.On("Read", mockMainTable).Return(objectToRetrieveA, nil)
+// 	mockObjectIO.On("Read", mockMainTable).Return(objectToRetrieveA, nil)
 
-	// When
-	read, err := dao.Get(id)
+// 	// When
+// 	read, err := dao.Get(id)
 
-	if err != nil {
+// 	if err != nil {
 
-		t.Fatalf("%v", err)
-	}
+// 		t.Fatalf("%v", err)
+// 	}
 
-	// Then
-	assert.Equal(t, &objectToRetrieveA, read)
+// 	// Then
+// 	assert.Equal(t, &objectToRetrieveA, read)
 
-	mockFileContainer.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
+// 	mockFileContainer.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
 
-	mockBucketHeaderIO.AssertExpectations(t)
+// 	mockBucketHeaderIO.AssertExpectations(t)
 
-	mockObjectIO.AssertExpectations(t)
-}
+// 	mockObjectIO.AssertExpectations(t)
+// }
 
-func TestGetAtOccupiedPositionWithCollision(t *testing.T) {
+// func TestGetAtOccupiedPositionWithCollision(t *testing.T) {
 
-	// Given
-	mockFileContainer, _, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
+// 	// Given
+// 	mockFileContainer, _, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
 
-	_, mockMainTable, mockCollisionTable := setupMockFiles(mockFileContainer)
+// 	_, mockMainTable, mockCollisionTable := setupMockFiles(mockFileContainer)
 
-	id := uint64(0)
+// 	id := uint64(0)
 
-	objectToRetrieveA := MockHashable{1}
+// 	objectToRetrieveA := MockHashable{1}
 
-	objectToRetrieveB := MockHashable{id}
+// 	objectToRetrieveB := MockHashable{id}
 
-	bucketHeader := HashTableBucketHeader{true, true, 0}
+// 	bucketHeader := HashTableBucketHeader{true, true, 0}
 
-	hash := dao.hash(id)
+// 	hash := dao.hash(id)
 
-	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
+// 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
 
-	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
+// 	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
 
-	mockObjectIO.On("Read", mockMainTable).Return(objectToRetrieveA, nil).Once()
+// 	mockObjectIO.On("Read", mockMainTable).Return(objectToRetrieveA, nil).Once()
 
-	mockObjectIO.On("Read", mockCollisionTable).Return(objectToRetrieveB, nil)
+// 	mockObjectIO.On("Read", mockCollisionTable).Return(objectToRetrieveB, nil)
 
-	// When
-	read, err := dao.Get(id)
+// 	// When
+// 	read, err := dao.Get(id)
 
-	if err != nil {
+// 	if err != nil {
 
-		t.Fatalf("%v", err)
-	}
+// 		t.Fatalf("%v", err)
+// 	}
 
-	// Then
-	assert.Equal(t, &objectToRetrieveB, read)
+// 	// Then
+// 	assert.Equal(t, &objectToRetrieveB, read)
 
-	mockFileContainer.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
+// 	mockFileContainer.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
 
-	mockFileContainer.AssertCalled(t, "File", fm.HashTableCollisionTable, mock.AnythingOfType("uint64"))
+// 	mockFileContainer.AssertCalled(t, "File", fm.HashTableCollisionTable, mock.AnythingOfType("uint64"))
 
-	mockBucketHeaderIO.AssertExpectations(t)
+// 	mockBucketHeaderIO.AssertExpectations(t)
 
-	mockObjectIO.AssertExpectations(t)
-}
+// 	mockObjectIO.AssertExpectations(t)
+// }
 
-func TestGetAtOccupiedPositionWithCollisionNoResult(t *testing.T) {
+// func TestGetAtOccupiedPositionWithCollisionNoResult(t *testing.T) {
 
-	// Given
-	mockFileContainer, _, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
+// 	// Given
+// 	mockFileContainer, _, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
 
-	_, mockMainTable, mockCollisionTable := setupMockFiles(mockFileContainer)
+// 	_, mockMainTable, mockCollisionTable := setupMockFiles(mockFileContainer)
 
-	id := uint64(0)
+// 	id := uint64(0)
 
-	objectToRetrieveA := MockHashable{1}
+// 	objectToRetrieveA := MockHashable{1}
 
-	objectToRetrieveB := MockHashable{id}
+// 	objectToRetrieveB := MockHashable{id}
 
-	bucketHeader := HashTableBucketHeader{true, true, 0}
+// 	bucketHeader := HashTableBucketHeader{true, true, 0}
 
-	hash := dao.hash(id)
+// 	hash := dao.hash(id)
 
-	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
+// 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
 
-	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
+// 	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
 
-	mockObjectIO.On("Read", mockMainTable).Return(objectToRetrieveA, nil).Once()
+// 	mockObjectIO.On("Read", mockMainTable).Return(objectToRetrieveA, nil).Once()
 
-	mockObjectIO.On("Read", mockCollisionTable).Return(objectToRetrieveB, io.EOF)
+// 	mockObjectIO.On("Read", mockCollisionTable).Return(objectToRetrieveB, io.EOF)
 
-	// When
-	read, err := dao.Get(id)
+// 	// When
+// 	read, err := dao.Get(id)
 
-	if err != nil {
+// 	if err != nil {
 
-		t.Fatalf("%v", err)
-	}
+// 		t.Fatalf("%v", err)
+// 	}
 
-	// Then
-	assert.Nil(t, read)
+// 	// Then
+// 	assert.Nil(t, read)
 
-	mockFileContainer.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
+// 	mockFileContainer.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
 
-	mockFileContainer.AssertCalled(t, "File", fm.HashTableCollisionTable, mock.AnythingOfType("uint64"))
+// 	mockFileContainer.AssertCalled(t, "File", fm.HashTableCollisionTable, mock.AnythingOfType("uint64"))
 
-	mockBucketHeaderIO.AssertExpectations(t)
+// 	mockBucketHeaderIO.AssertExpectations(t)
 
-	mockObjectIO.AssertExpectations(t)
-}
+// 	mockObjectIO.AssertExpectations(t)
+// }

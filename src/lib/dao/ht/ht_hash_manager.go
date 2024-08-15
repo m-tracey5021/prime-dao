@@ -9,13 +9,42 @@ import (
 	"transformer/src/lib/daoio"
 )
 
-type BucketManager[T schema.FixedSizeIdentifiable] struct {
-	fileManager fm.IFileManager
+type Hash struct {
+	tableGroup int
 
-	hashMetrics HashMetrics
+	tableNumber int
+
+	position int
 }
 
-func (manager *BucketManager[T]) ReadBucketHeader(position int, table *os.File) (HashTableBucketHeader, error) {
+type HashManager[T schema.FixedSizeIdentifiable] struct {
+	bucketSize int
+
+	tableSize int
+
+	maxCollisions int
+
+	fileManager fm.IFileManager
+}
+
+func (manager HashManager[T]) ComputeHash(id uint64) Hash {
+
+	// Calculate the table group to store the data in
+	hash := int(id) % manager.tableSize
+
+	// Calculate the order of the hash i.e. where it sits in relation to the others if hashed
+	order := int(id) / manager.tableSize
+
+	// Calculate the file/partition in which the data is stored
+	tableNumber := order / manager.maxCollisions
+
+	// Calculate the actual position in the file based on bucket size and table number
+	position := (order - (manager.maxCollisions * tableNumber)) * manager.bucketSize
+
+	return Hash{hash, tableNumber, position}
+}
+
+func (manager *HashManager[T]) ReadBucketHeader(position int, table *os.File) (HashTableBucketHeader, error) {
 
 	if err := manager.fileManager.GoTo(position, table); err != nil {
 
@@ -33,7 +62,7 @@ func (manager *BucketManager[T]) ReadBucketHeader(position int, table *os.File) 
 	return bucketHeader, err
 }
 
-func (manager *BucketManager[T]) LocateForTableAndPosition(id uint64, table *os.File, position int) (*HashTableBucket[T], error) {
+func (manager *HashManager[T]) LocateForTableAndPosition(id uint64, table *os.File, position int) (*HashTableBucket[T], error) {
 
 	bucketHeader, err := manager.ReadBucketHeader(position, table)
 
@@ -70,7 +99,7 @@ func (manager *BucketManager[T]) LocateForTableAndPosition(id uint64, table *os.
 	}
 }
 
-func (manager *BucketManager[T]) LocateEmptyForTableAndPosition(id uint64, table *os.File, position int) (*int, error) {
+func (manager *HashManager[T]) LocateEmptyForTableAndPosition(id uint64, table *os.File, position int) (*int, error) {
 
 	bucketHeader, err := manager.ReadBucketHeader(position, table)
 
@@ -101,13 +130,13 @@ func (manager *BucketManager[T]) LocateEmptyForTableAndPosition(id uint64, table
 	}
 }
 
-func (manager *BucketManager[T]) Locate(id uint64) (*os.File, HashTableBucket[T], error) {
+func (manager *HashManager[T]) Locate(id uint64) (*os.File, HashTableBucket[T], error) {
 
 	closeTable := true
 
-	hash := manager.hashMetrics.ComputeHash(id)
+	hash := manager.ComputeHash(id)
 
-	table, err := manager.fileManager.Open(fm.HashTableCollisionTable, uint64(hash.tableGroup), uint64(hash.tableNumber))
+	table, err := manager.fileManager.OpenAndLock(fm.HashTableCollisionTable, uint64(hash.tableGroup), uint64(hash.tableNumber))
 
 	defer manager.CloseConditionally(&closeTable, table, &err)
 
@@ -130,13 +159,13 @@ func (manager *BucketManager[T]) Locate(id uint64) (*os.File, HashTableBucket[T]
 	return nil, HashTableBucket[T]{}, ObjectDoesNotExist
 }
 
-func (manager *BucketManager[T]) LocateEmpty(id uint64) (*os.File, int, error) {
+func (manager *HashManager[T]) LocateEmpty(id uint64) (*os.File, int, error) {
 
 	closeTable := true
 
-	hash := manager.hashMetrics.ComputeHash(id)
+	hash := manager.ComputeHash(id)
 
-	table, err := manager.fileManager.Open(fm.HashTableCollisionTable, uint64(hash.tableGroup), uint64(hash.tableNumber))
+	table, err := manager.fileManager.OpenAndLock(fm.HashTableCollisionTable, uint64(hash.tableGroup), uint64(hash.tableNumber))
 
 	defer manager.CloseConditionally(&closeTable, table, &err)
 
@@ -160,11 +189,11 @@ func (manager *BucketManager[T]) LocateEmpty(id uint64) (*os.File, int, error) {
 }
 
 // Closes the file conditionally so that defer will run only if it needs to
-func (manager *BucketManager[T]) CloseConditionally(close *bool, table *os.File, err *error) error {
+func (manager *HashManager[T]) CloseConditionally(close *bool, table *os.File, err *error) error {
 
 	if *close {
 
-		return manager.fileManager.Close(table, err)
+		return manager.fileManager.CloseAndUnlock(table, err)
 	}
 	return *err
 }

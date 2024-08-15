@@ -6,13 +6,13 @@ import (
 
 func (dao TSFDao[T]) Save(object T) (int, error) {
 
-	table, err := dao.fileManager.Open(fm.DaoTable, dao.managingInfo.AvailableTable)
+	table, err := dao.fileManager.OpenAndLock(fm.DaoTable, dao.managingInfo.AvailableTable)
 
 	if err != nil {
 
 		return 0, err
 	}
-	defer dao.fileManager.Close(table, &err)
+	defer dao.fileManager.CloseAndUnlock(table, &err)
 
 	objectId := dao.NewObjectId()
 

@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"syscall"
 )
 
 type IFileManager interface {
-	Open(fileAlias FileAlias, idChain ...uint64) (*os.File, error)
+	OpenAndLock(fileAlias FileAlias, idChain ...uint64) (*os.File, error)
 
 	GoTo(position int, file *os.File) error
 
@@ -18,7 +19,7 @@ type IFileManager interface {
 
 	Remove(file *os.File) error
 
-	Close(file *os.File, err *error) error
+	CloseAndUnlock(file *os.File, err *error) error
 }
 
 type FileAlias int
@@ -56,7 +57,7 @@ func NewFileContainer(path, descriptor string) FileManager {
 	return FileManager{fileMap}
 }
 
-func (fileManager FileManager) Open(fileAlias FileAlias, idChain ...uint64) (*os.File, error) {
+func (fileManager FileManager) OpenAndLock(fileAlias FileAlias, idChain ...uint64) (*os.File, error) {
 
 	filePath, ok := fileManager.fileMap[fileAlias]
 
@@ -66,9 +67,31 @@ func (fileManager FileManager) Open(fileAlias FileAlias, idChain ...uint64) (*os
 
 			filePath += fmt.Sprintf("_%v", id)
 		}
-		return os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0666)
+		file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0666)
+
+		if err != nil {
+
+			return nil, err
+		}
+		err = fileManager.Lock(file) // This line will block until the file is available
+
+		if err != nil {
+
+			return nil, err
+		}
+		return file, err
 	}
 	return nil, errors.New("file alias does not exist")
+}
+
+func (fileManager FileManager) Lock(file *os.File) error {
+
+	return syscall.Flock(int(file.Fd()), syscall.LOCK_EX)
+}
+
+func (fileManager FileManager) Unlock(file *os.File) error {
+
+	return syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
 }
 
 func (fileManager FileManager) GoTo(position int, file *os.File) error {
@@ -107,17 +130,28 @@ func (fileManager FileManager) Remove(file *os.File) error {
 	return os.Remove(file.Name())
 }
 
-func (fileManager FileManager) Close(file *os.File, err *error) error {
+func (fileManager FileManager) CloseAndUnlock(file *os.File, err *error) error {
 
-	if innerErr := file.Close(); innerErr != nil {
+	if unlockErr := fileManager.Unlock(file); unlockErr != nil {
 
 		if *err != nil {
 
-			*err = errors.Join(innerErr, *err)
+			*err = errors.Join(unlockErr, *err)
 
 		} else {
 
-			*err = innerErr
+			*err = unlockErr
+		}
+	}
+	if closeErr := file.Close(); closeErr != nil {
+
+		if *err != nil {
+
+			*err = errors.Join(closeErr, *err)
+
+		} else {
+
+			*err = closeErr
 		}
 	}
 	return *err

@@ -12,13 +12,13 @@ func (dao TSFDao[T]) Delete(object DaoIdentifiable[T]) (int, error) {
 
 		return 0, err
 	}
-	table, err := dao.fileManager.Open(fm.DaoTable, index.fileId)
+	table, err := dao.fileManager.OpenAndLock(fm.DaoTable, index.fileId)
 
 	if err != nil {
 
 		return 0, err
 	}
-	defer dao.fileManager.Close(table, &err)
+	defer dao.fileManager.CloseAndUnlock(table, &err)
 
 	if err := dao.fileManager.GoTo(int(index.filePosition), table); err != nil {
 

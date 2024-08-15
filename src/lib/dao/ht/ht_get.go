@@ -1,102 +1,117 @@
 package ht
 
-import (
-	"errors"
-	"sync"
-)
-
 func (ht *TSFHashTable[T]) Get(id uint64) (*T, error) {
 
-	table, bucket, err := ht.Locate(id)
+	requestId := ht.queue.NewRequestId()
 
-	defer ht.fileManager.Close(table, &err)
+	request := HashTableGetRequest[T]{requestId, id}
 
-	if err != nil {
+	result := ht.queue.Processor().Process(&request)
 
-		return nil, err
-	}
-	return &bucket.object, nil
+	return result.Object(), result.Error()
 }
 
-func (ht *TSFHashTable[T]) GetAndSend(id uint64, results chan *T, errors chan error, mutex *sync.Mutex) {
+func (ht *TSFHashTable[T]) QueueGet(id uint64) {
 
-	mutex.Lock()
+	requestId := ht.queue.NewRequestId()
 
-	defer mutex.Unlock()
+	request := HashTableGetRequest[T]{requestId, id}
 
-	table, bucket, err := ht.Locate(id)
-
-	defer ht.fileManager.Close(table, &err)
-
-	if err != nil {
-
-		errors <- err
-
-		return
-	}
-	results <- &bucket.object
+	ht.queue.AddTask(&request)
 }
 
-func (ht *TSFHashTable[T]) GetConcurrent(ids ...uint64) ([]*T, error) {
+func (ht *TSFHashTable[T]) QueueGets(ids ...uint64) {
 
-	objectChannel := make(chan *T, len(ids))
-
-	errorChannel := make(chan error, len(ids))
-
-	var wg sync.WaitGroup
-
-	wg.Add(len(ids))
-
-	var mutex sync.Mutex
+	requests := make([]IRequest[T], 0)
 
 	for _, id := range ids {
 
-		go func(id uint64) {
+		requestId := ht.queue.NewRequestId()
 
-			defer wg.Done()
-
-			ht.GetAndSend(id, objectChannel, errorChannel, &mutex)
-
-		}(id)
+		requests = append(requests, &HashTableGetRequest[T]{requestId, id})
 	}
-	go func() {
-
-		wg.Wait()
-
-		close(objectChannel)
-
-		close(errorChannel)
-	}()
-
-	objects := make([]*T, 0)
-
-	errs := make([]error, 0)
-
-	var wgResults sync.WaitGroup
-
-	wgResults.Add(2)
-
-	go func() {
-
-		defer wgResults.Done()
-
-		for object := range objectChannel {
-
-			objects = append(objects, object)
-		}
-	}()
-
-	go func() {
-
-		defer wgResults.Done()
-
-		for err := range errorChannel {
-
-			errs = append(errs, err)
-		}
-	}()
-
-	wgResults.Wait()
-
-	return objects, errors.Join(errs...)
+	ht.queue.AddTasks(requests)
 }
+
+// func (ht *TSFHashTable[T]) GetAndSend(id uint64, results chan *T, errors chan error, mutex *sync.Mutex) {
+
+// 	mutex.Lock()
+
+// 	defer mutex.Unlock()
+
+// 	table, bucket, err := ht.Locate(id)
+
+// 	defer ht.fileManager.Close(table, &err)
+
+// 	if err != nil {
+
+// 		errors <- err
+
+// 		return
+// 	}
+// 	results <- &bucket.object
+// }
+
+// func (ht *TSFHashTable[T]) GetConcurrent(ids ...uint64) ([]*T, error) {
+
+// 	objectChannel := make(chan *T, len(ids))
+
+// 	errorChannel := make(chan error, len(ids))
+
+// 	var wg sync.WaitGroup
+
+// 	wg.Add(len(ids))
+
+// 	var mutex sync.Mutex
+
+// 	for _, id := range ids {
+
+// 		go func(id uint64) {
+
+// 			defer wg.Done()
+
+// 			ht.GetAndSend(id, objectChannel, errorChannel, &mutex)
+
+// 		}(id)
+// 	}
+// 	go func() {
+
+// 		wg.Wait()
+
+// 		close(objectChannel)
+
+// 		close(errorChannel)
+// 	}()
+
+// 	objects := make([]*T, 0)
+
+// 	errs := make([]error, 0)
+
+// 	var wgResults sync.WaitGroup
+
+// 	wgResults.Add(2)
+
+// 	go func() {
+
+// 		defer wgResults.Done()
+
+// 		for object := range objectChannel {
+
+// 			objects = append(objects, object)
+// 		}
+// 	}()
+
+// 	go func() {
+
+// 		defer wgResults.Done()
+
+// 		for err := range errorChannel {
+
+// 			errs = append(errs, err)
+// 		}
+// 	}()
+
+// 	wgResults.Wait()
+
+// 	return objects, errors.Join(errs...)
+// }
