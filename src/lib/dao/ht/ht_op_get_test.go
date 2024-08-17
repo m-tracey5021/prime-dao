@@ -1,5 +1,12 @@
 package ht
 
+import (
+	"os"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
 // import (
 // 	"io"
 // 	"testing"
@@ -9,12 +16,50 @@ package ht
 // 	"github.com/stretchr/testify/mock"
 // )
 
+func TestGet(t *testing.T) {
+
+	// Given
+	mockFileManager, mockTableManager, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
+
+	id := uint64(0)
+
+	table := new(os.File)
+
+	retrievedObject := MockHashable{id}
+
+	bucket := HashTableBucket[MockHashable]{object: retrievedObject}
+
+	var innerErr error = nil
+
+	// When
+	mockTableManager.On("Locate", id).Return(table, bucket, nil)
+
+	mockFileManager.On("CloseAndUnlock", table, &innerErr).Return(nil)
+
+	object, err := dao.Get(id)
+
+	if err != nil {
+
+		t.Fail()
+	}
+	// Then
+	assert.Equal(t, retrievedObject, *object)
+
+	mockFileManager.AssertExpectations(t)
+
+	mockTableManager.AssertExpectations(t)
+
+	mockBucketHeaderIO.AssertExpectations(t)
+
+	mockObjectIO.AssertExpectations(t)
+}
+
 // func TestGetAtEmptyPosition(t *testing.T) {
 
 // 	// Given
-// 	mockFileContainer, _, mockBucketHeaderIO, _, dao := setupMockDao()
+// 	mockFileManager, _, mockBucketHeaderIO, _, dao := setupMockDao()
 
-// 	_, mockMainTable, _ := setupMockFiles(mockFileContainer)
+// 	_, mockMainTable, _ := setupMockFiles(mockFileManager)
 
 // 	id := uint64(0)
 
@@ -22,7 +67,7 @@ package ht
 
 // 	hash := dao.hash(id)
 
-// 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
+// 	mockFileManager.On("GoTo", hash, mockMainTable).Return(nil)
 
 // 	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, io.EOF)
 
@@ -37,7 +82,7 @@ package ht
 // 	// Then
 // 	assert.Nil(t, read)
 
-// 	mockFileContainer.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
+// 	mockFileManager.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
 
 // 	mockBucketHeaderIO.AssertExpectations(t)
 // }
@@ -45,9 +90,9 @@ package ht
 // func TestGetAtEmptyPositionPreviouslyDeleted(t *testing.T) {
 
 // 	// Given
-// 	mockFileContainer, _, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
+// 	mockFileManager, _, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
 
-// 	_, mockMainTable, mockCollisionTable := setupMockFiles(mockFileContainer)
+// 	_, mockMainTable, mockCollisionTable := setupMockFiles(mockFileManager)
 
 // 	id := uint64(0)
 
@@ -57,7 +102,7 @@ package ht
 
 // 	hash := dao.hash(id)
 
-// 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
+// 	mockFileManager.On("GoTo", hash, mockMainTable).Return(nil)
 
 // 	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
 
@@ -74,7 +119,7 @@ package ht
 // 	// Then
 // 	assert.Equal(t, &objectToRetrieve, read)
 
-// 	mockFileContainer.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
+// 	mockFileManager.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
 
 // 	mockBucketHeaderIO.AssertExpectations(t)
 // }
@@ -82,9 +127,9 @@ package ht
 // func TestGetAtOccupiedPosition(t *testing.T) {
 
 // 	// Given
-// 	mockFileContainer, _, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
+// 	mockFileManager, _, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
 
-// 	_, mockMainTable, _ := setupMockFiles(mockFileContainer)
+// 	_, mockMainTable, _ := setupMockFiles(mockFileManager)
 
 // 	id := uint64(0)
 
@@ -94,7 +139,7 @@ package ht
 
 // 	hash := dao.hash(id)
 
-// 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
+// 	mockFileManager.On("GoTo", hash, mockMainTable).Return(nil)
 
 // 	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
 
@@ -111,7 +156,7 @@ package ht
 // 	// Then
 // 	assert.Equal(t, &objectToRetrieveA, read)
 
-// 	mockFileContainer.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
+// 	mockFileManager.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
 
 // 	mockBucketHeaderIO.AssertExpectations(t)
 
@@ -121,9 +166,9 @@ package ht
 // func TestGetAtOccupiedPositionWithCollision(t *testing.T) {
 
 // 	// Given
-// 	mockFileContainer, _, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
+// 	mockFileManager, _, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
 
-// 	_, mockMainTable, mockCollisionTable := setupMockFiles(mockFileContainer)
+// 	_, mockMainTable, mockCollisionTable := setupMockFiles(mockFileManager)
 
 // 	id := uint64(0)
 
@@ -135,7 +180,7 @@ package ht
 
 // 	hash := dao.hash(id)
 
-// 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
+// 	mockFileManager.On("GoTo", hash, mockMainTable).Return(nil)
 
 // 	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
 
@@ -154,9 +199,9 @@ package ht
 // 	// Then
 // 	assert.Equal(t, &objectToRetrieveB, read)
 
-// 	mockFileContainer.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
+// 	mockFileManager.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
 
-// 	mockFileContainer.AssertCalled(t, "File", fm.HashTableCollisionTable, mock.AnythingOfType("uint64"))
+// 	mockFileManager.AssertCalled(t, "File", fm.HashTableCollisionTable, mock.AnythingOfType("uint64"))
 
 // 	mockBucketHeaderIO.AssertExpectations(t)
 
@@ -166,9 +211,9 @@ package ht
 // func TestGetAtOccupiedPositionWithCollisionNoResult(t *testing.T) {
 
 // 	// Given
-// 	mockFileContainer, _, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
+// 	mockFileManager, _, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
 
-// 	_, mockMainTable, mockCollisionTable := setupMockFiles(mockFileContainer)
+// 	_, mockMainTable, mockCollisionTable := setupMockFiles(mockFileManager)
 
 // 	id := uint64(0)
 
@@ -180,7 +225,7 @@ package ht
 
 // 	hash := dao.hash(id)
 
-// 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
+// 	mockFileManager.On("GoTo", hash, mockMainTable).Return(nil)
 
 // 	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
 
@@ -199,9 +244,9 @@ package ht
 // 	// Then
 // 	assert.Nil(t, read)
 
-// 	mockFileContainer.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
+// 	mockFileManager.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
 
-// 	mockFileContainer.AssertCalled(t, "File", fm.HashTableCollisionTable, mock.AnythingOfType("uint64"))
+// 	mockFileManager.AssertCalled(t, "File", fm.HashTableCollisionTable, mock.AnythingOfType("uint64"))
 
 // 	mockBucketHeaderIO.AssertExpectations(t)
 

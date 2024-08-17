@@ -17,6 +17,11 @@ func (metadata DaoMetadata) Id() uint64 {
 	return metadata.id
 }
 
+func (metadata DaoMetadata) SetId(id uint64) schema.Identifiable {
+
+	return DaoMetadata{id, metadata.objectsWritten}
+}
+
 func (metadata DaoMetadata) Size() int {
 
 	return 16

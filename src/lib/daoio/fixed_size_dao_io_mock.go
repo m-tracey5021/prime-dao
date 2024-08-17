@@ -25,13 +25,6 @@ func (mockDaoIO *MockFixedSizeDao[T]) Read(file *os.File) (T, error) {
 	return args.Get(0).(T), args.Error(1)
 }
 
-func (mockDaoIO *MockFixedSizeDao[T]) Delete(file *os.File) error {
-
-	args := mockDaoIO.Called(file)
-
-	return args.Error(0)
-}
-
 func (mockDaoIO *MockFixedSizeDao[T]) Zero(file *os.File) error {
 
 	args := mockDaoIO.Called(file)

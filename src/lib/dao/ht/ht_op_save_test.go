@@ -1,5 +1,13 @@
 package ht
 
+import (
+	"os"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+)
+
 // import (
 // 	"io"
 // 	"testing"
@@ -9,52 +17,52 @@ package ht
 // 	"github.com/stretchr/testify/mock"
 // )
 
-// func TestSaveAtEmptyPosition(t *testing.T) {
+func TestSave(t *testing.T) {
 
-// 	// Given
-// 	mockFileContainer, mockCacheIO, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
+	// Given
+	mockFileManager, mockTableManager, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
 
-// 	mockManagingFile, mockMainTable, _ := setupMockFiles(mockFileContainer)
+	id := uint64(0)
 
-// 	objectToSave := MockHashable{0}
+	objectToSave := MockHashable{id}
 
-// 	bucketHeader := HashTableBucketHeader{}
+	table := new(os.File)
 
-// 	hash := dao.hash(objectToSave.Id())
+	emptyBucket := 0
 
-// 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
+	var innerErr error = nil
 
-// 	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, io.EOF)
+	// When
+	mockTableManager.On("LocateEmpty", id).Return(table, emptyBucket, nil)
 
-// 	mockBucketHeaderIO.On("Write", mockMainTable, mock.AnythingOfType("DaoBucketHeader")).Return(nil)
+	mockFileManager.On("CloseAndUnlock", table, &innerErr).Return(nil)
 
-// 	mockObjectIO.On("Write", mockMainTable, objectToSave).Return(nil)
+	mockFileManager.On("GoTo", emptyBucket, table).Return(nil)
 
-// 	mockCacheIO.On("WriteSizePrefixed", mockManagingFile, mock.AnythingOfType("DaoIdentifierCache")).Return(0, nil)
+	mockBucketHeaderIO.On("Write", table, mock.AnythingOfType("HashTableBucketHeader")).Return(nil)
 
-// 	// When
-// 	err := dao.Save(objectToSave)
+	mockObjectIO.On("Write", table, objectToSave).Return(nil)
 
-// 	// Then
-// 	assert.Nil(t, err)
+	err := dao.Save(objectToSave)
 
-// 	mockFileContainer.AssertCalled(t, "File", fm.HashTableManagingFile, mock.AnythingOfType("uint64"))
+	// Then
+	assert.Nil(t, err)
 
-// 	mockFileContainer.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
+	mockFileManager.AssertExpectations(t)
 
-// 	mockCacheIO.AssertExpectations(t)
+	mockTableManager.AssertExpectations(t)
 
-// 	mockBucketHeaderIO.AssertExpectations(t)
+	mockBucketHeaderIO.AssertExpectations(t)
 
-// 	mockObjectIO.AssertExpectations(t)
-// }
+	mockObjectIO.AssertExpectations(t)
+}
 
 // func TestSaveAtOccupiedPositionFirstCollision(t *testing.T) {
 
 // 	// Given
-// 	mockFileContainer, mockCacheIO, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
+// 	mockFileManager, mockCacheIO, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
 
-// 	mockManagingFile, mockMainTable, mockCollisionTable := setupMockFiles(mockFileContainer)
+// 	mockManagingFile, mockMainTable, mockCollisionTable := setupMockFiles(mockFileManager)
 
 // 	objectToSave := MockHashable{0}
 
@@ -64,7 +72,7 @@ package ht
 
 // 	hash := dao.hash(objectToSave.Id())
 
-// 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
+// 	mockFileManager.On("GoTo", hash, mockMainTable).Return(nil)
 
 // 	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
 
@@ -84,7 +92,7 @@ package ht
 // 	// Then
 // 	assert.Nil(t, err)
 
-// 	mockFileContainer.AssertExpectations(t)
+// 	mockFileManager.AssertExpectations(t)
 
 // 	mockCacheIO.AssertExpectations(t)
 
@@ -96,9 +104,9 @@ package ht
 // func TestSaveAtOccupiedPositionFirstCollisionWithExistingId(t *testing.T) {
 
 // 	// Given
-// 	mockFileContainer, mockCacheIO, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
+// 	mockFileManager, mockCacheIO, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
 
-// 	_, mockMainTable, _ := setupMockFiles(mockFileContainer)
+// 	_, mockMainTable, _ := setupMockFiles(mockFileManager)
 
 // 	objectToSave := MockHashable{0}
 
@@ -108,7 +116,7 @@ package ht
 
 // 	hash := dao.hash(objectToSave.Id())
 
-// 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
+// 	mockFileManager.On("GoTo", hash, mockMainTable).Return(nil)
 
 // 	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
 
@@ -122,7 +130,7 @@ package ht
 
 // 	assert.Equal(t, "object already exists, cannot save new", err.Error())
 
-// 	mockFileContainer.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
+// 	mockFileManager.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
 
 // 	mockCacheIO.AssertExpectations(t)
 
@@ -134,9 +142,9 @@ package ht
 // func TestSaveAtOccupiedPositionNonFirstCollision(t *testing.T) {
 
 // 	// Given
-// 	mockFileContainer, mockCacheIO, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
+// 	mockFileManager, mockCacheIO, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
 
-// 	mockManagingFile, mockMainTable, mockCollisionTable := setupMockFiles(mockFileContainer)
+// 	mockManagingFile, mockMainTable, mockCollisionTable := setupMockFiles(mockFileManager)
 
 // 	objectToSave := MockHashable{0}
 
@@ -148,7 +156,7 @@ package ht
 
 // 	hash := dao.hash(objectToSave.Id())
 
-// 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
+// 	mockFileManager.On("GoTo", hash, mockMainTable).Return(nil)
 
 // 	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
 
@@ -168,7 +176,7 @@ package ht
 // 	// Then
 // 	assert.Nil(t, err)
 
-// 	mockFileContainer.AssertExpectations(t)
+// 	mockFileManager.AssertExpectations(t)
 
 // 	mockCacheIO.AssertExpectations(t)
 
@@ -180,9 +188,9 @@ package ht
 // func TestSaveAtOccupiedPositionNonFirstCollisionWithExistingId(t *testing.T) {
 
 // 	// Given
-// 	mockFileContainer, mockCacheIO, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
+// 	mockFileManager, mockCacheIO, mockBucketHeaderIO, mockObjectIO, dao := setupMockDao()
 
-// 	_, mockMainTable, mockCollisionTable := setupMockFiles(mockFileContainer)
+// 	_, mockMainTable, mockCollisionTable := setupMockFiles(mockFileManager)
 
 // 	objectToSave := MockHashable{0}
 
@@ -194,7 +202,7 @@ package ht
 
 // 	hash := dao.hash(objectToSave.Id())
 
-// 	mockFileContainer.On("GoTo", hash, mockMainTable).Return(nil)
+// 	mockFileManager.On("GoTo", hash, mockMainTable).Return(nil)
 
 // 	mockBucketHeaderIO.On("Read", mockMainTable).Return(bucketHeader, nil)
 
@@ -210,9 +218,9 @@ package ht
 
 // 	assert.Equal(t, "object already exists, cannot save new", err.Error())
 
-// 	mockFileContainer.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
+// 	mockFileManager.AssertCalled(t, "File", fm.HashTableMainTable, mock.AnythingOfType("uint64"))
 
-// 	mockFileContainer.AssertCalled(t, "File", fm.HashTableCollisionTable, mock.AnythingOfType("uint64"))
+// 	mockFileManager.AssertCalled(t, "File", fm.HashTableCollisionTable, mock.AnythingOfType("uint64"))
 
 // 	mockCacheIO.AssertExpectations(t)
 

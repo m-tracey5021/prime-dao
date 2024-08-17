@@ -2,11 +2,12 @@ package dao
 
 import (
 	"transformer/src/lib/dao/fm"
+	"transformer/src/lib/daoio"
 )
 
-func (dao TSFDao[T]) Update(object DaoIdentifiable[T]) (int, error) {
+func (dao TSFDao[T]) Update(object T) (int, error) {
 
-	index, err := dao.indexHashTable.Get(object.Id)
+	index, err := dao.indexHashTable.Get(object.Id())
 
 	if err != nil {
 
@@ -14,17 +15,17 @@ func (dao TSFDao[T]) Update(object DaoIdentifiable[T]) (int, error) {
 	}
 	table, err := dao.fileManager.OpenAndLock(fm.DaoTable, index.id)
 
+	defer dao.fileManager.CloseAndUnlock(table, &err)
+
 	if err != nil {
 
 		return 0, err
 	}
-	defer dao.fileManager.CloseAndUnlock(table, &err)
-
 	if err := dao.fileManager.GoTo(int(index.filePosition), table); err != nil {
 
 		return 0, err
 	}
-	updatedSize, err := dao.objectIO.Update(table, object)
+	updatedSize, err := daoio.UpdateSizePrefixed(table, object)
 
 	if err != nil {
 

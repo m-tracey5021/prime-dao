@@ -2,9 +2,10 @@ package dao
 
 import (
 	"transformer/src/lib/dao/fm"
+	"transformer/src/lib/daoio"
 )
 
-func (dao TSFDao[T]) Get(id uint64) (*DaoIdentifiable[T], error) {
+func (dao TSFDao[T]) Get(id uint64) (*T, error) {
 
 	index, err := dao.indexHashTable.Get(id)
 
@@ -14,21 +15,21 @@ func (dao TSFDao[T]) Get(id uint64) (*DaoIdentifiable[T], error) {
 	}
 	table, err := dao.fileManager.OpenAndLock(fm.DaoTable, index.id)
 
+	defer dao.fileManager.CloseAndUnlock(table, &err)
+
 	if err != nil {
 
 		return nil, err
 	}
-	defer dao.fileManager.CloseAndUnlock(table, &err)
-
 	if err := dao.fileManager.GoTo(int(index.filePosition), table); err != nil {
 
 		return nil, err
 	}
-	object, err := dao.objectIO.ReadSizePrefixed(table)
+	object, err := daoio.ReadSizePrefixed[T](table)
 
 	if err != nil {
 
-		return nil, err
+		return object, err
 	}
-	return object, err
+	return nil, err
 }

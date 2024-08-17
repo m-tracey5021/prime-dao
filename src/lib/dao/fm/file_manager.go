@@ -125,11 +125,6 @@ func (fileManager FileManager) Size(file *os.File) (int, error) {
 	return int(fileInfo.Size()), nil
 }
 
-func (fileManager FileManager) Remove(file *os.File) error {
-
-	return os.Remove(file.Name())
-}
-
 func (fileManager FileManager) CloseAndUnlock(file *os.File, err *error) error {
 
 	if unlockErr := fileManager.Unlock(file); unlockErr != nil {
@@ -155,4 +150,9 @@ func (fileManager FileManager) CloseAndUnlock(file *os.File, err *error) error {
 		}
 	}
 	return *err
+}
+
+func (fileManager FileManager) Remove(file *os.File) error {
+
+	return os.Remove(file.Name())
 }

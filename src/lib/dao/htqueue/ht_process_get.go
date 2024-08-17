@@ -1,21 +1,9 @@
-package ht
+package htqueue
 
 import (
+	"transformer/src/lib/dao/queue"
 	"transformer/src/lib/dao/schema"
 )
-
-func (processor HashTableProcessor[T]) ProcessGetRequest(request IRequest[T]) IResult[T] {
-
-	table, bucket, err := processor.hashManager.Locate(request.ObjectId())
-
-	defer processor.fileManager.CloseAndUnlock(table, &err)
-
-	if err != nil {
-
-		return &HashTableGetResult[T]{object: nil, err: err}
-	}
-	return &HashTableGetResult[T]{object: &bucket.object, err: err}
-}
 
 type HashTableGetRequest[T schema.FixedSizeIdentifiable] struct {
 	requestId uint64
@@ -23,9 +11,9 @@ type HashTableGetRequest[T schema.FixedSizeIdentifiable] struct {
 	objectId uint64
 }
 
-func (request *HashTableGetRequest[T]) Type() RequestType {
+func (request *HashTableGetRequest[T]) Type() queue.RequestType {
 
-	return GetRequest
+	return queue.GetRequest
 }
 
 func (request *HashTableGetRequest[T]) RequestId() uint64 {
@@ -57,4 +45,11 @@ func (result *HashTableGetResult[T]) Object() *T {
 func (result *HashTableGetResult[T]) Error() error {
 
 	return result.err
+}
+
+func (processor HashTableRequestProcessor[T]) ProcessGetRequest(request queue.IRequest[T]) queue.IResult[T] {
+
+	object, err := processor.hashTable.Get(request.ObjectId())
+
+	return &HashTableGetResult[T]{object, err}
 }

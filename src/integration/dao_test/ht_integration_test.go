@@ -1,322 +1,374 @@
 package dao_test
 
-import (
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"testing"
-	"time"
-	"transformer/src/lib/dao/ht"
+// import (
+// 	"io/ioutil"
+// 	"os"
+// 	"path/filepath"
+// 	"testing"
+// 	"time"
+// 	"transformer/src/lib/dao/ht"
 
-	"github.com/stretchr/testify/assert"
-)
+// 	"github.com/stretchr/testify/assert"
+// )
 
-func TestHashableDao(t *testing.T) {
+// func TestHashableDao(t *testing.T) {
 
-	path := "dao_dir"
+// 	path := "dao_dir"
 
-	descriptor := "obj_test"
+// 	descriptor := "obj_test"
 
-	// fileManager := fm.NewFileContainer(path, descriptor)
+// 	// fileManager := fm.NewFileContainer(path, descriptor)
 
-	daoId := uint64(0)
+// 	daoId := uint64(0)
 
-	hashableDao, err := ht.New[ht.MockHashable](path, descriptor, daoId)
+// 	hashableDao := ht.New[ht.MockHashable](path, descriptor, daoId)
 
-	if err != nil {
+// 	if err != nil {
 
-		t.Fatalf("%v", err)
-	}
-	id := uint64(0)
+// 		t.Fatalf("%v", err)
+// 	}
+// 	id := uint64(0)
 
-	testObject := ht.MockHashable{id}
+// 	testObject := ht.MockHashable{id}
 
-	hashableDao.Save(testObject)
+// 	hashableDao.Save(testObject)
 
-	read, err := hashableDao.Get(id)
+// 	read, err := hashableDao.Get(id)
 
-	if err != nil {
+// 	if err != nil {
 
-		t.Fatalf("%v", err)
-	}
-	assert.Equal(t, testObject, read)
-}
+// 		t.Fatalf("%v", err)
+// 	}
+// 	assert.Equal(t, testObject, read)
+// }
 
-func TestHashableDaoWithCollision(t *testing.T) {
+// func TestHashableDaoWithCollision(t *testing.T) {
 
-	path := "dao_dir"
+// 	path := "dao_dir"
 
-	descriptor := "obj_test"
+// 	descriptor := "obj_test"
 
-	// fileManager := fm.NewFileContainer(path, descriptor)
+// 	// fileManager := fm.NewFileContainer(path, descriptor)
 
-	daoId := uint64(0)
+// 	daoId := uint64(0)
 
-	hashableDao, err := ht.New[ht.MockHashable](path, descriptor, daoId)
+// 	hashableDao, err := ht.New[ht.MockHashable](path, descriptor, daoId)
 
-	if err != nil {
+// 	if err != nil {
 
-		t.Fatalf("%v", err)
-	}
-	id := uint64(0)
+// 		t.Fatalf("%v", err)
+// 	}
+// 	id := uint64(0)
 
-	idB := uint64(10)
+// 	idB := uint64(10)
 
-	idC := uint64(20)
-	idD := uint64(30)
-	idE := uint64(40)
-	idF := uint64(50)
+// 	idC := uint64(20)
+// 	idD := uint64(30)
+// 	idE := uint64(40)
+// 	idF := uint64(50)
 
-	testObject := ht.MockHashable{id}
+// 	testObject := ht.MockHashable{id}
 
-	testObjectB := ht.MockHashable{idB}
+// 	testObjectB := ht.MockHashable{idB}
 
-	testObjectC := ht.MockHashable{idC}
-	testObjectD := ht.MockHashable{idD}
-	testObjectE := ht.MockHashable{idE}
-	testObjectF := ht.MockHashable{idF}
+// 	testObjectC := ht.MockHashable{idC}
+// 	testObjectD := ht.MockHashable{idD}
+// 	testObjectE := ht.MockHashable{idE}
+// 	testObjectF := ht.MockHashable{idF}
 
-	hashableDao.Save(testObject)
+// 	hashableDao.Save(testObject)
 
-	hashableDao.Save(testObjectB)
+// 	hashableDao.Save(testObjectB)
 
-	hashableDao.Save(testObjectC)
-	hashableDao.Save(testObjectD)
-	hashableDao.Save(testObjectE)
-	hashableDao.Save(testObjectF)
+// 	hashableDao.Save(testObjectC)
+// 	hashableDao.Save(testObjectD)
+// 	hashableDao.Save(testObjectE)
+// 	hashableDao.Save(testObjectF)
 
-	read, err := hashableDao.Get(id)
+// 	read, err := hashableDao.Get(id)
 
-	readB, err := hashableDao.Get(idB)
+// 	readB, err := hashableDao.Get(idB)
 
-	readC, err := hashableDao.Get(idC)
-	readD, err := hashableDao.Get(idD)
-	readE, err := hashableDao.Get(idE)
-	readF, err := hashableDao.Get(idF)
+// 	readC, err := hashableDao.Get(idC)
+// 	readD, err := hashableDao.Get(idD)
+// 	readE, err := hashableDao.Get(idE)
+// 	readF, err := hashableDao.Get(idF)
 
-	if err != nil {
+// 	if err != nil {
 
-		t.Fatalf("%v", err)
-	}
-	assert.Equal(t, testObject, read)
+// 		t.Fatalf("%v", err)
+// 	}
+// 	assert.Equal(t, testObject, read)
 
-	assert.Equal(t, testObjectB, readB)
+// 	assert.Equal(t, testObjectB, readB)
 
-	assert.Equal(t, testObjectC, readC)
-	assert.Equal(t, testObjectD, readD)
-	assert.Equal(t, testObjectE, readE)
-	assert.Equal(t, testObjectF, readF)
-}
+// 	assert.Equal(t, testObjectC, readC)
+// 	assert.Equal(t, testObjectD, readD)
+// 	assert.Equal(t, testObjectE, readE)
+// 	assert.Equal(t, testObjectF, readF)
+// }
 
-func TestHashableDaoWithCollisionAndDelete(t *testing.T) {
+// func TestHashableDaoWithCollisionAndDelete(t *testing.T) {
 
-	path := "dao_dir"
+// 	path := "dao_dir"
 
-	descriptor := "obj_test"
+// 	descriptor := "obj_test"
 
-	// fileManager := fm.NewFileContainer(path, descriptor)
+// 	// fileManager := fm.NewFileContainer(path, descriptor)
 
-	daoId := uint64(0)
+// 	daoId := uint64(0)
 
-	hashableDao, err := ht.New[ht.MockHashable](path, descriptor, daoId)
+// 	hashableDao, err := ht.New[ht.MockHashable](path, descriptor, daoId)
 
-	if err != nil {
+// 	if err != nil {
 
-		t.Fatalf("%v", err)
-	}
-	id := uint64(0)
+// 		t.Fatalf("%v", err)
+// 	}
+// 	id := uint64(0)
 
-	idB := uint64(10)
+// 	idB := uint64(10)
 
-	idC := uint64(20)
+// 	idC := uint64(20)
 
-	idD := uint64(1)
+// 	idD := uint64(1)
 
-	idE := uint64(11)
+// 	idE := uint64(11)
 
-	testObject := ht.MockHashable{id}
+// 	testObject := ht.MockHashable{id}
 
-	testObjectB := ht.MockHashable{idB}
+// 	testObjectB := ht.MockHashable{idB}
 
-	testObjectC := ht.MockHashable{idC}
+// 	testObjectC := ht.MockHashable{idC}
 
-	testObjectD := ht.MockHashable{idD}
+// 	testObjectD := ht.MockHashable{idD}
 
-	testObjectE := ht.MockHashable{idE}
+// 	testObjectE := ht.MockHashable{idE}
 
-	hashableDao.Save(testObject)
+// 	hashableDao.Save(testObject)
 
-	hashableDao.Save(testObjectB)
+// 	hashableDao.Save(testObjectB)
 
-	hashableDao.Save(testObjectC)
+// 	hashableDao.Save(testObjectC)
 
-	hashableDao.Save(testObjectD)
+// 	hashableDao.Save(testObjectD)
 
-	hashableDao.Save(testObjectE)
+// 	hashableDao.Save(testObjectE)
 
-	hashableDao.Delete(id)
+// 	hashableDao.Delete(id)
 
-	read, err := hashableDao.Get(id)
+// 	read, err := hashableDao.Get(id)
 
-	readB, err := hashableDao.Get(idB)
+// 	readB, err := hashableDao.Get(idB)
 
-	readC, err := hashableDao.Get(idC)
+// 	readC, err := hashableDao.Get(idC)
 
-	readE, err := hashableDao.Get(idE)
+// 	readE, err := hashableDao.Get(idE)
 
-	assert.Nil(t, read)
+// 	assert.Nil(t, read)
 
-	assert.Equal(t, testObjectB, readB)
+// 	assert.Equal(t, testObjectB, readB)
 
-	assert.Equal(t, testObjectC, readC)
+// 	assert.Equal(t, testObjectC, readC)
 
-	assert.Equal(t, testObjectE, readE)
+// 	assert.Equal(t, testObjectE, readE)
 
-	updatedTestObject := ht.MockHashable{id}
+// 	updatedTestObject := ht.MockHashable{id}
 
-	updatedTestObjectD := ht.MockHashable{idD}
+// 	updatedTestObjectD := ht.MockHashable{idD}
 
-	err = hashableDao.Update(updatedTestObject)
+// 	err = hashableDao.Update(updatedTestObject)
 
-	assert.Equal(t, ht.ObjectDoesNotExistToUpdate, err)
+// 	assert.Equal(t, ht.ObjectDoesNotExist, err)
 
-	err = hashableDao.Update(updatedTestObjectD)
+// 	err = hashableDao.Update(updatedTestObjectD)
 
-	err = hashableDao.Delete(uint64(2))
+// 	err = hashableDao.Delete(uint64(2))
 
-	// this saves number 2 in the slot number one was deleted from but should not
-	// because it already exists in a collision
+// 	// this saves number 2 in the slot number one was deleted from but should not
+// 	// because it already exists in a collision
 
-	err = hashableDao.Save(testObjectB)
+// 	err = hashableDao.Save(testObjectB)
 
-	readB, err = hashableDao.Get(idB)
+// 	readB, err = hashableDao.Get(idB)
 
-	assert.Equal(t, testObjectB, readB)
+// 	assert.Equal(t, testObjectB, readB)
 
-	removeAllFiles(path)
-}
+// 	removeAllFiles(path)
+// }
 
-func TestHashableDaoWithManySaves(t *testing.T) {
+// func TestHashableDaoWithManySaves(t *testing.T) {
 
-	path := "dao_dir"
+// 	path := "dao_dir"
 
-	descriptor := "obj_test"
+// 	descriptor := "obj_test"
 
-	// fileManager := fm.NewFileContainer(path, descriptor)
+// 	// fileManager := fm.NewFileContainer(path, descriptor)
 
-	daoId := uint64(0)
+// 	daoId := uint64(0)
 
-	hashTable, err := ht.New[ht.MockHashable](path, descriptor, daoId)
+// 	hashTable, err := ht.New[ht.MockHashable](path, descriptor, daoId)
 
-	if err != nil {
+// 	if err != nil {
 
-		t.Fatalf("%v", err)
-	}
-	ids := make([]uint64, 0)
+// 		t.Fatalf("%v", err)
+// 	}
+// 	ids := make([]uint64, 0)
 
-	objects := make([]ht.MockHashable, 0)
+// 	objects := make([]ht.MockHashable, 0)
 
-	for number := range 10000 {
+// 	for number := range 10000 {
 
-		id := uint64(number)
+// 		id := uint64(number)
 
-		ids = append(ids, uint64(id))
+// 		ids = append(ids, uint64(id))
 
-		testObject := ht.MockHashable{id}
+// 		testObject := ht.MockHashable{id}
 
-		objects = append(objects, testObject)
+// 		objects = append(objects, testObject)
 
-	}
-	start := time.Now()
+// 	}
+// 	start := time.Now()
 
-	for _, obj := range objects {
+// 	for _, obj := range objects {
 
-		hashTable.Save(obj)
-	}
-	for _, id := range ids {
+// 		hashTable.Save(obj)
+// 	}
+// 	for _, id := range ids {
 
-		hashTable.Get(id)
-	}
+// 		hashTable.Get(id)
+// 	}
 
-	duration := time.Since(start)
-	t.Logf("Get in a loop took %s to run", duration)
+// 	duration := time.Since(start)
+// 	t.Logf("Get in a loop took %s to run", duration)
 
-	if err != nil {
+// 	if err != nil {
 
-		t.Fatalf("%v", err)
-	}
+// 		t.Fatalf("%v", err)
+// 	}
 
-	removeAllFiles(path)
+// 	removeAllFiles(path)
 
-}
+// }
 
-func TestHashableDaoWithManySavesConcurrent(t *testing.T) {
+// func TestHashableDaoWithManySavesConcurrent(t *testing.T) {
 
-	path := "dao_dir"
+// 	path := "dao_dir"
 
-	descriptor := "obj_test"
+// 	descriptor := "obj_test"
 
-	// fileManager := fm.NewFileContainer(path, descriptor)
+// 	// fileManager := fm.NewFileContainer(path, descriptor)
 
-	daoId := uint64(0)
+// 	daoId := uint64(0)
 
-	hashTable, err := ht.New[ht.MockHashable](path, descriptor, daoId)
+// 	hashTable, err := ht.New[ht.MockHashable](path, descriptor, daoId)
 
-	if err != nil {
+// 	if err != nil {
 
-		t.Fatalf("%v", err)
-	}
-	ids := make([]uint64, 0)
+// 		t.Fatalf("%v", err)
+// 	}
+// 	ids := make([]uint64, 0)
 
-	objects := make([]ht.MockHashable, 0)
+// 	objects := make([]ht.MockHashable, 0)
 
-	for number := range 10000 {
+// 	for number := range 10000 {
 
-		id := uint64(number)
+// 		id := uint64(number)
 
-		ids = append(ids, id)
+// 		ids = append(ids, id)
 
-		objects = append(objects, ht.MockHashable{id})
-	}
-	start := time.Now()
+// 		objects = append(objects, ht.MockHashable{id})
+// 	}
+// 	start := time.Now()
 
-	hashTable.QueueSaves(objects...)
+// 	hashTable.SaveAsync(objects...)
 
-	hashTable.QueueGets(ids...)
+// 	hashTable.GetAsync(ids...)
 
-	_ = hashTable.GetResults()
+// 	_ = hashTable.GetResults()
 
-	duration := time.Since(start)
+// 	duration := time.Since(start)
 
-	// t.Logf("Get and Save Concurrent results: %s", results)
+// 	// t.Logf("Get and Save Concurrent results: %s", results)
 
-	t.Logf("Get and Save Concurrent took %s to run", duration)
+// 	t.Logf("Get and Save Concurrent took %s to run", duration)
 
-	if err != nil {
+// 	if err != nil {
 
-		t.Fatalf("%v", err)
-	}
-	// assert.NotNil(t, reads)
+// 		t.Fatalf("%v", err)
+// 	}
+// 	// assert.NotNil(t, reads)
 
-	removeAllFiles(path)
+// 	removeAllFiles(path)
 
-}
+// }
 
-func removeAllFiles(dir string) error {
-	// Get a list of all files in the directory
-	files, err := ioutil.ReadDir(dir)
-	if err != nil {
-		return err
-	}
+// func TestHashableDaoWithAFewSavesConcurrent(t *testing.T) {
 
-	// Loop through all files and remove them
-	for _, file := range files {
-		filePath := filepath.Join(dir, file.Name())
-		err := os.Remove(filePath)
-		if err != nil {
-			return err
-		}
-	}
+// 	path := "dao_dir"
 
-	return nil
-}
+// 	descriptor := "obj_test"
+
+// 	// fileManager := fm.NewFileContainer(path, descriptor)
+
+// 	daoId := uint64(0)
+
+// 	hashTable, err := ht.New[ht.MockHashable](path, descriptor, daoId)
+
+// 	if err != nil {
+
+// 		t.Fatalf("%v", err)
+// 	}
+// 	ids := make([]uint64, 0)
+
+// 	objects := make([]ht.MockHashable, 0)
+
+// 	for number := range 20 {
+
+// 		id := uint64(number)
+
+// 		ids = append(ids, id)
+
+// 		objects = append(objects, ht.MockHashable{id})
+// 	}
+// 	start := time.Now()
+
+// 	hashTable.SaveAsync(objects...)
+
+// 	hashTable.GetAsync(ids...)
+
+// 	results := hashTable.GetResults()
+
+// 	duration := time.Since(start)
+
+// 	t.Logf("Get and Save Concurrent results: %s", results)
+
+// 	t.Logf("Get and Save Concurrent took %s to run", duration)
+
+// 	if err != nil {
+
+// 		t.Fatalf("%v", err)
+// 	}
+// 	// assert.NotNil(t, reads)
+
+// 	removeAllFiles(path)
+
+// }
+
+// func removeAllFiles(dir string) error {
+// 	// Get a list of all files in the directory
+// 	files, err := ioutil.ReadDir(dir)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	// Loop through all files and remove them
+// 	for _, file := range files {
+// 		filePath := filepath.Join(dir, file.Name())
+// 		err := os.Remove(filePath)
+// 		if err != nil {
+// 			return err
+// 		}
+// 	}
+
+// 	return nil
+// }

@@ -7,17 +7,18 @@ import (
 	"transformer/src/lib/dao/fm"
 	"transformer/src/lib/dao/schema"
 	"transformer/src/lib/daoio"
+	"unsafe"
 )
 
-type Hash struct {
-	tableGroup int
+type IHashTableManager[T schema.FixedSizeIdentifiable] interface {
+	ComputeHash(id uint64) Hash
 
-	tableNumber int
+	Locate(id uint64) (*os.File, HashTableBucket[T], error)
 
-	position int
+	LocateEmpty(id uint64) (*os.File, int, error)
 }
 
-type HashManager[T schema.FixedSizeIdentifiable] struct {
+type HashTableManager[T schema.FixedSizeIdentifiable] struct {
 	bucketSize int
 
 	tableSize int
@@ -25,9 +26,39 @@ type HashManager[T schema.FixedSizeIdentifiable] struct {
 	maxCollisions int
 
 	fileManager fm.IFileManager
+
+	bucketHeaderIO daoio.IFixedSizeDaoIO[HashTableBucketHeader]
+
+	objectIO daoio.IFixedSizeDaoIO[T]
 }
 
-func (manager HashManager[T]) ComputeHash(id uint64) Hash {
+func NewTableManager[T schema.FixedSizeIdentifiable](fileManager fm.IFileManager) IHashTableManager[T] {
+
+	bucketSize := int(unsafe.Sizeof(*new(HashTableBucketHeader)) + unsafe.Sizeof(*new(T)))
+
+	tableSize := 10 // TODO get from config
+
+	maxCollisions := 5 // Get from config, but should be pretty small
+
+	bucketHeaderIO := daoio.FixedSizeDaoIO[HashTableBucketHeader]{}
+
+	objectIO := daoio.FixedSizeDaoIO[T]{}
+
+	return &HashTableManager[T]{bucketSize, tableSize, maxCollisions, fileManager, bucketHeaderIO, objectIO}
+}
+
+func InjectTableManager[T schema.FixedSizeIdentifiable](fileManager fm.IFileManager, bucketHeaderIO daoio.IFixedSizeDaoIO[HashTableBucketHeader], objectIO daoio.IFixedSizeDaoIO[T]) HashTableManager[T] {
+
+	bucketSize := int(unsafe.Sizeof(*new(HashTableBucketHeader)) + unsafe.Sizeof(*new(T)))
+
+	tableSize := 10 // TODO get from config
+
+	maxCollisions := 5 // Get from config, but should be pretty small
+
+	return HashTableManager[T]{bucketSize, tableSize, maxCollisions, fileManager, bucketHeaderIO, objectIO}
+}
+
+func (manager HashTableManager[T]) ComputeHash(id uint64) Hash {
 
 	// Calculate the table group to store the data in
 	hash := int(id) % manager.tableSize
@@ -44,13 +75,13 @@ func (manager HashManager[T]) ComputeHash(id uint64) Hash {
 	return Hash{hash, tableNumber, position}
 }
 
-func (manager *HashManager[T]) ReadBucketHeader(position int, table *os.File) (HashTableBucketHeader, error) {
+func (manager *HashTableManager[T]) ReadBucketHeader(position int, table *os.File) (HashTableBucketHeader, error) {
 
 	if err := manager.fileManager.GoTo(position, table); err != nil {
 
 		return HashTableBucketHeader{}, err
 	}
-	bucketHeader, err := daoio.Read[HashTableBucketHeader](table)
+	bucketHeader, err := manager.bucketHeaderIO.Read(table)
 
 	if err != nil {
 
@@ -62,7 +93,7 @@ func (manager *HashManager[T]) ReadBucketHeader(position int, table *os.File) (H
 	return bucketHeader, err
 }
 
-func (manager *HashManager[T]) LocateForTableAndPosition(id uint64, table *os.File, position int) (*HashTableBucket[T], error) {
+func (manager *HashTableManager[T]) LocateForTableAndPosition(id uint64, table *os.File, position int) (*HashTableBucket[T], error) {
 
 	bucketHeader, err := manager.ReadBucketHeader(position, table)
 
@@ -78,7 +109,7 @@ func (manager *HashManager[T]) LocateForTableAndPosition(id uint64, table *os.Fi
 
 			return nil, err
 		}
-		object, err := daoio.Read[T](table)
+		object, err := manager.objectIO.Read(table)
 
 		if err != nil {
 
@@ -99,7 +130,7 @@ func (manager *HashManager[T]) LocateForTableAndPosition(id uint64, table *os.Fi
 	}
 }
 
-func (manager *HashManager[T]) LocateEmptyForTableAndPosition(id uint64, table *os.File, position int) (*int, error) {
+func (manager *HashTableManager[T]) LocateEmptyForTableAndPosition(id uint64, table *os.File, position int) (*int, error) {
 
 	bucketHeader, err := manager.ReadBucketHeader(position, table)
 
@@ -109,7 +140,7 @@ func (manager *HashManager[T]) LocateEmptyForTableAndPosition(id uint64, table *
 	}
 	if bucketHeader.occupied {
 
-		object, err := daoio.Read[T](table)
+		object, err := manager.objectIO.Read(table)
 
 		if err != nil {
 
@@ -130,7 +161,7 @@ func (manager *HashManager[T]) LocateEmptyForTableAndPosition(id uint64, table *
 	}
 }
 
-func (manager *HashManager[T]) Locate(id uint64) (*os.File, HashTableBucket[T], error) {
+func (manager *HashTableManager[T]) Locate(id uint64) (*os.File, HashTableBucket[T], error) {
 
 	closeTable := true
 
@@ -159,7 +190,7 @@ func (manager *HashManager[T]) Locate(id uint64) (*os.File, HashTableBucket[T], 
 	return nil, HashTableBucket[T]{}, ObjectDoesNotExist
 }
 
-func (manager *HashManager[T]) LocateEmpty(id uint64) (*os.File, int, error) {
+func (manager *HashTableManager[T]) LocateEmpty(id uint64) (*os.File, int, error) {
 
 	closeTable := true
 
@@ -189,7 +220,7 @@ func (manager *HashManager[T]) LocateEmpty(id uint64) (*os.File, int, error) {
 }
 
 // Closes the file conditionally so that defer will run only if it needs to
-func (manager *HashManager[T]) CloseConditionally(close *bool, table *os.File, err *error) error {
+func (manager *HashTableManager[T]) CloseConditionally(close *bool, table *os.File, err *error) error {
 
 	if *close {
 

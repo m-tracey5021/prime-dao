@@ -7,6 +7,7 @@ import (
 	"transformer/src/lib"
 	"transformer/src/lib/dao/fm"
 	"transformer/src/lib/dao/ht"
+	"transformer/src/lib/dao/schema"
 	"transformer/src/lib/daoio"
 )
 
@@ -22,36 +23,39 @@ const (
 	RemoveObject
 )
 
-type TSFDao[T any] struct {
+type TSFDao[T schema.Identifiable] struct {
 	id uint64
 
 	fileManager fm.IFileManager
 
 	managingInfo DaoManagingInfo
 
-	infoIO daoio.IDaoIO[DaoManagingInfo]
-
 	indexHashTable ht.ITSFHashTable[DaoIndex]
 
 	metadataHashTable ht.ITSFHashTable[DaoMetadata]
-
-	objectIO daoio.IDaoIO[DaoIdentifiable[T]]
 }
 
-func Initialise[T any](
+func New[T schema.Identifiable](path, descriptor string, id uint64) (*TSFDao[T], error) {
+
+	fileManager := fm.NewFileContainer(path, descriptor)
+
+	indexHashTable := ht.New[DaoIndex](path, descriptor, id)
+
+	metadataHashTable := ht.New[DaoMetadata](path, descriptor, id)
+
+	return Initialise[T](id, fileManager, &indexHashTable, &metadataHashTable)
+}
+
+func Initialise[T schema.Identifiable](
 	id uint64,
 
 	fileManager fm.IFileManager,
-
-	infoIO daoio.IDaoIO[DaoManagingInfo],
 
 	indexHashTable ht.ITSFHashTable[DaoIndex],
 
 	metadataHashTable ht.ITSFHashTable[DaoMetadata],
 
-	objectIO daoio.IDaoIO[DaoIdentifiable[T]],
-
-) (TSFDao[T], error) {
+) (*TSFDao[T], error) {
 
 	managingFile, err := fileManager.OpenAndLock(fm.DaoManagingFile, id)
 
@@ -59,21 +63,21 @@ func Initialise[T any](
 
 	if err != nil {
 
-		return TSFDao[T]{}, err
+		return nil, err
 	}
 	size, err := fileManager.Size(managingFile)
 
 	if err != nil {
 
-		return TSFDao[T]{}, err
+		return nil, err
 	}
 	var identifierCache *DaoManagingInfo
 
 	if size > 0 {
 
-		if identifierCache, err = infoIO.ReadSizePrefixed(managingFile); err != nil {
+		if identifierCache, err = daoio.ReadSizePrefixed[DaoManagingInfo](managingFile); err != nil {
 
-			return TSFDao[T]{}, err
+			return nil, err
 		}
 
 	} else {
@@ -88,12 +92,17 @@ func Initialise[T any](
 
 		identifierCache = &DaoManagingInfo{objectIds, fileIds, maxObjects, available}
 
-		if _, err := infoIO.WriteSizePrefixed(managingFile, *identifierCache); err != nil {
+		if _, err := daoio.WriteSizePrefixed(managingFile, *identifierCache); err != nil {
 
-			return TSFDao[T]{}, err
+			return nil, err
 		}
 	}
-	return TSFDao[T]{id, fileManager, *identifierCache, infoIO, indexHashTable, metadataHashTable, objectIO}, err
+	return &TSFDao[T]{id, fileManager, *identifierCache, indexHashTable, metadataHashTable}, err
+}
+
+func (dao *TSFDao[T]) AssignId(object T) T {
+
+	return object.SetId(dao.NewObjectId()).(T)
 }
 
 func (dao *TSFDao[T]) NewObjectId() uint64 {
@@ -138,7 +147,7 @@ func (dao *TSFDao[T]) SaveCacheAlteration(id uint64, alteration func(id uint64))
 	}
 	alteration(id)
 
-	_, err = dao.infoIO.WriteSizePrefixed(managingFile, dao.managingInfo)
+	_, err = daoio.WriteSizePrefixed(managingFile, dao.managingInfo)
 
 	if err != nil {
 
@@ -161,7 +170,7 @@ func (dao TSFDao[T]) UpdateIndexes(table *os.File, fileId, filePosition uint64) 
 
 			return err
 		}
-		readObject, err := dao.objectIO.ReadSizePrefixed(table)
+		readObject, err := daoio.ReadSizePrefixed[T](table)
 
 		if err != nil {
 
@@ -171,7 +180,7 @@ func (dao TSFDao[T]) UpdateIndexes(table *os.File, fileId, filePosition uint64) 
 			}
 			return err
 		}
-		updatedIndex := DaoIndex{readObject.Id, fileId, uint64(currentPosition)}
+		updatedIndex := DaoIndex{(*readObject).Id(), fileId, uint64(currentPosition)}
 
 		if err := dao.indexHashTable.Update(updatedIndex); err != nil {
 
