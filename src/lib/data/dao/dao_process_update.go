@@ -63,6 +63,11 @@ func (result *ProcessUpdateResult[T]) Object() *T {
 	return nil
 }
 
+func (result *ProcessUpdateResult[T]) Size() int {
+
+	return result.sizeUpdated
+}
+
 func (result *ProcessUpdateResult[T]) Error() error {
 
 	return result.err
@@ -76,7 +81,7 @@ func (processor UpdateProcessor[T]) Process() queue.IResult[T] {
 
 		return &ProcessUpdateResult[T]{0, err}
 	}
-	table, err := processor.fileManager.OpenAndLock(fm.DaoTable, index.id)
+	table, err := processor.fileManager.OpenAndLock(fm.DaoTable, index.fileId)
 
 	defer processor.fileManager.CloseAndUnlock(table, &err)
 

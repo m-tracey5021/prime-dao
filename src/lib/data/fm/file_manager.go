@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"syscall"
 )
 
@@ -155,4 +156,26 @@ func (fileManager FileManager) CloseAndUnlock(file *os.File, err *error) error {
 func (fileManager FileManager) Remove(file *os.File) error {
 
 	return os.Remove(file.Name())
+}
+
+func RemoveDir(dir string) error {
+
+	files, err := os.ReadDir(dir)
+
+	if err != nil {
+
+		return err
+	}
+	for _, file := range files {
+
+		filePath := filepath.Join(dir, file.Name())
+
+		err := os.Remove(filePath)
+
+		if err != nil {
+
+			return err
+		}
+	}
+	return nil
 }

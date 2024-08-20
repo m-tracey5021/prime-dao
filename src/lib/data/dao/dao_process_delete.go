@@ -72,6 +72,11 @@ func (result *ProcessDeleteResult[T]) Object() *T {
 	return nil
 }
 
+func (result *ProcessDeleteResult[T]) Size() int {
+
+	return result.sizeDeleted
+}
+
 func (result *ProcessDeleteResult[T]) Error() error {
 
 	return result.err

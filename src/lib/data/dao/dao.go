@@ -21,9 +21,9 @@ type TSFDao[T schema.Identifiable] struct {
 
 	metadataManager *DaoMetadataManager[T]
 
-	requstFactory DaoRequestFactory[T]
+	requestFactory DaoRequestFactory[T]
 
-	queue *queue.TSFQueueB[T]
+	queue *queue.TSFQueue[T]
 }
 
 func New[T schema.Identifiable](path, descriptor string, id uint64) (*TSFDao[T], error) {
@@ -57,9 +57,9 @@ func New[T schema.Identifiable](path, descriptor string, id uint64) (*TSFDao[T],
 
 			metadataManager: metadataManager,
 
-			requstFactory: DaoRequestFactory[T]{},
+			requestFactory: DaoRequestFactory[T]{},
 
-			queue: &queue.TSFQueueB[T]{},
+			queue: &queue.TSFQueue[T]{},
 		},
 
 		err

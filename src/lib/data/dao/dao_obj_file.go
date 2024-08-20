@@ -6,47 +6,47 @@ import (
 	"transformer/src/lib/data/schema"
 )
 
-type DaoMetadata struct {
+type DaoObjFile struct {
 	id uint64
 
 	objectsWritten uint64
 }
 
-func (metadata DaoMetadata) Id() uint64 {
+func (objFile DaoObjFile) Id() uint64 {
 
-	return metadata.id
+	return objFile.id
 }
 
-func (metadata DaoMetadata) SetId(id uint64) schema.Identifiable {
+func (objFile DaoObjFile) SetId(id uint64) schema.Identifiable {
 
-	return DaoMetadata{id, metadata.objectsWritten}
+	return DaoObjFile{id, objFile.objectsWritten}
 }
 
-func (metadata DaoMetadata) Size() int {
+func (objFile DaoObjFile) Size() int {
 
 	return 16
 }
 
-func (metadata DaoMetadata) WriteSelf(file *os.File) error {
+func (objFile DaoObjFile) WriteSelf(file *os.File) error {
 
-	if err := binary.Write(file, binary.LittleEndian, metadata.id); err != nil {
+	if err := binary.Write(file, binary.LittleEndian, objFile.id); err != nil {
 
 		return err
 	}
-	if err := binary.Write(file, binary.LittleEndian, metadata.objectsWritten); err != nil {
+	if err := binary.Write(file, binary.LittleEndian, objFile.objectsWritten); err != nil {
 
 		return err
 	}
 	return nil
 }
 
-func (metadata DaoMetadata) ReadSelf(file *os.File) (schema.FixedSize, error) {
+func (objFile DaoObjFile) ReadSelf(file *os.File) (schema.FixedSize, error) {
 
-	var metadataId uint64
+	var objFileId uint64
 
 	var objectsWritten uint64
 
-	if err := binary.Read(file, binary.LittleEndian, &metadataId); err != nil {
+	if err := binary.Read(file, binary.LittleEndian, &objFileId); err != nil {
 
 		return nil, err
 	}
@@ -54,5 +54,5 @@ func (metadata DaoMetadata) ReadSelf(file *os.File) (schema.FixedSize, error) {
 
 		return nil, err
 	}
-	return DaoMetadata{metadataId, objectsWritten}, nil
+	return DaoObjFile{objFileId, objectsWritten}, nil
 }

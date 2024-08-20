@@ -32,7 +32,7 @@ type DaoMetadataManager[T schema.Identifiable] struct {
 
 	indexHashTable ht.ITSFHashTable[DaoIndex]
 
-	metadataHashTable ht.ITSFHashTable[DaoMetadata]
+	objFileHashTable ht.ITSFHashTable[DaoObjFile]
 
 	objectIO dataio.IDataIO[T]
 
@@ -95,7 +95,7 @@ func NewMetadataManager[T schema.Identifiable](daoId uint64, fileManager fm.IFil
 
 			indexHashTable: ht.FromFileManager[DaoIndex](daoId, fileManager),
 
-			metadataHashTable: ht.FromFileManager[DaoMetadata](daoId, fileManager),
+			objFileHashTable: ht.FromFileManager[DaoObjFile](daoId, fileManager),
 
 			objectIO: dataio.DataIO[T]{},
 		},
@@ -107,9 +107,9 @@ func (manager *DaoMetadataManager[T]) GetIndex(id uint64) (*DaoIndex, error) {
 	return manager.indexHashTable.Get(id)
 }
 
-func (manager *DaoMetadataManager[T]) GetMetadata(id uint64) (*DaoMetadata, error) {
+func (manager *DaoMetadataManager[T]) GetMetadata(id uint64) (*DaoObjFile, error) {
 
-	return manager.metadataHashTable.Get(id)
+	return manager.objFileHashTable.Get(id)
 }
 
 func (manager *DaoMetadataManager[T]) DeleteIndex(id uint64) error {
@@ -119,7 +119,7 @@ func (manager *DaoMetadataManager[T]) DeleteIndex(id uint64) error {
 
 func (manager *DaoMetadataManager[T]) DeleteMetadata(id uint64) error {
 
-	return manager.metadataHashTable.Delete(id)
+	return manager.objFileHashTable.Delete(id)
 }
 
 func (manager *DaoMetadataManager[T]) UpdateIndexes(table *os.File, fileId, filePosition uint64) error {
@@ -158,7 +158,7 @@ func (manager *DaoMetadataManager[T]) UpdateIndexes(table *os.File, fileId, file
 
 func (manager *DaoMetadataManager[T]) UpdateMetadataForSave(fileIdSavedTo uint64) error {
 
-	metadata, err := manager.metadataHashTable.Get(fileIdSavedTo)
+	metadata, err := manager.objFileHashTable.Get(fileIdSavedTo)
 
 	if err != nil {
 
@@ -176,7 +176,7 @@ func (manager *DaoMetadataManager[T]) UpdateMetadataForSave(fileIdSavedTo uint64
 	}
 	metadata.objectsWritten += 1
 
-	if err := manager.metadataHashTable.Update(*metadata); err != nil {
+	if err := manager.objFileHashTable.Update(*metadata); err != nil {
 
 		return err
 	}
@@ -185,7 +185,7 @@ func (manager *DaoMetadataManager[T]) UpdateMetadataForSave(fileIdSavedTo uint64
 
 func (manager *DaoMetadataManager[T]) UpdateMetadataForDeletion(table *os.File, fileIdDeletedFrom uint64) error {
 
-	metadata, err := manager.metadataHashTable.Get(fileIdDeletedFrom)
+	metadata, err := manager.objFileHashTable.Get(fileIdDeletedFrom)
 
 	if err != nil {
 
@@ -197,7 +197,7 @@ func (manager *DaoMetadataManager[T]) UpdateMetadataForDeletion(table *os.File, 
 
 			return err
 		}
-		manager.metadataHashTable.Delete(metadata.id)
+		manager.objFileHashTable.Delete(metadata.id)
 
 		manager.AlterCache(fileIdDeletedFrom, RemoveTable)
 
@@ -205,7 +205,7 @@ func (manager *DaoMetadataManager[T]) UpdateMetadataForDeletion(table *os.File, 
 
 		metadata.objectsWritten -= 1
 
-		manager.metadataHashTable.Update(*metadata)
+		manager.objFileHashTable.Update(*metadata)
 
 		manager.SetAvailableTable(fileIdDeletedFrom)
 	}

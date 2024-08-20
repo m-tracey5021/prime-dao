@@ -73,6 +73,11 @@ func (result *ProcessSaveResult[T]) Object() *T {
 	return result.object
 }
 
+func (result *ProcessSaveResult[T]) Size() int {
+
+	return result.sizeWritten
+}
+
 func (result *ProcessSaveResult[T]) Error() error {
 
 	return result.err
