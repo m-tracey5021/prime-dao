@@ -10,37 +10,9 @@ import (
 type DaoRequestFactory[T schema.Identifiable] struct {
 }
 
-func (factory DaoRequestFactory[T]) CreateSaveRequest(daoId uint64, fileManager fm.IFileManager, metadataManager *DaoMetadataManager[T], object T) queue.IProcessor[T] {
+func (factory DaoRequestFactory[T]) CreateSaveRequest(daoId uint64, fileManager fm.IFileManager, metadataManager IDaoMetadataManager[T], object T) queue.IProcessableRequest[T] {
 
-	return &SaveProcessor[T]{
-
-		object: object,
-
-		fileManager: fileManager,
-
-		metadataManager: metadataManager,
-
-		objectIO: dataio.DataIO[T]{},
-	}
-}
-
-func (factory DaoRequestFactory[T]) CreateGetRequest(daoId uint64, fileManager fm.IFileManager, metadataManager *DaoMetadataManager[T], objectId uint64) queue.IProcessor[T] {
-
-	return &GetProcessor[T]{
-
-		id: objectId,
-
-		fileManager: fileManager,
-
-		metadataManager: metadataManager,
-
-		objectIO: dataio.DataIO[T]{},
-	}
-}
-
-func (factory DaoRequestFactory[T]) CreateUpdateRequest(daoId uint64, fileManager fm.IFileManager, metadataManager *DaoMetadataManager[T], object T) queue.IProcessor[T] {
-
-	return &UpdateProcessor[T]{
+	return &SaveRequest[T]{
 
 		object: object,
 
@@ -52,11 +24,39 @@ func (factory DaoRequestFactory[T]) CreateUpdateRequest(daoId uint64, fileManage
 	}
 }
 
-func (factory DaoRequestFactory[T]) CreateDeleteRequest(daoId uint64, fileManager fm.IFileManager, metadataManager *DaoMetadataManager[T], objectId uint64) queue.IProcessor[T] {
+func (factory DaoRequestFactory[T]) CreateGetRequest(daoId uint64, fileManager fm.IFileManager, metadataManager IDaoMetadataManager[T], objectId uint64) queue.IProcessableRequest[T] {
 
-	return &DeleteProcessor[T]{
+	return &GetRequest[T]{
 
-		id: objectId,
+		objectId: objectId,
+
+		fileManager: fileManager,
+
+		metadataManager: metadataManager,
+
+		objectIO: dataio.DataIO[T]{},
+	}
+}
+
+func (factory DaoRequestFactory[T]) CreateUpdateRequest(daoId uint64, fileManager fm.IFileManager, metadataManager IDaoMetadataManager[T], object T) queue.IProcessableRequest[T] {
+
+	return &UpdateRequest[T]{
+
+		object: object,
+
+		fileManager: fileManager,
+
+		metadataManager: metadataManager,
+
+		objectIO: dataio.DataIO[T]{},
+	}
+}
+
+func (factory DaoRequestFactory[T]) CreateDeleteRequest(daoId uint64, fileManager fm.IFileManager, metadataManager IDaoMetadataManager[T], objectId uint64) queue.IProcessableRequest[T] {
+
+	return &DeleteRequest[T]{
+
+		objectId: objectId,
 
 		fileManager: fileManager,
 

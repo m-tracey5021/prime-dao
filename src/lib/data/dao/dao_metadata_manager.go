@@ -21,6 +21,26 @@ type DaoManagingInfo struct {
 	AvailableTable uint64
 }
 
+type IDaoMetadataManager[T schema.Identifiable] interface {
+	AssignId(object T) T
+
+	AvailableTable() uint64
+
+	GetIndex(id uint64) (*DaoIndex, error)
+
+	GetMetadata(id uint64) (*DaoObjFile, error)
+
+	DeleteIndex(id uint64) error
+
+	DeleteMetadata(id uint64) error
+
+	UpdateForSave(table *os.File, object T, position uint64) error
+
+	UpdateForDeletion(table *os.File, index DaoIndex) error
+
+	UpdateIndexes(table *os.File, fileId, filePosition uint64) error
+}
+
 type DaoMetadataManager[T schema.Identifiable] struct {
 	daoId uint64
 

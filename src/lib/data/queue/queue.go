@@ -3,7 +3,7 @@ package queue
 import "sync"
 
 type TSFProcessResult[T any] struct {
-	request IProcessor[T]
+	request IProcessableRequest[T]
 
 	result IResult[T]
 }
@@ -15,7 +15,7 @@ type TSFQueue[T any] struct {
 
 	bufferSize int
 
-	channel chan []IProcessor[T]
+	channel chan []IProcessableRequest[T]
 
 	results chan TSFProcessResult[T]
 
@@ -40,7 +40,7 @@ func NewQueueB[T any](numberOfWorkers int, batchSize int, bufferSize int) *TSFQu
 
 		bufferSize: bufferSize,
 
-		channel: make(chan []IProcessor[T], bufferSize),
+		channel: make(chan []IProcessableRequest[T], bufferSize),
 
 		results: make(chan TSFProcessResult[T], bufferSize),
 
@@ -48,21 +48,6 @@ func NewQueueB[T any](numberOfWorkers int, batchSize int, bufferSize int) *TSFQu
 
 		requestsProcessed: make([]TSFProcessResult[T], 0),
 	}
-}
-
-func (queue *TSFQueue[T]) NewRequestId() uint64 {
-
-	return 0
-
-	// id := lib.NewId(queue.requestIds)
-
-	// queue.mu.Lock()
-
-	// queue.requestIds = append(queue.requestIds, id)
-
-	// queue.mu.Unlock()
-
-	// return id
 }
 
 func (queue *TSFQueue[T]) Start() {
@@ -103,12 +88,12 @@ func (queue *TSFQueue[T]) Start() {
 	}()
 }
 
-func (queue *TSFQueue[T]) ProcessSync(request IProcessor[T]) IResult[T] {
+func (queue *TSFQueue[T]) ProcessSync(request IProcessableRequest[T]) IResult[T] {
 
 	return request.Process()
 }
 
-func (queue *TSFQueue[T]) ProcessAsync(requests ...IProcessor[T]) {
+func (queue *TSFQueue[T]) ProcessAsync(requests ...IProcessableRequest[T]) {
 
 	numberOfBatches := (len(requests) + queue.batchSize - 1) / queue.batchSize
 

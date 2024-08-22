@@ -13,7 +13,7 @@ func (dao TSFDao[T]) ProcessSave(object T) (*T, int, error) {
 
 func (dao TSFDao[T]) ProcessSaveAsync(objects ...T) {
 
-	requests := make([]queue.IProcessor[T], 0)
+	requests := make([]queue.IProcessableRequest[T], 0)
 
 	for _, object := range objects {
 
@@ -35,7 +35,7 @@ func (dao TSFDao[T]) ProcessGet(id uint64) (*T, error) {
 
 func (dao TSFDao[T]) ProcessGetAsync(ids ...uint64) {
 
-	requests := make([]queue.IProcessor[T], 0)
+	requests := make([]queue.IProcessableRequest[T], 0)
 
 	for _, id := range ids {
 
@@ -57,7 +57,7 @@ func (dao TSFDao[T]) ProcessUpdate(object T) (int, error) {
 
 func (dao TSFDao[T]) ProcessUpdateAsync(objects ...T) {
 
-	requests := make([]queue.IProcessor[T], 0)
+	requests := make([]queue.IProcessableRequest[T], 0)
 
 	for _, object := range objects {
 
@@ -79,7 +79,7 @@ func (dao TSFDao[T]) ProcessDelete(id uint64) (int, error) {
 
 func (dao TSFDao[T]) ProcessDeleteAsync(ids ...uint64) {
 
-	requests := make([]queue.IProcessor[T], 0)
+	requests := make([]queue.IProcessableRequest[T], 0)
 
 	for _, id := range ids {
 

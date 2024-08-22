@@ -11,17 +11,11 @@ type TSFDao[T schema.Identifiable] struct {
 
 	fileManager fm.IFileManager
 
-	// tableManager IDaoTableManager[T]
-
-	// indexHashTable ht.ITSFHashTable[DaoIndex]
-
-	// metadataHashTable ht.ITSFHashTable[DaoMetadata]
-
-	// objectIO dataio.IDataIO[T]
-
-	metadataManager *DaoMetadataManager[T]
+	metadataManager IDaoMetadataManager[T]
 
 	requestFactory DaoRequestFactory[T]
+
+	requests []queue.IProcessableRequest[T]
 
 	queue *queue.TSFQueue[T]
 }
@@ -30,25 +24,12 @@ func New[T schema.Identifiable](path, descriptor string, id uint64) (*TSFDao[T],
 
 	fileManager := fm.NewFileManager(path, descriptor)
 
-	// indexHashTable := ht.FromFileManager[DaoIndex](id, fileManager)
-
-	// metadataHashTable := ht.FromFileManager[DaoMetadata](id, fileManager)
-
-	// tableManager, err := NewDaoTableManager[T](id, fileManager)
-
 	metadataManager, err := NewMetadataManager[T](id, fileManager)
 
 	if err != nil {
 
 		return nil, err
 	}
-
-	// objectIO := dataio.DataIO[T]{}
-
-	// queue := queue.TSFQueueB[T]{}
-
-	// requstFactory := DaoRequestFactoryB[T]{}
-
 	return &TSFDao[T]{
 
 			id: id,
@@ -59,98 +40,63 @@ func New[T schema.Identifiable](path, descriptor string, id uint64) (*TSFDao[T],
 
 			requestFactory: DaoRequestFactory[T]{},
 
+			requests: make([]queue.IProcessableRequest[T], 0),
+
 			queue: &queue.TSFQueue[T]{},
 		},
 
 		err
 }
 
-// func (dao TSFDao[T]) UpdateIndexes(table *os.File, fileId, filePosition uint64) error {
+func (dao *TSFDao[T]) QueueSaveRequest(request SaveRequest[T]) {
 
-// 	if err := dao.fileManager.GoTo(int(filePosition), table); err != nil {
+	dao.requests = append(dao.requests, request)
+}
 
-// 		return err
-// 	}
-// 	for {
+func (dao *TSFDao[T]) QueueGetRequest(request GetRequest[T]) {
 
-// 		currentPosition, err := dao.fileManager.CurrentPosition(table)
+	dao.requests = append(dao.requests, request)
+}
 
-// 		if err != nil {
+func (dao *TSFDao[T]) QueueUpdateRequest(request UpdateRequest[T]) {
 
-// 			return err
-// 		}
-// 		readObject, err := dao.objectIO.ReadSizePrefixed(table)
+	dao.requests = append(dao.requests, request)
+}
 
-// 		if err != nil {
+func (dao *TSFDao[T]) QueueDeleteRequest(request DeleteRequest[T]) {
 
-// 			if errors.Is(err, io.EOF) {
+	dao.requests = append(dao.requests, request)
+}
 
-// 				break
-// 			}
-// 			return err
-// 		}
-// 		updatedIndex := DaoIndex{(*readObject).Id(), fileId, uint64(currentPosition)}
+func (dao *TSFDao[T]) GroupRequests() map[uint64][]queue.IProcessableRequest[T] {
 
-// 		if err := dao.indexHashTable.Update(updatedIndex); err != nil {
+	// make sure each group doesnt include the same Id twice
+	requestMapping := make(map[uint64][]queue.IProcessableRequest[T], 0)
 
-// 			return err
-// 		}
-// 	}
-// 	return nil
-// }
+	for _, request := range dao.requests {
 
-// func (dao *TSFDao[T]) UpdateMetadataForSave(fileIdSavedTo uint64) error {
+		groupedRequests, ok := requestMapping[request.ObjectId()]
 
-// 	metadata, err := dao.metadataHashTable.Get(fileIdSavedTo)
+		if ok {
 
-// 	if err != nil {
+			requestMapping[request.ObjectId()] = append(groupedRequests, request)
 
-// 		return err
-// 	}
-// 	objectsWrittenAfterSave := metadata.objectsWritten + 1
+		} else {
 
-// 	if objectsWrittenAfterSave == dao.tableManager.MaxObjects() {
+			requestMapping[request.ObjectId()] = []queue.IProcessableRequest[T]{request}
+		}
+	}
+	return requestMapping
+}
 
-// 		tableId := dao.tableManager.NewTableId()
+func (dao *TSFDao[T]) Execute() {
 
-// 		dao.tableManager.AlterCache(tableId, AddTable)
+	reqGroups := dao.GroupRequests()
 
-// 		dao.tableManager.SetAvailableTable(tableId)
-// 	}
-// 	metadata.objectsWritten += 1
+	for _, group := range reqGroups {
 
-// 	if err := dao.metadataHashTable.Update(*metadata); err != nil {
+		dao.queue.ProcessAsync(group...)
 
-// 		return err
-// 	}
-// 	return err
-// }
-
-// func (dao TSFDao[T]) UpdateMetadataForDeletion(table *os.File, fileIdDeletedFrom uint64) error {
-
-// 	metadata, err := dao.metadataHashTable.Get(fileIdDeletedFrom)
-
-// 	if err != nil {
-
-// 		return err
-// 	}
-// 	if metadata.objectsWritten == 1 {
-
-// 		if err := dao.fileManager.Remove(table); err != nil {
-
-// 			return err
-// 		}
-// 		dao.metadataHashTable.Delete(metadata.id)
-
-// 		dao.tableManager.AlterCache(fileIdDeletedFrom, RemoveTable)
-
-// 	} else {
-
-// 		metadata.objectsWritten -= 1
-
-// 		dao.metadataHashTable.Update(*metadata)
-
-// 		dao.tableManager.SetAvailableTable(fileIdDeletedFrom)
-// 	}
-// 	return err
-// }
+		// wait here
+	}
+}
