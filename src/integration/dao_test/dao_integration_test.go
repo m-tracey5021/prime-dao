@@ -80,21 +80,39 @@ func TestDao(t *testing.T) {
 
 		t.Fail()
 	}
-	deletedSize, err := dao.ProcessDelete((*identifiableSavedB).Id())
+	deletedSizeB, err := dao.ProcessDelete((*identifiableSavedB).Id())
 
 	if err != nil {
 
 		t.Fail()
 	}
-	fmt.Printf("%v", deletedSize)
+	deletedSizeC, err := dao.ProcessDelete((*identifiableSavedC).Id())
+
+	if err != nil {
+
+		t.Fail()
+	}
+	fmt.Printf("%v", deletedSizeB)
+	fmt.Printf("%v", deletedSizeC)
 
 	getC, err := dao.ProcessGet(identifiableSavedC.Id())
 
+	// should be err here
+	fmt.Printf("%v", getC)
+
+	getD, err := dao.ProcessGet(identifiableSavedD.Id())
+
 	if err != nil {
 
 		t.Fail()
 	}
-	fmt.Printf("%v", getC)
+	fmt.Printf("%v", getD)
+
+	identifiableE := MockIdentifiable{Data: []int{0, 2, 9}}
+
+	identifiableSavedE, _, _ := dao.ProcessSave(identifiableE)
+
+	fmt.Printf("%v", identifiableSavedE)
 
 	fm.RemoveDir(path)
 }

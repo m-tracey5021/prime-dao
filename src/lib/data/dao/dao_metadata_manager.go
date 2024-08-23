@@ -11,16 +11,6 @@ import (
 	"transformer/src/lib/data/schema"
 )
 
-type DaoManagingInfo struct {
-	ObjectIds []uint64
-
-	TableIds []uint64
-
-	MaxObjects uint64
-
-	AvailableTable uint64
-}
-
 type IDaoMetadataManager[T schema.Identifiable] interface {
 	AssignId(object T) T
 
@@ -46,9 +36,9 @@ type DaoMetadataManager[T schema.Identifiable] struct {
 
 	fileManager fm.IFileManager
 
-	managingInfo DaoManagingInfo
+	managingInfo DaoMetadata
 
-	managingInfoIO dataio.IDataIO[DaoManagingInfo]
+	managingInfoIO dataio.IDataIO[DaoMetadata]
 
 	indexHashTable ht.ITSFHashTable[DaoIndex]
 
@@ -61,7 +51,7 @@ type DaoMetadataManager[T schema.Identifiable] struct {
 
 func NewMetadataManager[T schema.Identifiable](daoId uint64, fileManager fm.IFileManager) (*DaoMetadataManager[T], error) {
 
-	managingInfoIO := dataio.DataIO[DaoManagingInfo]{}
+	managingInfoIO := dataio.DataIO[DaoMetadata]{}
 
 	managingFile, err := fileManager.OpenAndLock(fm.DaoManagingFile, daoId)
 
@@ -77,7 +67,7 @@ func NewMetadataManager[T schema.Identifiable](daoId uint64, fileManager fm.IFil
 
 		return &DaoMetadataManager[T]{}, err
 	}
-	var managingInfo *DaoManagingInfo
+	var managingInfo DaoMetadata
 
 	if size > 0 {
 
@@ -88,17 +78,17 @@ func NewMetadataManager[T schema.Identifiable](daoId uint64, fileManager fm.IFil
 
 	} else {
 
-		objectIds := make([]uint64, 0)
+		managingInfo = DaoMetadata{
 
-		fileIds := make([]uint64, 0)
+			ObjectCache: DaoIdCache{},
 
-		maxObjects := uint64(10) // Get from config
+			TableCache: DaoIdCache{},
 
-		available := uint64(0)
+			MaxObjects: uint64(0),
 
-		managingInfo = &DaoManagingInfo{objectIds, fileIds, maxObjects, available}
-
-		if _, err := managingInfoIO.WriteSizePrefixed(managingFile, *managingInfo); err != nil {
+			AvailableTable: uint64(0),
+		}
+		if _, err := managingInfoIO.WriteSizePrefixed(managingFile, managingInfo); err != nil {
 
 			return &DaoMetadataManager[T]{}, err
 		}
@@ -109,9 +99,9 @@ func NewMetadataManager[T schema.Identifiable](daoId uint64, fileManager fm.IFil
 
 			fileManager: fileManager,
 
-			managingInfo: *managingInfo,
+			managingInfo: managingInfo,
 
-			managingInfoIO: dataio.DataIO[DaoManagingInfo]{},
+			managingInfoIO: managingInfoIO,
 
 			indexHashTable: ht.FromFileManager[DaoIndex](daoId, fileManager),
 
@@ -166,7 +156,7 @@ func (manager *DaoMetadataManager[T]) UpdateIndexes(table *os.File, fileId, file
 			}
 			return err
 		}
-		updatedIndex := DaoIndex{(*readObject).Id(), fileId, uint64(currentPosition)}
+		updatedIndex := DaoIndex{readObject.Id(), fileId, uint64(currentPosition)}
 
 		if err := manager.indexHashTable.Update(updatedIndex); err != nil {
 
@@ -186,13 +176,11 @@ func (manager *DaoMetadataManager[T]) UpdateMetadataForSave(fileIdSavedTo uint64
 	}
 	objectsWrittenAfterSave := metadata.objectsWritten + 1
 
-	if objectsWrittenAfterSave == manager.MaxObjects() {
+	if objectsWrittenAfterSave == manager.managingInfo.MaxObjects {
 
 		tableId := manager.NewTableId()
 
-		manager.AlterCache(tableId, AddTable)
-
-		manager.SetAvailableTable(tableId)
+		manager.managingInfo.AvailableTable = tableId
 	}
 	metadata.objectsWritten += 1
 
@@ -219,7 +207,7 @@ func (manager *DaoMetadataManager[T]) UpdateMetadataForDeletion(table *os.File, 
 		}
 		manager.objFileHashTable.Delete(metadata.id)
 
-		manager.AlterCache(fileIdDeletedFrom, RemoveTable)
+		manager.managingInfo.TableCache.DeleteId(fileIdDeletedFrom, &manager.mu)
 
 	} else {
 
@@ -227,14 +215,12 @@ func (manager *DaoMetadataManager[T]) UpdateMetadataForDeletion(table *os.File, 
 
 		manager.objFileHashTable.Update(*metadata)
 
-		manager.SetAvailableTable(fileIdDeletedFrom)
+		manager.managingInfo.AvailableTable = fileIdDeletedFrom
 	}
 	return err
 }
 
 func (manager *DaoMetadataManager[T]) UpdateForSave(table *os.File, object T, position uint64) error {
-
-	manager.AlterCache(object.Id(), AddObject)
 
 	index := DaoIndex{object.Id(), manager.AvailableTable(), position}
 
@@ -255,7 +241,7 @@ func (manager *DaoMetadataManager[T]) UpdateForSave(table *os.File, object T, po
 
 func (manager *DaoMetadataManager[T]) UpdateForDeletion(table *os.File, index DaoIndex) error {
 
-	manager.AlterCache(index.id, RemoveObject)
+	manager.managingInfo.ObjectCache.DeleteId(index.id, &manager.mu)
 
 	if err := manager.UpdateMetadataForDeletion(table, index.fileId); err != nil {
 

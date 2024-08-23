@@ -17,11 +17,11 @@ func (mockDataIO *MockDataIO[T]) WriteSizePrefixed(file *os.File, object T) (int
 	return args.Int(0), args.Error(1)
 }
 
-func (mockDataIO *MockDataIO[T]) ReadSizePrefixed(file *os.File) (*T, error) {
+func (mockDataIO *MockDataIO[T]) ReadSizePrefixed(file *os.File) (T, error) {
 
 	args := mockDataIO.Called(file)
 
-	return args.Get(0).(*T), args.Error(1)
+	return args.Get(0).(T), args.Error(1)
 }
 
 func (mockDataIO *MockDataIO[T]) Update(file *os.File, object T) (int, error) {

@@ -48,7 +48,7 @@ func (processor GetRequest[T]) Process() queue.IResult[T] {
 
 		return &GetResult[T]{nil, err}
 	}
-	return &GetResult[T]{object, err}
+	return &GetResult[T]{&object, err}
 }
 
 type GetResult[T schema.Identifiable] struct {

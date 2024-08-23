@@ -1,7 +1,5 @@
 package dao
 
-import "transformer/src/lib/data"
-
 type CacheAlteration int
 
 const (
@@ -21,17 +19,22 @@ func (manager *DaoMetadataManager[T]) AssignId(object T) T {
 
 func (manager *DaoMetadataManager[T]) NewObjectId() uint64 {
 
-	return data.NewId(manager.managingInfo.ObjectIds)
+	return manager.managingInfo.ObjectCache.NewId(&manager.mu)
 }
 
 func (manager *DaoMetadataManager[T]) NewTableId() uint64 {
 
-	return data.NewId(manager.managingInfo.TableIds)
+	return manager.managingInfo.TableCache.NewId(&manager.mu)
 }
 
-func (manager *DaoMetadataManager[T]) MaxObjects() uint64 {
+func (manager *DaoMetadataManager[T]) DeleteObjectId(id uint64) {
 
-	return manager.managingInfo.MaxObjects
+	manager.managingInfo.ObjectCache.DeleteId(id, &manager.mu)
+}
+
+func (manager *DaoMetadataManager[T]) DeleteTableId(id uint64) {
+
+	manager.managingInfo.TableCache.DeleteId(id, &manager.mu)
 }
 
 func (manager *DaoMetadataManager[T]) AvailableTable() uint64 {
@@ -39,32 +42,27 @@ func (manager *DaoMetadataManager[T]) AvailableTable() uint64 {
 	return manager.managingInfo.AvailableTable
 }
 
-func (manager *DaoMetadataManager[T]) SetAvailableTable(id uint64) {
+// func (manager *DaoMetadataManager[T]) AlterCache(id uint64, alteration CacheAlteration) {
 
-	manager.managingInfo.AvailableTable = id
-}
+// 	manager.mu.Lock()
 
-func (manager *DaoMetadataManager[T]) AlterCache(id uint64, alteration CacheAlteration) {
+// 	switch alteration {
 
-	manager.mu.Lock()
+// 	case AddTable:
 
-	switch alteration {
+// 		manager.managingInfo.TableIds = append(manager.managingInfo.TableIds, id)
 
-	case AddTable:
+// 	case AddObject:
 
-		manager.managingInfo.TableIds = append(manager.managingInfo.TableIds, id)
+// 		manager.managingInfo.ObjectIds = append(manager.managingInfo.ObjectIds, id)
 
-	case AddObject:
+// 	case RemoveTable:
 
-		manager.managingInfo.ObjectIds = append(manager.managingInfo.ObjectIds, id)
+// 		manager.managingInfo.TableIds = data.RemoveId(id, manager.managingInfo.TableIds)
 
-	case RemoveTable:
+// 	case RemoveObject:
 
-		manager.managingInfo.TableIds = data.RemoveId(id, manager.managingInfo.TableIds)
-
-	case RemoveObject:
-
-		manager.managingInfo.ObjectIds = data.RemoveId(id, manager.managingInfo.ObjectIds)
-	}
-	manager.mu.Unlock()
-}
+// 		manager.managingInfo.ObjectIds = data.RemoveId(id, manager.managingInfo.ObjectIds)
+// 	}
+// 	manager.mu.Unlock()
+// }

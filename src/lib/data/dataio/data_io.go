@@ -12,7 +12,7 @@ import (
 type IDataIO[T any] interface {
 	WriteSizePrefixed(file *os.File, object T) (int, error)
 
-	ReadSizePrefixed(file *os.File) (*T, error)
+	ReadSizePrefixed(file *os.File) (T, error)
 
 	Update(file *os.File, object T) (int, error)
 
@@ -51,21 +51,23 @@ func (dataIO DataIO[T]) WriteSizePrefixed(file *os.File, object T) (int, error) 
 	return size + 8, nil
 }
 
-func (dataIO DataIO[T]) ReadSizePrefixed(file *os.File) (*T, error) {
+func (dataIO DataIO[T]) ReadSizePrefixed(file *os.File) (T, error) {
+
+	var defaultObject T
 
 	// Read size prefix
 	var size uint64
 
 	if err := binary.Read(file, binary.LittleEndian, &size); err != nil {
 
-		return nil, err
+		return defaultObject, err
 	}
 	// Read encoded object data
 	data := make([]byte, size)
 
 	if _, err := file.Read(data); err != nil {
 
-		return nil, err
+		return defaultObject, err
 	}
 	// Decode the object
 	object := new(T)
@@ -76,9 +78,9 @@ func (dataIO DataIO[T]) ReadSizePrefixed(file *os.File) (*T, error) {
 
 	if err := decoder.Decode(object); err != nil {
 
-		return nil, err
+		return defaultObject, err
 	}
-	return object, nil
+	return *object, nil
 }
 
 func (dataIO DataIO[T]) Update(file *os.File, object T) (int, error) {
