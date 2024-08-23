@@ -19,22 +19,22 @@ func (manager *DaoMetadataManager[T]) AssignId(object T) T {
 
 func (manager *DaoMetadataManager[T]) NewObjectId() uint64 {
 
-	return manager.managingInfo.ObjectCache.NewId(&manager.mu)
+	return manager.managingInfo.ObjectIdCache.NewId(&manager.mu)
 }
 
 func (manager *DaoMetadataManager[T]) NewTableId() uint64 {
 
-	return manager.managingInfo.TableCache.NewId(&manager.mu)
+	return manager.managingInfo.TableIdCache.NewId(&manager.mu)
 }
 
 func (manager *DaoMetadataManager[T]) DeleteObjectId(id uint64) {
 
-	manager.managingInfo.ObjectCache.DeleteId(id, &manager.mu)
+	manager.managingInfo.ObjectIdCache.DeleteId(id, &manager.mu)
 }
 
 func (manager *DaoMetadataManager[T]) DeleteTableId(id uint64) {
 
-	manager.managingInfo.TableCache.DeleteId(id, &manager.mu)
+	manager.managingInfo.TableIdCache.DeleteId(id, &manager.mu)
 }
 
 func (manager *DaoMetadataManager[T]) AvailableTable() uint64 {

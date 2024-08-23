@@ -1,9 +1,13 @@
 package dao
 
-type DaoMetadata struct {
-	ObjectCache DaoIdCache
+import "transformer/src/lib/data/schema"
 
-	TableCache DaoIdCache
+type DaoMetadata[T schema.Identifiable] struct {
+	ObjectIdCache DaoIdCache
+
+	ObjectCache DaoCache[T]
+
+	TableIdCache DaoIdCache
 
 	MaxObjects uint64
 

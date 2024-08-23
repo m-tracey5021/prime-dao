@@ -36,9 +36,9 @@ type DaoMetadataManager[T schema.Identifiable] struct {
 
 	fileManager fm.IFileManager
 
-	managingInfo DaoMetadata
+	managingInfo DaoMetadata[T]
 
-	managingInfoIO dataio.IDataIO[DaoMetadata]
+	managingInfoIO dataio.IDataIO[DaoMetadata[T]]
 
 	indexHashTable ht.ITSFHashTable[DaoIndex]
 
@@ -51,7 +51,7 @@ type DaoMetadataManager[T schema.Identifiable] struct {
 
 func NewMetadataManager[T schema.Identifiable](daoId uint64, fileManager fm.IFileManager) (*DaoMetadataManager[T], error) {
 
-	managingInfoIO := dataio.DataIO[DaoMetadata]{}
+	managingInfoIO := dataio.DataIO[DaoMetadata[T]]{}
 
 	managingFile, err := fileManager.OpenAndLock(fm.DaoManagingFile, daoId)
 
@@ -67,7 +67,7 @@ func NewMetadataManager[T schema.Identifiable](daoId uint64, fileManager fm.IFil
 
 		return &DaoMetadataManager[T]{}, err
 	}
-	var managingInfo DaoMetadata
+	var managingInfo DaoMetadata[T]
 
 	if size > 0 {
 
@@ -78,11 +78,13 @@ func NewMetadataManager[T schema.Identifiable](daoId uint64, fileManager fm.IFil
 
 	} else {
 
-		managingInfo = DaoMetadata{
+		managingInfo = DaoMetadata[T]{
 
-			ObjectCache: DaoIdCache{},
+			ObjectIdCache: DaoIdCache{},
 
-			TableCache: DaoIdCache{},
+			ObjectCache: DaoCache[T]{},
+
+			TableIdCache: DaoIdCache{},
 
 			MaxObjects: uint64(0),
 
@@ -207,7 +209,7 @@ func (manager *DaoMetadataManager[T]) UpdateMetadataForDeletion(table *os.File, 
 		}
 		manager.objFileHashTable.Delete(metadata.id)
 
-		manager.managingInfo.TableCache.DeleteId(fileIdDeletedFrom, &manager.mu)
+		manager.managingInfo.TableIdCache.DeleteId(fileIdDeletedFrom, &manager.mu)
 
 	} else {
 
@@ -241,7 +243,7 @@ func (manager *DaoMetadataManager[T]) UpdateForSave(table *os.File, object T, po
 
 func (manager *DaoMetadataManager[T]) UpdateForDeletion(table *os.File, index DaoIndex) error {
 
-	manager.managingInfo.ObjectCache.DeleteId(index.id, &manager.mu)
+	manager.managingInfo.ObjectIdCache.DeleteId(index.id, &manager.mu)
 
 	if err := manager.UpdateMetadataForDeletion(table, index.fileId); err != nil {
 
