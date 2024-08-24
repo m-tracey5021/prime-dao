@@ -1,6 +1,8 @@
 package dao
 
 import (
+	"fmt"
+	"sync"
 	"transformer/src/lib/data/dataio"
 	"transformer/src/lib/data/fm"
 	"transformer/src/lib/data/queue"
@@ -8,7 +10,11 @@ import (
 )
 
 type GetRequest[T schema.Identifiable] struct {
+	requestId uint64
+
 	objectId uint64
+
+	dependencies chan queue.RequestContext
 
 	fileManager fm.IFileManager
 
@@ -17,12 +23,24 @@ type GetRequest[T schema.Identifiable] struct {
 	objectIO dataio.DataIO[T]
 }
 
+func (processor GetRequest[T]) RequestId() uint64 {
+
+	return processor.requestId
+}
+
 func (processor GetRequest[T]) ObjectId() uint64 {
 
 	return processor.objectId
 }
 
-func (processor GetRequest[T]) Process() queue.IResult[T] {
+func (processor GetRequest[T]) Process(wg *sync.WaitGroup, context *queue.QueueContext[T]) queue.IResult[T] {
+
+	defer wg.Done()
+
+	for reqCtx := range processor.dependencies {
+
+		reqCtx.RequestWaitGroup.Wait()
+	}
 
 	index, err := processor.metadataManager.GetIndex(processor.objectId)
 
@@ -48,6 +66,8 @@ func (processor GetRequest[T]) Process() queue.IResult[T] {
 
 		return &GetResult[T]{nil, err}
 	}
+	fmt.Printf("got object %v", object)
+
 	return &GetResult[T]{&object, err}
 }
 

@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"sync"
 	"transformer/src/lib/data/dataio"
 	"transformer/src/lib/data/fm"
 	"transformer/src/lib/data/queue"
@@ -8,6 +9,8 @@ import (
 )
 
 type DeleteRequest[T schema.Identifiable] struct {
+	requestId uint64
+
 	objectId uint64
 
 	fileManager fm.IFileManager
@@ -17,12 +20,23 @@ type DeleteRequest[T schema.Identifiable] struct {
 	objectIO dataio.DataIO[T]
 }
 
+func (processor DeleteRequest[T]) RequestId() uint64 {
+
+	return processor.requestId
+}
+
 func (processor DeleteRequest[T]) ObjectId() uint64 {
 
 	return processor.objectId
 }
 
-func (processor DeleteRequest[T]) Process() queue.IResult[T] {
+func (processor DeleteRequest[T]) Process(wg *sync.WaitGroup, context *queue.QueueContext[T]) queue.IResult[T] {
+
+	defer wg.Done()
+
+	// context.Complete(processor.requestId)
+
+	// see 'Get' for wait
 
 	index, err := processor.metadataManager.GetIndex(processor.objectId)
 

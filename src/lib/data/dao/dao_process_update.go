@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"sync"
 	"transformer/src/lib/data/dataio"
 	"transformer/src/lib/data/fm"
 	"transformer/src/lib/data/queue"
@@ -8,6 +9,8 @@ import (
 )
 
 type UpdateRequest[T schema.Identifiable] struct {
+	requestId uint64
+
 	object T
 
 	fileManager fm.IFileManager
@@ -17,12 +20,23 @@ type UpdateRequest[T schema.Identifiable] struct {
 	objectIO dataio.DataIO[T]
 }
 
+func (processor UpdateRequest[T]) RequestId() uint64 {
+
+	return processor.requestId
+}
+
 func (processor UpdateRequest[T]) ObjectId() uint64 {
 
 	return processor.object.Id()
 }
 
-func (processor UpdateRequest[T]) Process() queue.IResult[T] {
+func (processor UpdateRequest[T]) Process(wg *sync.WaitGroup, context *queue.QueueContext[T]) queue.IResult[T] {
+
+	defer wg.Done()
+
+	// context.Complete(processor.requestId)
+
+	// see 'Get' for wait
 
 	index, err := processor.metadataManager.GetIndex(processor.object.Id())
 

@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"sync"
 	"transformer/src/lib/data/dataio"
 	"transformer/src/lib/data/fm"
 	"transformer/src/lib/data/queue"
@@ -8,6 +9,8 @@ import (
 )
 
 type SaveRequest[T schema.Identifiable] struct {
+	requestId uint64
+
 	object T
 
 	fileManager fm.IFileManager
@@ -17,12 +20,23 @@ type SaveRequest[T schema.Identifiable] struct {
 	objectIO dataio.DataIO[T]
 }
 
+func (processor SaveRequest[T]) RequestId() uint64 {
+
+	return processor.requestId
+}
+
 func (processor SaveRequest[T]) ObjectId() uint64 {
 
 	return processor.object.Id()
 }
 
-func (processor SaveRequest[T]) Process() queue.IResult[T] {
+func (processor SaveRequest[T]) Process(wg *sync.WaitGroup, context *queue.QueueContext[T]) queue.IResult[T] {
+
+	defer wg.Done()
+
+	// context.Complete(processor.requestId)
+
+	// see 'Get' for wait
 
 	table, err := processor.fileManager.OpenAndLock(fm.DaoTable, processor.metadataManager.AvailableTable())
 
