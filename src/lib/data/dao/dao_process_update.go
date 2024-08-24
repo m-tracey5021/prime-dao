@@ -13,6 +13,8 @@ type UpdateRequest[T schema.Identifiable] struct {
 
 	object T
 
+	dependencies chan queue.RequestContext
+
 	fileManager fm.IFileManager
 
 	metadataManager IDaoMetadataManager[T]
@@ -28,6 +30,11 @@ func (processor UpdateRequest[T]) RequestId() uint64 {
 func (processor UpdateRequest[T]) ObjectId() uint64 {
 
 	return processor.object.Id()
+}
+
+func (processor UpdateRequest[T]) Dependencies() chan queue.RequestContext {
+
+	return processor.dependencies
 }
 
 func (processor UpdateRequest[T]) Process(wg *sync.WaitGroup, context *queue.QueueContext[T]) queue.IResult[T] {

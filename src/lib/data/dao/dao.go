@@ -53,22 +53,24 @@ func New[T schema.Identifiable](path, descriptor string, id uint64) (*TSFDao[T],
 		err
 }
 
-func (dao *TSFDao[T]) QueueSaveRequest(object T) uint64 {
+func (dao *TSFDao[T]) QueueSaveRequest(object T, dependsOn ...uint64) uint64 {
 
 	request := dao.requestFactory.CreateSaveRequest(dao.id, dao.fileManager, dao.metadataManager, object)
 
 	dao.requests = append(dao.requests, request)
+
+	dao.queueContext.AddDependency(request, dependsOn)
 
 	return request.RequestId()
 }
 
 func (dao *TSFDao[T]) QueueGetRequest(id uint64, dependsOn ...uint64) uint64 {
 
-	request := dao.requestFactory.CreateGetRequest(dao.id, dao.fileManager, dao.metadataManager, id)
+	request := dao.requestFactory.CreateGetRequest(dao.id, dao.fileManager, dao.metadataManager, id, len(dependsOn))
 
 	dao.requests = append(dao.requests, request)
 
-	dao.queueContext.AddDependency(request.RequestId(), dependsOn)
+	dao.queueContext.AddDependency(request, dependsOn)
 
 	return request.RequestId()
 }
@@ -79,7 +81,7 @@ func (dao *TSFDao[T]) QueueUpdateRequest(object T, dependsOn ...uint64) uint64 {
 
 	dao.requests = append(dao.requests, request)
 
-	dao.queueContext.AddDependency(request.RequestId(), dependsOn)
+	dao.queueContext.AddDependency(request, dependsOn)
 
 	return request.RequestId()
 }
@@ -90,7 +92,7 @@ func (dao *TSFDao[T]) QueueDeleteRequest(id uint64, dependsOn ...uint64) uint64 
 
 	dao.requests = append(dao.requests, request)
 
-	dao.queueContext.AddDependency(request.RequestId(), dependsOn)
+	dao.queueContext.AddDependency(request, dependsOn)
 
 	return request.RequestId()
 }

@@ -36,13 +36,17 @@ func (factory *DaoRequestFactory[T]) CreateSaveRequest(daoId uint64, fileManager
 	}
 }
 
-func (factory *DaoRequestFactory[T]) CreateGetRequest(daoId uint64, fileManager fm.IFileManager, metadataManager IDaoMetadataManager[T], objectId uint64) queue.IProcessableRequest[T] {
+func (factory *DaoRequestFactory[T]) CreateGetRequest(daoId uint64, fileManager fm.IFileManager, metadataManager IDaoMetadataManager[T], objectId uint64, numDeps int) queue.IProcessableRequest[T] {
 
 	return &GetRequest[T]{
 
 		requestId: factory.NewRequestId(),
 
 		objectId: objectId,
+
+		dependencies: make(chan queue.RequestContext),
+
+		numberOfDependencies: numDeps,
 
 		fileManager: fileManager,
 

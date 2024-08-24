@@ -26,7 +26,7 @@ func (dao TSFDao[T]) ProcessSaveAsync(objects ...T) {
 
 func (dao TSFDao[T]) ProcessGet(id uint64) (*T, error) {
 
-	getRequest := dao.requestFactory.CreateGetRequest(dao.id, dao.fileManager, dao.metadataManager, id)
+	getRequest := dao.requestFactory.CreateGetRequest(dao.id, dao.fileManager, dao.metadataManager, id, 0)
 
 	result := dao.queue.ProcessSync(getRequest)
 
@@ -39,7 +39,7 @@ func (dao TSFDao[T]) ProcessGetAsync(ids ...uint64) {
 
 	for _, id := range ids {
 
-		getRequest := dao.requestFactory.CreateGetRequest(dao.id, dao.fileManager, dao.metadataManager, id)
+		getRequest := dao.requestFactory.CreateGetRequest(dao.id, dao.fileManager, dao.metadataManager, id, 0)
 
 		requests = append(requests, getRequest)
 	}

@@ -13,6 +13,8 @@ type DeleteRequest[T schema.Identifiable] struct {
 
 	objectId uint64
 
+	dependencies chan queue.RequestContext
+
 	fileManager fm.IFileManager
 
 	metadataManager IDaoMetadataManager[T]
@@ -28,6 +30,11 @@ func (processor DeleteRequest[T]) RequestId() uint64 {
 func (processor DeleteRequest[T]) ObjectId() uint64 {
 
 	return processor.objectId
+}
+
+func (processor DeleteRequest[T]) Dependencies() chan queue.RequestContext {
+
+	return processor.dependencies
 }
 
 func (processor DeleteRequest[T]) Process(wg *sync.WaitGroup, context *queue.QueueContext[T]) queue.IResult[T] {

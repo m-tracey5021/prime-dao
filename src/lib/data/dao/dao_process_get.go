@@ -16,6 +16,8 @@ type GetRequest[T schema.Identifiable] struct {
 
 	dependencies chan queue.RequestContext
 
+	numberOfDependencies int
+
 	fileManager fm.IFileManager
 
 	metadataManager IDaoMetadataManager[T]
@@ -33,14 +35,31 @@ func (processor GetRequest[T]) ObjectId() uint64 {
 	return processor.objectId
 }
 
+func (processor GetRequest[T]) Dependencies() chan queue.RequestContext {
+
+	return processor.dependencies
+}
+
 func (processor GetRequest[T]) Process(wg *sync.WaitGroup, context *queue.QueueContext[T]) queue.IResult[T] {
 
 	defer wg.Done()
 
-	for reqCtx := range processor.dependencies {
+	var depWaitGroup sync.WaitGroup
 
-		reqCtx.RequestWaitGroup.Wait()
-	}
+	depWaitGroup.Add(processor.numberOfDependencies)
+
+	go func() {
+
+		for reqCtx := range processor.dependencies {
+
+			reqCtx.RequestWaitGroup.Wait()
+
+			depWaitGroup.Done()
+
+			fmt.Printf("request %v waited for dependency %v", processor.requestId, reqCtx.RequestId)
+		}
+	}()
+	depWaitGroup.Wait()
 
 	index, err := processor.metadataManager.GetIndex(processor.objectId)
 

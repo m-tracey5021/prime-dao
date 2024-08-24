@@ -13,6 +13,8 @@ type SaveRequest[T schema.Identifiable] struct {
 
 	object T
 
+	dependencies chan queue.RequestContext
+
 	fileManager fm.IFileManager
 
 	metadataManager IDaoMetadataManager[T]
@@ -28,6 +30,11 @@ func (processor SaveRequest[T]) RequestId() uint64 {
 func (processor SaveRequest[T]) ObjectId() uint64 {
 
 	return processor.object.Id()
+}
+
+func (processor SaveRequest[T]) Dependencies() chan queue.RequestContext {
+
+	return processor.dependencies
 }
 
 func (processor SaveRequest[T]) Process(wg *sync.WaitGroup, context *queue.QueueContext[T]) queue.IResult[T] {

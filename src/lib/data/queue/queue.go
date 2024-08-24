@@ -82,6 +82,8 @@ func NewQueue[T any](numberOfWorkers int, batchSize int, bufferSize int) *TSFQue
 
 func (queue *TSFQueue[T]) Start(context *QueueContext[T]) {
 
+	context.ResolveDependencies()
+
 	for i := 0; i < queue.numberOfWorkers; i++ {
 
 		queue.requestsWaitGroup.Add(1)

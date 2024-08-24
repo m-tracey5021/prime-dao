@@ -12,9 +12,7 @@ type RequestContext struct {
 }
 
 type QueueContext[T any] struct {
-	dependentProcesses map[uint64][]uint64 // e.g. process 0 depends on processes 1, 2, 3
-
-	processIdToProcess map[uint64]IProcessableRequest[T]
+	dependentProcesses map[IProcessableRequest[T]][]uint64 // e.g. process 0 depends on processes 1, 2, 3
 
 	completed chan RequestContext
 }
@@ -23,7 +21,7 @@ func NewContext[T any]() *QueueContext[T] {
 
 	return &QueueContext[T]{
 
-		dependentProcesses: make(map[uint64][]uint64),
+		dependentProcesses: make(map[IProcessableRequest[T]][]uint64),
 
 		completed: make(chan RequestContext, 100),
 	}
@@ -35,13 +33,13 @@ func (context *QueueContext[T]) ResolveDependencies() {
 
 		for req := range context.completed {
 
-			for key, value := range context.dependentProcesses {
+			for process, dependencies := range context.dependentProcesses {
 
-				found := slices.Contains(value, req.RequestId)
+				found := slices.Contains(dependencies, req.RequestId)
 
 				if found {
 
-					context.processIdToProcess[key].Dependencies() <- req
+					process.Dependencies() <- req
 				}
 			}
 		}
@@ -49,17 +47,17 @@ func (context *QueueContext[T]) ResolveDependencies() {
 
 }
 
-func (context *QueueContext[T]) AddDependency(requestId uint64, dependencies []uint64) {
+func (context *QueueContext[T]) AddDependency(request IProcessableRequest[T], dependencies []uint64) {
 
-	_, found := context.dependentProcesses[requestId]
+	_, found := context.dependentProcesses[request]
 
 	if found {
 
-		context.dependentProcesses[requestId] = append(context.dependentProcesses[requestId], dependencies...)
+		context.dependentProcesses[request] = append(context.dependentProcesses[request], dependencies...)
 
 	} else {
 
-		context.dependentProcesses[requestId] = dependencies
+		context.dependentProcesses[request] = dependencies
 	}
 }
 
