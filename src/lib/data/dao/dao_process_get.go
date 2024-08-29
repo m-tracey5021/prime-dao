@@ -14,7 +14,7 @@ type GetRequest[T schema.Identifiable] struct {
 
 	objectId uint64
 
-	dependencies chan queue.RequestContext
+	dependencies chan queue.QueueDependency
 
 	numberOfDependencies int
 
@@ -25,22 +25,27 @@ type GetRequest[T schema.Identifiable] struct {
 	objectIO dataio.DataIO[T]
 }
 
-func (processor GetRequest[T]) RequestId() uint64 {
+func (processor *GetRequest[T]) RequestId() uint64 {
 
 	return processor.requestId
 }
 
-func (processor GetRequest[T]) ObjectId() uint64 {
+func (processor *GetRequest[T]) ObjectId() uint64 {
 
 	return processor.objectId
 }
 
-func (processor GetRequest[T]) Dependencies() chan queue.RequestContext {
+func (processor *GetRequest[T]) Dependencies() chan queue.QueueDependency {
 
 	return processor.dependencies
 }
 
-func (processor GetRequest[T]) Process(wg *sync.WaitGroup, context *queue.QueueContext[T]) queue.IResult[T] {
+func (processor *GetRequest[T]) SetNumDeps(deps int) {
+
+	processor.numberOfDependencies = deps
+}
+
+func (processor *GetRequest[T]) ProcessWithDependencies(wg *sync.WaitGroup, context *queue.QueueDependencyResolver[T]) queue.IResult[T] {
 
 	defer wg.Done()
 
@@ -60,6 +65,13 @@ func (processor GetRequest[T]) Process(wg *sync.WaitGroup, context *queue.QueueC
 		}
 	}()
 	depWaitGroup.Wait()
+
+	close(processor.dependencies)
+
+	return processor.Process()
+}
+
+func (processor *GetRequest[T]) Process() queue.IResult[T] {
 
 	index, err := processor.metadataManager.GetIndex(processor.objectId)
 

@@ -12,3 +12,20 @@ func (hashTable *TSFHashTable[T]) Get(id uint64) (*T, error) {
 	}
 	return &bucket.object, err
 }
+
+func (hashTable *TSFHashTable[T]) GetSome(ids ...uint64) ([]*T, error) {
+
+	results := make([]*T, 0)
+
+	for _, id := range ids {
+
+		object, err := hashTable.Get(id)
+
+		if err != nil {
+
+			return results, err
+		}
+		results = append(results, object)
+	}
+	return results, nil
+}

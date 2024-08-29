@@ -10,6 +10,10 @@ import (
 )
 
 type IFileManager interface {
+	Path() string
+
+	Descriptor() string
+
 	OpenAndLock(fileAlias FileAlias, idChain ...uint64) (*os.File, error)
 
 	GoTo(position int, file *os.File) error
@@ -38,6 +42,10 @@ const (
 )
 
 type FileManager struct {
+	path string
+
+	descriptor string
+
 	fileMap map[FileAlias]string
 }
 
@@ -55,7 +63,24 @@ func NewFileManager(path, descriptor string) IFileManager {
 
 		DaoTable: fmt.Sprintf("%v/%v_dao_tbl", path, descriptor),
 	}
-	return FileManager{fileMap}
+	return FileManager{path, descriptor, fileMap}
+}
+
+func FromFileManager(fileManager IFileManager, descriptor string) IFileManager {
+
+	concatenatedDescriptor := fmt.Sprintf("%v_%v", fileManager.Descriptor(), descriptor)
+
+	return NewFileManager(fileManager.Path(), concatenatedDescriptor)
+}
+
+func (fileManager FileManager) Path() string {
+
+	return fileManager.path
+}
+
+func (fileManager FileManager) Descriptor() string {
+
+	return fileManager.descriptor
 }
 
 func (fileManager FileManager) OpenAndLock(fileAlias FileAlias, idChain ...uint64) (*os.File, error) {

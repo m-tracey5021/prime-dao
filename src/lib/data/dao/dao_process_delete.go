@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"fmt"
 	"sync"
 	"transformer/src/lib/data/dataio"
 	"transformer/src/lib/data/fm"
@@ -13,7 +14,9 @@ type DeleteRequest[T schema.Identifiable] struct {
 
 	objectId uint64
 
-	dependencies chan queue.RequestContext
+	dependencies chan queue.QueueDependency
+
+	numberOfDependencies int
 
 	fileManager fm.IFileManager
 
@@ -22,28 +25,53 @@ type DeleteRequest[T schema.Identifiable] struct {
 	objectIO dataio.DataIO[T]
 }
 
-func (processor DeleteRequest[T]) RequestId() uint64 {
+func (processor *DeleteRequest[T]) RequestId() uint64 {
 
 	return processor.requestId
 }
 
-func (processor DeleteRequest[T]) ObjectId() uint64 {
+func (processor *DeleteRequest[T]) ObjectId() uint64 {
 
 	return processor.objectId
 }
 
-func (processor DeleteRequest[T]) Dependencies() chan queue.RequestContext {
+func (processor *DeleteRequest[T]) Dependencies() chan queue.QueueDependency {
 
 	return processor.dependencies
 }
 
-func (processor DeleteRequest[T]) Process(wg *sync.WaitGroup, context *queue.QueueContext[T]) queue.IResult[T] {
+func (processor *DeleteRequest[T]) SetNumDeps(deps int) {
+
+	processor.numberOfDependencies = deps
+}
+
+func (processor *DeleteRequest[T]) ProcessWithDependencies(wg *sync.WaitGroup, context *queue.QueueDependencyResolver[T]) queue.IResult[T] {
 
 	defer wg.Done()
 
-	// context.Complete(processor.requestId)
+	var depWaitGroup sync.WaitGroup
 
-	// see 'Get' for wait
+	depWaitGroup.Add(processor.numberOfDependencies)
+
+	go func() {
+
+		for reqCtx := range processor.dependencies {
+
+			reqCtx.RequestWaitGroup.Wait()
+
+			depWaitGroup.Done()
+
+			fmt.Printf("request %v waited for dependency %v", processor.requestId, reqCtx.RequestId)
+		}
+	}()
+	depWaitGroup.Wait()
+
+	close(processor.dependencies)
+
+	return processor.Process()
+}
+
+func (processor *DeleteRequest[T]) Process() queue.IResult[T] {
 
 	index, err := processor.metadataManager.GetIndex(processor.objectId)
 

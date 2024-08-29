@@ -1,7 +1,6 @@
 package dao
 
 import (
-	"slices"
 	"transformer/src/lib/data/fm"
 	"transformer/src/lib/data/queue"
 	"transformer/src/lib/data/schema"
@@ -16,10 +15,6 @@ type TSFDao[T schema.Identifiable] struct {
 
 	requestFactory *DaoRequestFactory[T]
 
-	requests []queue.IProcessableRequest[T]
-
-	queueContext *queue.QueueContext[T]
-
 	queue *queue.TSFQueue[T]
 }
 
@@ -28,6 +23,8 @@ func New[T schema.Identifiable](path, descriptor string, id uint64) (*TSFDao[T],
 	fileManager := fm.NewFileManager(path, descriptor)
 
 	metadataManager, err := NewMetadataManager[T](id, fileManager)
+
+	requestFactory := NewRequestFactory(fileManager, metadataManager)
 
 	if err != nil {
 
@@ -41,11 +38,7 @@ func New[T schema.Identifiable](path, descriptor string, id uint64) (*TSFDao[T],
 
 			metadataManager: metadataManager,
 
-			requestFactory: &DaoRequestFactory[T]{},
-
-			requests: make([]queue.IProcessableRequest[T], 0),
-
-			queueContext: queue.NewContext[T](),
+			requestFactory: &requestFactory,
 
 			queue: queue.NewQueue[T](10, 10, 100),
 		},
@@ -53,114 +46,70 @@ func New[T schema.Identifiable](path, descriptor string, id uint64) (*TSFDao[T],
 		err
 }
 
-func (dao *TSFDao[T]) QueueSaveRequest(object T, dependsOn ...uint64) uint64 {
+func (dao TSFDao[T]) Save(object T) (*T, int, error) {
 
-	request := dao.requestFactory.CreateSaveRequest(dao.id, dao.fileManager, dao.metadataManager, object)
+	request := dao.requestFactory.CreateSaveRequest(object, 0)
 
-	dao.requests = append(dao.requests, request)
+	result := dao.queue.ProcessSync(request)
 
-	dao.queueContext.AddDependency(request, dependsOn)
-
-	return request.RequestId()
+	return result.Object(), result.Size(), result.Error()
 }
 
-func (dao *TSFDao[T]) QueueGetRequest(id uint64, dependsOn ...uint64) uint64 {
+func (dao TSFDao[T]) Get(id uint64) (*T, error) {
 
-	request := dao.requestFactory.CreateGetRequest(dao.id, dao.fileManager, dao.metadataManager, id, len(dependsOn))
+	request := dao.requestFactory.CreateGetRequest(id, 0)
 
-	dao.requests = append(dao.requests, request)
+	result := dao.queue.ProcessSync(request)
 
-	dao.queueContext.AddDependency(request, dependsOn)
-
-	return request.RequestId()
+	return result.Object(), result.Error()
 }
 
-func (dao *TSFDao[T]) QueueUpdateRequest(object T, dependsOn ...uint64) uint64 {
+func (dao TSFDao[T]) Update(object T) (int, error) {
 
-	request := dao.requestFactory.CreateUpdateRequest(dao.id, dao.fileManager, dao.metadataManager, object)
+	request := dao.requestFactory.CreateUpdateRequest(object, 0)
 
-	dao.requests = append(dao.requests, request)
+	result := dao.queue.ProcessSync(request)
 
-	dao.queueContext.AddDependency(request, dependsOn)
-
-	return request.RequestId()
+	return result.Size(), result.Error()
 }
 
-func (dao *TSFDao[T]) QueueDeleteRequest(id uint64, dependsOn ...uint64) uint64 {
+func (dao TSFDao[T]) Delete(id uint64) (int, error) {
 
-	request := dao.requestFactory.CreateDeleteRequest(dao.id, dao.fileManager, dao.metadataManager, id)
+	request := dao.requestFactory.CreateDeleteRequest(id, 0)
 
-	dao.requests = append(dao.requests, request)
+	result := dao.queue.ProcessSync(request)
 
-	dao.queueContext.AddDependency(request, dependsOn)
-
-	return request.RequestId()
+	return result.Size(), result.Error()
 }
 
-func (dao *TSFDao[T]) GroupRequests() [][]queue.IProcessableRequest[T] {
+func (dao TSFDao[T]) GetAllIndexes(ids ...uint64) ([]*DaoIndex, error) {
 
-	groups := make([][]queue.IProcessableRequest[T], 0)
+	return dao.metadataManager.GetAllIndexes()
+}
 
-	for _, request := range dao.requests {
+func (dao *TSFDao[T]) NewTransaction() DaoTransaction[T] {
 
-		added := false
+	return DaoTransaction[T]{
 
-		for _, group := range groups {
+		requestFactory: dao.requestFactory,
 
-			found := slices.ContainsFunc(group, func(element queue.IProcessableRequest[T]) bool {
+		requests: make([]queue.IProcessableRequest[T], 0),
 
-				return element.ObjectId() == request.ObjectId()
-			})
-			if !found {
+		dependencyResolver: queue.NewResolver[T](),
 
-				added = true
-
-				group[request.ObjectId()] = request
-			}
-		}
-		if !added {
-
-			groups = append(groups, []queue.IProcessableRequest[T]{request})
-		}
+		dependencies: make([]uint64, 0),
 	}
-	return groups
 }
 
-func (dao *TSFDao[T]) Execute() map[uint64]queue.IResult[T] {
-
-	mappedResults := make(map[uint64]queue.IResult[T])
-
-	reqGroups := dao.GroupRequests()
-
-	for _, group := range reqGroups {
-
-		dao.queue = queue.NewQueue[T](10, 10, 100)
-
-		dao.queue.Start(dao.queueContext)
-
-		dao.queue.ProcessAsync(group...)
-
-		results := dao.queue.Stop()
-
-		for _, result := range results {
-
-			mappedResults[result.RequestId()] = result.Result()
-		}
-	}
-	dao.requests = make([]queue.IProcessableRequest[T], 0)
-
-	return mappedResults
-}
-
-func (dao *TSFDao[T]) ExecuteReq() map[uint64]queue.IResult[T] {
+func (dao *TSFDao[T]) ExecuteTransaction(transaction DaoTransaction[T]) map[uint64]queue.IResult[T] {
 
 	mappedResults := make(map[uint64]queue.IResult[T])
 
 	dao.queue = queue.NewQueue[T](10, 10, 100)
 
-	dao.queue.Start(dao.queueContext)
+	dao.queue.Start(transaction.dependencyResolver)
 
-	dao.queue.ProcessAsync(dao.requests...)
+	dao.queue.ProcessAsync(transaction.requests...)
 
 	results := dao.queue.Stop()
 
@@ -168,7 +117,27 @@ func (dao *TSFDao[T]) ExecuteReq() map[uint64]queue.IResult[T] {
 
 		mappedResults[result.RequestId()] = result.Result()
 	}
-	dao.requests = make([]queue.IProcessableRequest[T], 0)
-
 	return mappedResults
 }
+
+// func (dao *TSFDao[T]) ExecuteBuild(builder DaoTransaction[T]) map[uint64]queue.IResult[T] {
+
+// 	// do some stuff
+// 	mappedResults := make(map[uint64]queue.IResult[T])
+
+// 	dao.queue = queue.NewQueue[T](10, 10, 100)
+
+// 	dao.queue.Start(&builder.dependencyResolver)
+
+// 	dao.queue.ProcessAsync(builder.Requests()...)
+
+// 	results := dao.queue.Stop()
+
+// 	for _, result := range results {
+
+// 		mappedResults[result.RequestId()] = result.Result()
+// 	}
+// 	dao.requests = make([]queue.IProcessableRequest[T], 0)
+
+// 	return mappedResults
+// }

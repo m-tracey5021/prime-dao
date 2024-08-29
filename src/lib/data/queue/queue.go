@@ -80,9 +80,9 @@ func NewQueue[T any](numberOfWorkers int, batchSize int, bufferSize int) *TSFQue
 // 	}
 // }
 
-func (queue *TSFQueue[T]) Start(context *QueueContext[T]) {
+func (queue *TSFQueue[T]) Start(dependencyResolver *QueueDependencyResolver[T]) {
 
-	context.ResolveDependencies()
+	dependencyResolver.ListenForCompletedDependencies()
 
 	for i := 0; i < queue.numberOfWorkers; i++ {
 
@@ -96,27 +96,17 @@ func (queue *TSFQueue[T]) Start(context *QueueContext[T]) {
 
 				for _, request := range batch {
 
-					// make sure dependencies are in different batches
-
-					// so that if one comes before the other we dont have a race condition and block
-
 					var processWaitGroup sync.WaitGroup
 
 					processWaitGroup.Add(1)
 
-					result := request.Process(&processWaitGroup, context)
+					result := request.ProcessWithDependencies(&processWaitGroup, dependencyResolver)
 
 					mappedResult := TSFQueueResult[T]{request.RequestId(), result}
 
-					requestContext := RequestContext{request.RequestId(), &processWaitGroup}
+					requestContext := QueueDependency{request.RequestId(), &processWaitGroup}
 
-					// queue.ctxmu.Lock()
-
-					// context.completions = append(context.completions, signal)
-
-					// queue.ctxmu.Unlock()
-
-					context.completed <- requestContext
+					dependencyResolver.completed <- requestContext
 
 					queue.results <- mappedResult
 				}
@@ -152,11 +142,7 @@ func (queue *TSFQueue[T]) Start(context *QueueContext[T]) {
 
 func (queue *TSFQueue[T]) ProcessSync(request IProcessableRequest[T]) IResult[T] {
 
-	var dummyWaitGroup sync.WaitGroup
-
-	dummyContext := QueueContext[T]{}
-
-	return request.Process(&dummyWaitGroup, &dummyContext)
+	return request.Process()
 }
 
 func (queue *TSFQueue[T]) ProcessAsync(requests ...IProcessableRequest[T]) {

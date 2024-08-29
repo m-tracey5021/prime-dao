@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"fmt"
 	"sync"
 	"transformer/src/lib/data/dataio"
 	"transformer/src/lib/data/fm"
@@ -13,7 +14,9 @@ type SaveRequest[T schema.Identifiable] struct {
 
 	object T
 
-	dependencies chan queue.RequestContext
+	dependencies chan queue.QueueDependency
+
+	numberOfDependencies int
 
 	fileManager fm.IFileManager
 
@@ -22,28 +25,53 @@ type SaveRequest[T schema.Identifiable] struct {
 	objectIO dataio.DataIO[T]
 }
 
-func (processor SaveRequest[T]) RequestId() uint64 {
+func (processor *SaveRequest[T]) RequestId() uint64 {
 
 	return processor.requestId
 }
 
-func (processor SaveRequest[T]) ObjectId() uint64 {
+func (processor *SaveRequest[T]) ObjectId() uint64 {
 
 	return processor.object.Id()
 }
 
-func (processor SaveRequest[T]) Dependencies() chan queue.RequestContext {
+func (processor *SaveRequest[T]) Dependencies() chan queue.QueueDependency {
 
 	return processor.dependencies
 }
 
-func (processor SaveRequest[T]) Process(wg *sync.WaitGroup, context *queue.QueueContext[T]) queue.IResult[T] {
+func (processor *SaveRequest[T]) SetNumDeps(deps int) {
+
+	processor.numberOfDependencies = deps
+}
+
+func (processor *SaveRequest[T]) ProcessWithDependencies(wg *sync.WaitGroup, context *queue.QueueDependencyResolver[T]) queue.IResult[T] {
 
 	defer wg.Done()
 
-	// context.Complete(processor.requestId)
+	var depWaitGroup sync.WaitGroup
 
-	// see 'Get' for wait
+	depWaitGroup.Add(processor.numberOfDependencies)
+
+	go func() {
+
+		for reqCtx := range processor.dependencies {
+
+			reqCtx.RequestWaitGroup.Wait()
+
+			depWaitGroup.Done()
+
+			fmt.Printf("request %v waited for dependency %v", processor.requestId, reqCtx.RequestId)
+		}
+	}()
+	depWaitGroup.Wait()
+
+	close(processor.dependencies)
+
+	return processor.Process()
+}
+
+func (processor *SaveRequest[T]) Process() queue.IResult[T] {
 
 	table, err := processor.fileManager.OpenAndLock(fm.DaoTable, processor.metadataManager.AvailableTable())
 

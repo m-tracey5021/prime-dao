@@ -10,6 +10,20 @@ type MockFileManager struct {
 	mock.Mock
 }
 
+func (mockFileManager *MockFileManager) Path() string {
+
+	args := mockFileManager.Called()
+
+	return args.String(0)
+}
+
+func (mockFileManager *MockFileManager) Descriptor() string {
+
+	args := mockFileManager.Called()
+
+	return args.String(0)
+}
+
 func (mockFileManager *MockFileManager) OpenAndLock(fileAlias FileAlias, idChain ...uint64) (*os.File, error) {
 
 	args := mockFileManager.Called(fileAlias, idChain)

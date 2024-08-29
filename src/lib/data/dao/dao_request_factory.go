@@ -9,7 +9,23 @@ import (
 )
 
 type DaoRequestFactory[T schema.Identifiable] struct {
+	fileManager fm.IFileManager
+
+	metadataManager IDaoMetadataManager[T]
+
 	requestIds []uint64
+}
+
+func NewRequestFactory[T schema.Identifiable](fileManager fm.IFileManager, metadataManager IDaoMetadataManager[T]) DaoRequestFactory[T] {
+
+	return DaoRequestFactory[T]{
+
+		fileManager: fileManager,
+
+		metadataManager: metadataManager,
+
+		requestIds: make([]uint64, 0),
+	}
 }
 
 func (factory *DaoRequestFactory[T]) NewRequestId() uint64 {
@@ -20,7 +36,8 @@ func (factory *DaoRequestFactory[T]) NewRequestId() uint64 {
 
 	return id
 }
-func (factory *DaoRequestFactory[T]) CreateSaveRequest(daoId uint64, fileManager fm.IFileManager, metadataManager IDaoMetadataManager[T], object T) queue.IProcessableRequest[T] {
+
+func (factory *DaoRequestFactory[T]) CreateSaveRequest(object T, numDeps int) queue.IProcessableRequest[T] {
 
 	return &SaveRequest[T]{
 
@@ -28,15 +45,19 @@ func (factory *DaoRequestFactory[T]) CreateSaveRequest(daoId uint64, fileManager
 
 		object: object,
 
-		fileManager: fileManager,
+		dependencies: make(chan queue.QueueDependency),
 
-		metadataManager: metadataManager,
+		numberOfDependencies: numDeps,
+
+		fileManager: factory.fileManager,
+
+		metadataManager: factory.metadataManager,
 
 		objectIO: dataio.DataIO[T]{},
 	}
 }
 
-func (factory *DaoRequestFactory[T]) CreateGetRequest(daoId uint64, fileManager fm.IFileManager, metadataManager IDaoMetadataManager[T], objectId uint64, numDeps int) queue.IProcessableRequest[T] {
+func (factory *DaoRequestFactory[T]) CreateGetRequest(objectId uint64, numDeps int) queue.IProcessableRequest[T] {
 
 	return &GetRequest[T]{
 
@@ -44,19 +65,19 @@ func (factory *DaoRequestFactory[T]) CreateGetRequest(daoId uint64, fileManager 
 
 		objectId: objectId,
 
-		dependencies: make(chan queue.RequestContext),
+		dependencies: make(chan queue.QueueDependency),
 
 		numberOfDependencies: numDeps,
 
-		fileManager: fileManager,
+		fileManager: factory.fileManager,
 
-		metadataManager: metadataManager,
+		metadataManager: factory.metadataManager,
 
 		objectIO: dataio.DataIO[T]{},
 	}
 }
 
-func (factory *DaoRequestFactory[T]) CreateUpdateRequest(daoId uint64, fileManager fm.IFileManager, metadataManager IDaoMetadataManager[T], object T) queue.IProcessableRequest[T] {
+func (factory *DaoRequestFactory[T]) CreateUpdateRequest(object T, numDeps int) queue.IProcessableRequest[T] {
 
 	return &UpdateRequest[T]{
 
@@ -64,15 +85,19 @@ func (factory *DaoRequestFactory[T]) CreateUpdateRequest(daoId uint64, fileManag
 
 		object: object,
 
-		fileManager: fileManager,
+		dependencies: make(chan queue.QueueDependency),
 
-		metadataManager: metadataManager,
+		numberOfDependencies: numDeps,
+
+		fileManager: factory.fileManager,
+
+		metadataManager: factory.metadataManager,
 
 		objectIO: dataio.DataIO[T]{},
 	}
 }
 
-func (factory *DaoRequestFactory[T]) CreateDeleteRequest(daoId uint64, fileManager fm.IFileManager, metadataManager IDaoMetadataManager[T], objectId uint64) queue.IProcessableRequest[T] {
+func (factory *DaoRequestFactory[T]) CreateDeleteRequest(objectId uint64, numDeps int) queue.IProcessableRequest[T] {
 
 	return &DeleteRequest[T]{
 
@@ -80,9 +105,13 @@ func (factory *DaoRequestFactory[T]) CreateDeleteRequest(daoId uint64, fileManag
 
 		objectId: objectId,
 
-		fileManager: fileManager,
+		dependencies: make(chan queue.QueueDependency),
 
-		metadataManager: metadataManager,
+		numberOfDependencies: numDeps,
+
+		fileManager: factory.fileManager,
+
+		metadataManager: factory.metadataManager,
 
 		objectIO: dataio.DataIO[T]{},
 	}

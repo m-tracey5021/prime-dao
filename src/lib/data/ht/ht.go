@@ -19,6 +19,8 @@ type ITSFHashTable[T schema.FixedSizeIdentifiable] interface {
 
 	Get(id uint64) (*T, error)
 
+	GetSome(ids ...uint64) ([]*T, error)
+
 	Update(object T) error
 
 	Delete(id uint64) error

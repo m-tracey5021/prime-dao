@@ -41,20 +41,24 @@ func TestDao(t *testing.T) {
 	identifiableC := MockIdentifiable{Data: []int{1, 4}}
 	identifiableD := MockIdentifiable{Data: []int{0, 2}}
 
-	identifiableSaved, size, _ := dao.ProcessSave(identifiable)
+	identifiableSaved, size, _ := dao.Save(identifiable)
 
-	identifiableSavedB, sizeB, _ := dao.ProcessSave(identifiableB)
+	identifiableSavedB, sizeB, _ := dao.Save(identifiableB)
 
-	identifiableSavedC, sizeC, _ := dao.ProcessSave(identifiableC)
+	identifiableSavedC, sizeC, _ := dao.Save(identifiableC)
 
-	identifiableSavedD, sizeD, _ := dao.ProcessSave(identifiableD)
+	identifiableSavedD, sizeD, _ := dao.Save(identifiableD)
+
+	indexes, err := dao.GetAllIndexes()
+
+	fmt.Printf("%v", indexes)
 
 	fmt.Printf("%v, size %v", identifiableSaved, size)
 	fmt.Printf("%v, size %v", identifiableSavedB, sizeB)
 	fmt.Printf("%v, size %v", identifiableSavedC, sizeC)
 	fmt.Printf("%v, size %v", identifiableSavedD, sizeD)
 
-	getB, err := dao.ProcessGet(identifiableSavedB.Id())
+	getB, err := dao.Get(identifiableSavedB.Id())
 
 	if err != nil {
 
@@ -64,7 +68,7 @@ func TestDao(t *testing.T) {
 
 	identifiableSavedB.Data = []int{2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8}
 
-	updatedSize, err := dao.ProcessUpdate(*identifiableSavedB)
+	updatedSize, err := dao.Update(*identifiableSavedB)
 
 	if err != nil {
 
@@ -72,7 +76,7 @@ func TestDao(t *testing.T) {
 	}
 	fmt.Printf("%v, size %v", identifiableSavedB, updatedSize)
 
-	getB, err = dao.ProcessGet(identifiableSavedB.Id())
+	getB, err = dao.Get(identifiableSavedB.Id())
 
 	fmt.Printf("%v", getB)
 
@@ -80,13 +84,15 @@ func TestDao(t *testing.T) {
 
 		t.Fail()
 	}
-	deletedSizeB, err := dao.ProcessDelete((*identifiableSavedB).Id())
+	_, err = dao.Delete((*identifiableSaved).Id())
+
+	deletedSizeB, err := dao.Delete((*identifiableSavedB).Id())
 
 	if err != nil {
 
 		t.Fail()
 	}
-	deletedSizeC, err := dao.ProcessDelete((*identifiableSavedC).Id())
+	deletedSizeC, err := dao.Delete((*identifiableSavedC).Id())
 
 	if err != nil {
 
@@ -95,12 +101,12 @@ func TestDao(t *testing.T) {
 	fmt.Printf("%v", deletedSizeB)
 	fmt.Printf("%v", deletedSizeC)
 
-	getC, err := dao.ProcessGet(identifiableSavedC.Id())
+	getC, err := dao.Get(identifiableSavedC.Id())
 
 	// should be err here
 	fmt.Printf("%v", getC)
 
-	getD, err := dao.ProcessGet(identifiableSavedD.Id())
+	getD, err := dao.Get(identifiableSavedD.Id())
 
 	if err != nil {
 
@@ -110,41 +116,9 @@ func TestDao(t *testing.T) {
 
 	identifiableE := MockIdentifiable{Data: []int{0, 2, 9}}
 
-	identifiableSavedE, _, _ := dao.ProcessSave(identifiableE)
+	identifiableSavedE, _, _ := dao.Save(identifiableE)
 
 	fmt.Printf("%v", identifiableSavedE)
-
-	fm.RemoveDir(path)
-}
-
-func TestDaoContextAsync(t *testing.T) {
-
-	path := "dao_dir"
-
-	descriptor := "obj_test"
-
-	dao, err := dao.New[MockIdentifiable](path, descriptor, 0)
-
-	if err != nil {
-
-		t.Fail()
-	}
-	identifiable := MockIdentifiable{Data: []int{1, 2}}
-	identifiableB := MockIdentifiable{Data: []int{2, 3, 4}}
-	identifiableC := MockIdentifiable{Data: []int{1, 4}}
-	identifiableD := MockIdentifiable{Data: []int{0, 2}}
-
-	_ = dao.QueueSaveRequest(identifiable)
-	requestB := dao.QueueSaveRequest(identifiableB)
-	requestC := dao.QueueSaveRequest(identifiableC)
-	_ = dao.QueueSaveRequest(identifiableD)
-
-	dao.QueueGetRequest(0, requestB)
-	dao.QueueGetRequest(1, requestC)
-
-	results := dao.ExecuteReq()
-
-	fmt.Printf("%v", results)
 
 	fm.RemoveDir(path)
 }
@@ -166,12 +140,14 @@ func TestDaoAsync(t *testing.T) {
 	identifiableC := MockIdentifiable{Data: []int{1, 4}}
 	identifiableD := MockIdentifiable{Data: []int{0, 2}}
 
-	_ = dao.QueueSaveRequest(identifiable)
-	requestB := dao.QueueSaveRequest(identifiableB)
-	requestC := dao.QueueSaveRequest(identifiableC)
-	requestD := dao.QueueSaveRequest(identifiableD)
+	saveTransaction := dao.NewTransaction()
 
-	results := dao.Execute()
+	_ = saveTransaction.Save(identifiable)
+	requestB := saveTransaction.Save(identifiableB)
+	requestC := saveTransaction.Save(identifiableC)
+	requestD := saveTransaction.Save(identifiableD)
+
+	results := dao.ExecuteTransaction(saveTransaction)
 
 	identifiableB = *results[requestB].Object()
 
@@ -181,31 +157,33 @@ func TestDaoAsync(t *testing.T) {
 
 	fmt.Printf("%v", identifiableB)
 
-	dao.QueueGetRequest(identifiableB.Id(), requestB)
+	transaction := dao.NewTransaction()
+
+	getRequest := transaction.Get(identifiableB.Id())
 
 	identifiableB.Data = []int{2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8}
 
-	requestE := dao.QueueUpdateRequest(identifiableB)
+	requestE := transaction.WithDependency(getRequest).Update(identifiableB)
 
-	requestF := dao.QueueGetRequest(identifiableB.Id())
+	requestF := transaction.WithDependency(requestE).Get(identifiableB.Id())
 
-	requestG := dao.QueueDeleteRequest(identifiableB.Id())
+	requestG := transaction.WithDependency(requestF).Delete(identifiableB.Id())
 
 	if err != nil {
 
 		t.Fail()
 	}
-	requestH := dao.QueueDeleteRequest(identifiableC.Id())
+	requestH := transaction.Delete(identifiableC.Id())
 
-	requestI := dao.QueueGetRequest(identifiableC.Id())
+	requestI := transaction.WithDependency(requestH).Get(identifiableC.Id())
 
-	requestJ := dao.QueueGetRequest(identifiableD.Id())
+	requestJ := transaction.Get(identifiableD.Id())
 
 	identifiableE := MockIdentifiable{Data: []int{0, 2, 9}}
 
-	requestK := dao.QueueSaveRequest(identifiableE)
+	requestK := transaction.Save(identifiableE)
 
-	results = dao.Execute()
+	results = dao.ExecuteTransaction(transaction)
 
 	resultE := results[requestE]
 	resultF := results[requestF]

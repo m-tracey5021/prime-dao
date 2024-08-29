@@ -18,6 +18,8 @@ type IDaoMetadataManager[T schema.Identifiable] interface {
 
 	GetIndex(id uint64) (*DaoIndex, error)
 
+	GetAllIndexes() ([]*DaoIndex, error)
+
 	GetMetadata(id uint64) (*DaoObjFile, error)
 
 	DeleteIndex(id uint64) error
@@ -36,7 +38,7 @@ type DaoMetadataManager[T schema.Identifiable] struct {
 
 	fileManager fm.IFileManager
 
-	managingInfo DaoMetadata[T]
+	managingInfo *DaoMetadata[T]
 
 	managingInfoIO dataio.IDataIO[DaoMetadata[T]]
 
@@ -78,17 +80,19 @@ func NewMetadataManager[T schema.Identifiable](daoId uint64, fileManager fm.IFil
 
 	} else {
 
+		initialTable := uint64(0)
+
 		managingInfo = DaoMetadata[T]{
 
 			ObjectIdCache: DaoIdCache{},
 
 			ObjectCache: DaoCache[T]{},
 
-			TableIdCache: DaoIdCache{},
+			TableIdCache: DaoIdCache{&initialTable, make([]uint64, 0)},
 
-			MaxObjects: uint64(0),
+			MaxObjects: uint64(10),
 
-			AvailableTable: uint64(0),
+			AvailableTable: initialTable,
 		}
 		if _, err := managingInfoIO.WriteSizePrefixed(managingFile, managingInfo); err != nil {
 
@@ -101,13 +105,13 @@ func NewMetadataManager[T schema.Identifiable](daoId uint64, fileManager fm.IFil
 
 			fileManager: fileManager,
 
-			managingInfo: managingInfo,
+			managingInfo: &managingInfo,
 
 			managingInfoIO: managingInfoIO,
 
-			indexHashTable: ht.FromFileManager[DaoIndex](daoId, fileManager),
+			indexHashTable: ht.FromFileManager[DaoIndex](daoId, fm.FromFileManager(fileManager, "idx")),
 
-			objFileHashTable: ht.FromFileManager[DaoObjFile](daoId, fileManager),
+			objFileHashTable: ht.FromFileManager[DaoObjFile](daoId, fm.FromFileManager(fileManager, "obj")),
 
 			objectIO: dataio.DataIO[T]{},
 		},
@@ -117,6 +121,17 @@ func NewMetadataManager[T schema.Identifiable](daoId uint64, fileManager fm.IFil
 func (manager *DaoMetadataManager[T]) GetIndex(id uint64) (*DaoIndex, error) {
 
 	return manager.indexHashTable.Get(id)
+}
+
+func (manager *DaoMetadataManager[T]) GetAllIndexes() ([]*DaoIndex, error) {
+
+	ids := make([]uint64, 0)
+
+	for id := range *manager.managingInfo.ObjectIdCache.Cached + 1 {
+
+		ids = append(ids, id)
+	}
+	return manager.indexHashTable.GetSome(ids...)
 }
 
 func (manager *DaoMetadataManager[T]) GetMetadata(id uint64) (*DaoObjFile, error) {
@@ -267,7 +282,7 @@ func (manager *DaoMetadataManager[T]) SaveManagingInfo() error {
 
 	defer manager.fileManager.CloseAndUnlock(managingFile, &err)
 
-	_, err = manager.managingInfoIO.WriteSizePrefixed(managingFile, manager.managingInfo)
+	_, err = manager.managingInfoIO.WriteSizePrefixed(managingFile, *manager.managingInfo)
 
 	if err != nil {
 

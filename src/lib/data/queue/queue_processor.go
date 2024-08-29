@@ -7,9 +7,13 @@ type IProcessableRequest[T any] interface {
 
 	ObjectId() uint64
 
-	Dependencies() chan RequestContext
+	Dependencies() chan QueueDependency
 
-	Process(*sync.WaitGroup, *QueueContext[T]) IResult[T]
+	SetNumDeps(int)
+
+	ProcessWithDependencies(*sync.WaitGroup, *QueueDependencyResolver[T]) IResult[T]
+
+	Process() IResult[T]
 }
 
 type IResult[T any] interface {
