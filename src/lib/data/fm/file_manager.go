@@ -10,9 +10,7 @@ import (
 )
 
 type IFileManager interface {
-	Path() string
-
-	Descriptor() string
+	Concatenate(descriptor string) IFileManager
 
 	OpenAndLock(fileAlias FileAlias, idChain ...uint64) (*os.File, error)
 
@@ -66,21 +64,11 @@ func NewFileManager(path, descriptor string) IFileManager {
 	return FileManager{path, descriptor, fileMap}
 }
 
-func FromFileManager(fileManager IFileManager, descriptor string) IFileManager {
+func (fileManager FileManager) Concatenate(descriptor string) IFileManager {
 
-	concatenatedDescriptor := fmt.Sprintf("%v_%v", fileManager.Descriptor(), descriptor)
+	concatenatedDescriptor := fmt.Sprintf("%v_%v", fileManager.descriptor, descriptor)
 
-	return NewFileManager(fileManager.Path(), concatenatedDescriptor)
-}
-
-func (fileManager FileManager) Path() string {
-
-	return fileManager.path
-}
-
-func (fileManager FileManager) Descriptor() string {
-
-	return fileManager.descriptor
+	return NewFileManager(fileManager.path, concatenatedDescriptor)
 }
 
 func (fileManager FileManager) OpenAndLock(fileAlias FileAlias, idChain ...uint64) (*os.File, error) {

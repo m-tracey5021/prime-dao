@@ -1,5 +1,7 @@
 package dao
 
+import "slices"
+
 type CacheAlteration int
 
 const (
@@ -39,7 +41,25 @@ func (manager *DaoMetadataManager[T]) DeleteTableId(id uint64) {
 
 func (manager *DaoMetadataManager[T]) AvailableTable() uint64 {
 
-	return manager.managingInfo.AvailableTable
+	if len(manager.managingInfo.FirstAvailableTable) == 0 {
+
+		return uint64(0)
+	}
+	return manager.managingInfo.FirstAvailableTable[0]
+}
+
+func (manager *DaoMetadataManager[T]) AddAvailableTable(tableId uint64) {
+
+	// this should be a set so that you cant add the same table twice
+	manager.managingInfo.FirstAvailableTable = append(manager.managingInfo.FirstAvailableTable, tableId)
+}
+
+func (manager *DaoMetadataManager[T]) RemoveAvailableTable(tableId uint64) {
+
+	manager.managingInfo.FirstAvailableTable = slices.DeleteFunc(manager.managingInfo.FirstAvailableTable, func(element uint64) bool {
+
+		return element == tableId
+	})
 }
 
 // func (manager *DaoMetadataManager[T]) AlterCache(id uint64, alteration CacheAlteration) {

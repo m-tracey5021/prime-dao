@@ -16,6 +16,10 @@ type IDaoMetadataManager[T schema.Identifiable] interface {
 
 	AvailableTable() uint64
 
+	// AddAvailableTable(tableId uint64)
+
+	// RemoveAvailableTable(tableId uint64)
+
 	GetIndex(id uint64) (*DaoIndex, error)
 
 	GetAllIndexes() ([]*DaoIndex, error)
@@ -26,7 +30,9 @@ type IDaoMetadataManager[T schema.Identifiable] interface {
 
 	DeleteMetadata(id uint64) error
 
-	UpdateForSave(table *os.File, object T, position uint64) error
+	// UpdateAvailableTableForSave() error
+
+	UpdateForSave(tableId uint64, object T, position uint64) error
 
 	UpdateForDeletion(table *os.File, index DaoIndex) error
 
@@ -55,6 +61,10 @@ func NewMetadataManager[T schema.Identifiable](daoId uint64, fileManager fm.IFil
 
 	managingInfoIO := dataio.DataIO[DaoMetadata[T]]{}
 
+	indexHashTable := ht.FromFileManager[DaoIndex](daoId, fileManager.Concatenate("idx"))
+
+	objFileHashTable := ht.FromFileManager[DaoObjFile](daoId, fileManager.Concatenate("obj_f"))
+
 	managingFile, err := fileManager.OpenAndLock(fm.DaoManagingFile, daoId)
 
 	defer fileManager.CloseAndUnlock(managingFile, &err)
@@ -82,6 +92,8 @@ func NewMetadataManager[T schema.Identifiable](daoId uint64, fileManager fm.IFil
 
 		initialTable := uint64(0)
 
+		initialObjFile := DaoObjFile{initialTable, 0}
+
 		managingInfo = DaoMetadata[T]{
 
 			ObjectIdCache: DaoIdCache{},
@@ -90,14 +102,17 @@ func NewMetadataManager[T schema.Identifiable](daoId uint64, fileManager fm.IFil
 
 			TableIdCache: DaoIdCache{&initialTable, make([]uint64, 0)},
 
-			MaxObjects: uint64(10),
+			MaxObjects: uint64(2),
 
 			AvailableTable: initialTable,
+
+			FirstAvailableTable: []uint64{initialTable},
 		}
 		if _, err := managingInfoIO.WriteSizePrefixed(managingFile, managingInfo); err != nil {
 
 			return &DaoMetadataManager[T]{}, err
 		}
+		objFileHashTable.Save(initialObjFile)
 	}
 	return &DaoMetadataManager[T]{
 
@@ -109,9 +124,9 @@ func NewMetadataManager[T schema.Identifiable](daoId uint64, fileManager fm.IFil
 
 			managingInfoIO: managingInfoIO,
 
-			indexHashTable: ht.FromFileManager[DaoIndex](daoId, fm.FromFileManager(fileManager, "idx")),
+			indexHashTable: indexHashTable,
 
-			objFileHashTable: ht.FromFileManager[DaoObjFile](daoId, fm.FromFileManager(fileManager, "obj")),
+			objFileHashTable: objFileHashTable,
 
 			objectIO: dataio.DataIO[T]{},
 		},
@@ -183,9 +198,32 @@ func (manager *DaoMetadataManager[T]) UpdateIndexes(table *os.File, fileId, file
 	return nil
 }
 
-func (manager *DaoMetadataManager[T]) UpdateMetadataForSave(fileIdSavedTo uint64) error {
+// func (manager *DaoMetadataManager[T]) UpdateAvailableTableForSave() error {
 
-	metadata, err := manager.objFileHashTable.Get(fileIdSavedTo)
+// 	metadata, err := manager.objFileHashTable.Get(manager.AvailableTable())
+
+// 	if err != nil {
+
+// 		return err
+// 	}
+// 	if metadata.objectsWritten == manager.managingInfo.MaxObjects {
+
+// 		tableId := manager.NewTableId()
+
+// 		newMetadata := DaoObjFile{tableId, 0}
+
+// 		if err := manager.objFileHashTable.Save(newMetadata); err != nil {
+
+// 			return err
+// 		}
+// 		manager.managingInfo.AvailableTable = tableId
+// 	}
+// 	return err
+// }
+
+func (manager *DaoMetadataManager[T]) UpdateMetadataForSave(tableIdSavedTo uint64) error {
+
+	metadata, err := manager.objFileHashTable.Get(tableIdSavedTo)
 
 	if err != nil {
 
@@ -197,7 +235,15 @@ func (manager *DaoMetadataManager[T]) UpdateMetadataForSave(fileIdSavedTo uint64
 
 		tableId := manager.NewTableId()
 
-		manager.managingInfo.AvailableTable = tableId
+		newMetadata := DaoObjFile{tableId, 0}
+
+		if err := manager.objFileHashTable.Save(newMetadata); err != nil {
+
+			return err
+		}
+		manager.RemoveAvailableTable(tableIdSavedTo)
+
+		manager.AddAvailableTable(tableId)
 	}
 	metadata.objectsWritten += 1
 
@@ -208,23 +254,25 @@ func (manager *DaoMetadataManager[T]) UpdateMetadataForSave(fileIdSavedTo uint64
 	return err
 }
 
-func (manager *DaoMetadataManager[T]) UpdateMetadataForDeletion(table *os.File, fileIdDeletedFrom uint64) error {
+func (manager *DaoMetadataManager[T]) UpdateMetadataForDeletion(fileIdDeletedFrom uint64) (bool, error) {
+
+	removeTable := false
 
 	metadata, err := manager.objFileHashTable.Get(fileIdDeletedFrom)
 
 	if err != nil {
 
-		return err
+		return removeTable, err
 	}
 	if metadata.objectsWritten == 1 {
 
-		if err := manager.fileManager.Remove(table); err != nil {
+		removeTable = true
 
-			return err
-		}
-		manager.objFileHashTable.Delete(metadata.id)
+		manager.DeleteMetadata(metadata.id)
 
-		manager.managingInfo.TableIdCache.DeleteId(fileIdDeletedFrom, &manager.mu)
+		manager.DeleteTableId(fileIdDeletedFrom)
+
+		manager.RemoveAvailableTable(fileIdDeletedFrom)
 
 	} else {
 
@@ -232,20 +280,20 @@ func (manager *DaoMetadataManager[T]) UpdateMetadataForDeletion(table *os.File, 
 
 		manager.objFileHashTable.Update(*metadata)
 
-		manager.managingInfo.AvailableTable = fileIdDeletedFrom
+		manager.AddAvailableTable(fileIdDeletedFrom)
 	}
-	return err
+	return removeTable, err
 }
 
-func (manager *DaoMetadataManager[T]) UpdateForSave(table *os.File, object T, position uint64) error {
+func (manager *DaoMetadataManager[T]) UpdateForSave(tableIdSavedTo uint64, object T, position uint64) error {
 
-	index := DaoIndex{object.Id(), manager.AvailableTable(), position}
+	index := DaoIndex{object.Id(), tableIdSavedTo, position}
 
 	if err := manager.indexHashTable.Save(index); err != nil {
 
 		return err
 	}
-	if err := manager.UpdateMetadataForSave(manager.AvailableTable()); err != nil {
+	if err := manager.UpdateMetadataForSave(tableIdSavedTo); err != nil {
 
 		return err
 	}
@@ -260,9 +308,18 @@ func (manager *DaoMetadataManager[T]) UpdateForDeletion(table *os.File, index Da
 
 	manager.managingInfo.ObjectIdCache.DeleteId(index.id, &manager.mu)
 
-	if err := manager.UpdateMetadataForDeletion(table, index.fileId); err != nil {
+	shouldDelete, err := manager.UpdateMetadataForDeletion(index.fileId)
+
+	if err != nil {
 
 		return err
+	}
+	if shouldDelete {
+
+		if err := manager.fileManager.Remove(table); err != nil {
+
+			return err
+		}
 	}
 	if err := manager.UpdateIndexes(table, index.fileId, index.filePosition); err != nil {
 

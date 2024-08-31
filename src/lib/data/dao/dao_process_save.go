@@ -73,7 +73,11 @@ func (processor *SaveRequest[T]) ProcessWithDependencies(wg *sync.WaitGroup, con
 
 func (processor *SaveRequest[T]) Process() queue.IResult[T] {
 
-	table, err := processor.fileManager.OpenAndLock(fm.DaoTable, processor.metadataManager.AvailableTable())
+	// processor.metadataManager.UpdateAvailableTableForSave()
+
+	availableTable := processor.metadataManager.AvailableTable()
+
+	table, err := processor.fileManager.OpenAndLock(fm.DaoTable, availableTable)
 
 	defer processor.fileManager.CloseAndUnlock(table, &err)
 
@@ -95,7 +99,7 @@ func (processor *SaveRequest[T]) Process() queue.IResult[T] {
 
 		return &SaveResult[T]{nil, 0, err}
 	}
-	processor.metadataManager.UpdateForSave(table, object, uint64(position))
+	processor.metadataManager.UpdateForSave(availableTable, object, uint64(position))
 
 	return &SaveResult[T]{&object, size, err}
 }

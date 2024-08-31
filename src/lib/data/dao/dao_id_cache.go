@@ -22,8 +22,6 @@ func (cache *DaoIdCache) NewId(mu *sync.Mutex) uint64 {
 
 		return popped
 	}
-	var id uint64
-
 	if cache.Cached != nil {
 
 		*cache.Cached += 1
@@ -36,9 +34,12 @@ func (cache *DaoIdCache) NewId(mu *sync.Mutex) uint64 {
 	}
 	mu.Unlock()
 
-	id = *cache.Cached
+	return *cache.Cached
+}
 
-	return id
+func (cache *DaoIdCache) Current() uint64 {
+
+	return *cache.Cached
 }
 
 func (cache *DaoIdCache) DeleteId(id uint64, mu *sync.Mutex) {
