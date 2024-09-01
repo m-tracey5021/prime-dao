@@ -16,10 +16,6 @@ type IDaoMetadataManager[T schema.Identifiable] interface {
 
 	AvailableTable() uint64
 
-	// AddAvailableTable(tableId uint64)
-
-	// RemoveAvailableTable(tableId uint64)
-
 	GetIndex(id uint64) (*DaoIndex, error)
 
 	GetAllIndexes() ([]*DaoIndex, error)
@@ -29,8 +25,6 @@ type IDaoMetadataManager[T schema.Identifiable] interface {
 	DeleteIndex(id uint64) error
 
 	DeleteMetadata(id uint64) error
-
-	// UpdateAvailableTableForSave() error
 
 	UpdateForSave(tableId uint64, object T, position uint64) error
 
@@ -53,6 +47,8 @@ type DaoMetadataManager[T schema.Identifiable] struct {
 	objFileHashTable ht.ITSFHashTable[DaoObjFile]
 
 	objectIO dataio.IDataIO[T]
+
+	tableCount int
 
 	mu sync.Mutex
 }
@@ -94,6 +90,10 @@ func NewMetadataManager[T schema.Identifiable](daoId uint64, fileManager fm.IFil
 
 		initialObjFile := DaoObjFile{initialTable, 0}
 
+		tableMapping := make(map[uint64]int)
+
+		tableMapping[initialTable] = 0
+
 		managingInfo = DaoMetadata[T]{
 
 			ObjectIdCache: DaoIdCache{},
@@ -104,9 +104,9 @@ func NewMetadataManager[T schema.Identifiable](daoId uint64, fileManager fm.IFil
 
 			MaxObjects: uint64(2),
 
-			AvailableTable: initialTable,
+			AvailableTables: []uint64{initialTable},
 
-			FirstAvailableTable: []uint64{initialTable},
+			AvailableTableObjectCount: tableMapping,
 		}
 		if _, err := managingInfoIO.WriteSizePrefixed(managingFile, managingInfo); err != nil {
 
@@ -197,29 +197,6 @@ func (manager *DaoMetadataManager[T]) UpdateIndexes(table *os.File, fileId, file
 	}
 	return nil
 }
-
-// func (manager *DaoMetadataManager[T]) UpdateAvailableTableForSave() error {
-
-// 	metadata, err := manager.objFileHashTable.Get(manager.AvailableTable())
-
-// 	if err != nil {
-
-// 		return err
-// 	}
-// 	if metadata.objectsWritten == manager.managingInfo.MaxObjects {
-
-// 		tableId := manager.NewTableId()
-
-// 		newMetadata := DaoObjFile{tableId, 0}
-
-// 		if err := manager.objFileHashTable.Save(newMetadata); err != nil {
-
-// 			return err
-// 		}
-// 		manager.managingInfo.AvailableTable = tableId
-// 	}
-// 	return err
-// }
 
 func (manager *DaoMetadataManager[T]) UpdateMetadataForSave(tableIdSavedTo uint64) error {
 

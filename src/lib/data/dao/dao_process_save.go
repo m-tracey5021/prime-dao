@@ -73,8 +73,6 @@ func (processor *SaveRequest[T]) ProcessWithDependencies(wg *sync.WaitGroup, con
 
 func (processor *SaveRequest[T]) Process() queue.IResult[T] {
 
-	// processor.metadataManager.UpdateAvailableTableForSave()
-
 	availableTable := processor.metadataManager.AvailableTable()
 
 	table, err := processor.fileManager.OpenAndLock(fm.DaoTable, availableTable)

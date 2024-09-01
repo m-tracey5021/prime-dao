@@ -41,25 +41,57 @@ func (manager *DaoMetadataManager[T]) DeleteTableId(id uint64) {
 
 func (manager *DaoMetadataManager[T]) AvailableTable() uint64 {
 
-	if len(manager.managingInfo.FirstAvailableTable) == 0 {
+	manager.mu.Lock()
 
-		return uint64(0)
+	var firstAvailable uint64
+
+	if len(manager.managingInfo.AvailableTables) == 0 {
+
+		firstAvailable = uint64(0)
+
+		manager.managingInfo.AvailableTableObjectCount[firstAvailable] = 0
+
+	} else {
+
+		firstAvailable = manager.managingInfo.AvailableTables[0]
 	}
-	return manager.managingInfo.FirstAvailableTable[0]
+	count, ok := manager.managingInfo.AvailableTableObjectCount[firstAvailable]
+
+	if ok {
+
+		if count+1 == int(manager.managingInfo.MaxObjects) {
+
+			delete(manager.managingInfo.AvailableTableObjectCount, firstAvailable)
+
+		} else {
+
+			manager.managingInfo.AvailableTableObjectCount[firstAvailable] += 1
+		}
+	}
+	manager.mu.Unlock()
+
+	return firstAvailable
 }
 
 func (manager *DaoMetadataManager[T]) AddAvailableTable(tableId uint64) {
 
 	// this should be a set so that you cant add the same table twice
-	manager.managingInfo.FirstAvailableTable = append(manager.managingInfo.FirstAvailableTable, tableId)
+	manager.mu.Lock()
+
+	manager.managingInfo.AvailableTables = append(manager.managingInfo.AvailableTables, tableId)
+
+	manager.mu.Unlock()
 }
 
 func (manager *DaoMetadataManager[T]) RemoveAvailableTable(tableId uint64) {
 
-	manager.managingInfo.FirstAvailableTable = slices.DeleteFunc(manager.managingInfo.FirstAvailableTable, func(element uint64) bool {
+	manager.mu.Lock()
+
+	manager.managingInfo.AvailableTables = slices.DeleteFunc(manager.managingInfo.AvailableTables, func(element uint64) bool {
 
 		return element == tableId
 	})
+	manager.mu.Unlock()
 }
 
 // func (manager *DaoMetadataManager[T]) AlterCache(id uint64, alteration CacheAlteration) {
