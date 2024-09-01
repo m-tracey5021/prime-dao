@@ -73,7 +73,7 @@ func (processor *SaveRequest[T]) ProcessWithDependencies(wg *sync.WaitGroup, con
 
 func (processor *SaveRequest[T]) Process() queue.IResult[T] {
 
-	availableTable := processor.metadataManager.AvailableTable()
+	availableTable := processor.metadataManager.UpdateMetadataPreSave()
 
 	table, err := processor.fileManager.OpenAndLock(fm.DaoTable, availableTable)
 
@@ -97,7 +97,7 @@ func (processor *SaveRequest[T]) Process() queue.IResult[T] {
 
 		return &SaveResult[T]{nil, 0, err}
 	}
-	processor.metadataManager.UpdateForSave(availableTable, object, uint64(position))
+	processor.metadataManager.UpdateMetadataPostSave(availableTable, object, uint64(position))
 
 	return &SaveResult[T]{&object, size, err}
 }

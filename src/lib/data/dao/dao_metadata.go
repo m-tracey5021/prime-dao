@@ -11,7 +11,5 @@ type DaoMetadata[T schema.Identifiable] struct {
 
 	MaxObjects uint64
 
-	AvailableTables []uint64
-
 	AvailableTableObjectCount map[uint64]int
 }

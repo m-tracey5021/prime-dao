@@ -97,7 +97,7 @@ func (processor *DeleteRequest[T]) Process() queue.IResult[T] {
 
 		return &DeleteResult[T]{0, err}
 	}
-	if err := processor.metadataManager.UpdateForDeletion(table, *index); err != nil {
+	if err := processor.metadataManager.UpdateMetadataForDeletion(table, *index); err != nil {
 
 		return &DeleteResult[T]{0, err}
 	}

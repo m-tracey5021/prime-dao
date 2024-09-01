@@ -14,8 +14,6 @@ import (
 type IDaoMetadataManager[T schema.Identifiable] interface {
 	AssignId(object T) T
 
-	AvailableTable() uint64
-
 	GetIndex(id uint64) (*DaoIndex, error)
 
 	GetAllIndexes() ([]*DaoIndex, error)
@@ -26,11 +24,13 @@ type IDaoMetadataManager[T schema.Identifiable] interface {
 
 	DeleteMetadata(id uint64) error
 
-	UpdateForSave(tableId uint64, object T, position uint64) error
-
-	UpdateForDeletion(table *os.File, index DaoIndex) error
-
 	UpdateIndexes(table *os.File, fileId, filePosition uint64) error
+
+	UpdateMetadataPreSave() uint64
+
+	UpdateMetadataPostSave(tableId uint64, object T, position uint64) error
+
+	UpdateMetadataForDeletion(table *os.File, index DaoIndex) error
 }
 
 type DaoMetadataManager[T schema.Identifiable] struct {
@@ -48,7 +48,7 @@ type DaoMetadataManager[T schema.Identifiable] struct {
 
 	objectIO dataio.IDataIO[T]
 
-	tableCount int
+	idMu sync.Mutex
 
 	mu sync.Mutex
 }
@@ -103,8 +103,6 @@ func NewMetadataManager[T schema.Identifiable](daoId uint64, fileManager fm.IFil
 			TableIdCache: DaoIdCache{&initialTable, make([]uint64, 0)},
 
 			MaxObjects: uint64(2),
-
-			AvailableTables: []uint64{initialTable},
 
 			AvailableTableObjectCount: tableMapping,
 		}
@@ -198,71 +196,32 @@ func (manager *DaoMetadataManager[T]) UpdateIndexes(table *os.File, fileId, file
 	return nil
 }
 
-func (manager *DaoMetadataManager[T]) UpdateMetadataForSave(tableIdSavedTo uint64) error {
+func (manager *DaoMetadataManager[T]) UpdateMetadataPreSave() uint64 {
 
-	metadata, err := manager.objFileHashTable.Get(tableIdSavedTo)
+	manager.mu.Lock()
 
-	if err != nil {
+	for table, objectCount := range manager.managingInfo.AvailableTableObjectCount {
 
-		return err
-	}
-	objectsWrittenAfterSave := metadata.objectsWritten + 1
+		if objectCount < int(manager.managingInfo.MaxObjects) {
 
-	if objectsWrittenAfterSave == manager.managingInfo.MaxObjects {
+			manager.managingInfo.AvailableTableObjectCount[table] += 1
 
-		tableId := manager.NewTableId()
+			manager.mu.Unlock()
 
-		newMetadata := DaoObjFile{tableId, 0}
-
-		if err := manager.objFileHashTable.Save(newMetadata); err != nil {
-
-			return err
+			return table
 		}
-		manager.RemoveAvailableTable(tableIdSavedTo)
-
-		manager.AddAvailableTable(tableId)
 	}
-	metadata.objectsWritten += 1
+	// need a different lock for this because it is currently locked
+	newTableId := manager.NewTableId()
 
-	if err := manager.objFileHashTable.Update(*metadata); err != nil {
+	manager.managingInfo.AvailableTableObjectCount[newTableId] = 1
 
-		return err
-	}
-	return err
+	manager.mu.Unlock()
+
+	return newTableId
 }
 
-func (manager *DaoMetadataManager[T]) UpdateMetadataForDeletion(fileIdDeletedFrom uint64) (bool, error) {
-
-	removeTable := false
-
-	metadata, err := manager.objFileHashTable.Get(fileIdDeletedFrom)
-
-	if err != nil {
-
-		return removeTable, err
-	}
-	if metadata.objectsWritten == 1 {
-
-		removeTable = true
-
-		manager.DeleteMetadata(metadata.id)
-
-		manager.DeleteTableId(fileIdDeletedFrom)
-
-		manager.RemoveAvailableTable(fileIdDeletedFrom)
-
-	} else {
-
-		metadata.objectsWritten -= 1
-
-		manager.objFileHashTable.Update(*metadata)
-
-		manager.AddAvailableTable(fileIdDeletedFrom)
-	}
-	return removeTable, err
-}
-
-func (manager *DaoMetadataManager[T]) UpdateForSave(tableIdSavedTo uint64, object T, position uint64) error {
+func (manager *DaoMetadataManager[T]) UpdateMetadataPostSave(tableIdSavedTo uint64, object T, position uint64) error {
 
 	index := DaoIndex{object.Id(), tableIdSavedTo, position}
 
@@ -270,32 +229,29 @@ func (manager *DaoMetadataManager[T]) UpdateForSave(tableIdSavedTo uint64, objec
 
 		return err
 	}
-	if err := manager.UpdateMetadataForSave(tableIdSavedTo); err != nil {
-
-		return err
-	}
-	if err := manager.SaveManagingInfo(); err != nil {
-
-		return err
-	}
 	return nil
 }
 
-func (manager *DaoMetadataManager[T]) UpdateForDeletion(table *os.File, index DaoIndex) error {
+func (manager *DaoMetadataManager[T]) UpdateMetadataForDeletion(table *os.File, index DaoIndex) error {
 
 	manager.managingInfo.ObjectIdCache.DeleteId(index.id, &manager.mu)
 
-	shouldDelete, err := manager.UpdateMetadataForDeletion(index.fileId)
+	count, ok := manager.managingInfo.AvailableTableObjectCount[index.fileId]
 
-	if err != nil {
+	if ok {
 
-		return err
-	}
-	if shouldDelete {
+		if count == 1 {
 
-		if err := manager.fileManager.Remove(table); err != nil {
+			if err := manager.fileManager.Remove(table); err != nil {
 
-			return err
+				return err
+			}
+
+			delete(manager.managingInfo.AvailableTableObjectCount, index.fileId)
+
+		} else {
+
+			manager.managingInfo.AvailableTableObjectCount[index.fileId] -= 1
 		}
 	}
 	if err := manager.UpdateIndexes(table, index.fileId, index.filePosition); err != nil {
