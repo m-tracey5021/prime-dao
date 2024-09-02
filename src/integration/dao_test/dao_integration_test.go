@@ -167,7 +167,9 @@ func TestDaoAsync(t *testing.T) {
 
 	requestF := transaction.WithDependency(requestE).Get(identifiableB.Id())
 
-	requestG := transaction.WithDependency(requestF).Delete(identifiableB.Id())
+	requestG := transaction.WithDependency(requestF).Delete(identifiable.Id())
+
+	requestGb := transaction.WithDependency(requestF).Delete(identifiableB.Id())
 
 	if err != nil {
 
@@ -188,6 +190,7 @@ func TestDaoAsync(t *testing.T) {
 	resultE := results[requestE]
 	resultF := results[requestF]
 	resultG := results[requestG]
+	resultGb := results[requestGb]
 	resultH := results[requestH]
 	resultI := results[requestI]
 	resultJ := results[requestJ]
@@ -196,6 +199,7 @@ func TestDaoAsync(t *testing.T) {
 	fmt.Printf("%v", resultE)
 	fmt.Printf("%v", resultF)
 	fmt.Printf("%v", resultG)
+	fmt.Printf("%v", resultGb)
 	fmt.Printf("%v", resultH)
 	fmt.Printf("%v", resultI)
 	fmt.Printf("%v", resultJ)

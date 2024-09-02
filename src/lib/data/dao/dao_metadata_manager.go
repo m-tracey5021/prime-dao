@@ -236,6 +236,8 @@ func (manager *DaoMetadataManager[T]) UpdateMetadataForDeletion(table *os.File, 
 
 	manager.managingInfo.ObjectIdCache.DeleteId(index.id, &manager.mu)
 
+	manager.mu.Lock()
+
 	count, ok := manager.managingInfo.AvailableTableObjectCount[index.fileId]
 
 	if ok {
@@ -246,7 +248,6 @@ func (manager *DaoMetadataManager[T]) UpdateMetadataForDeletion(table *os.File, 
 
 				return err
 			}
-
 			delete(manager.managingInfo.AvailableTableObjectCount, index.fileId)
 
 		} else {
@@ -254,6 +255,8 @@ func (manager *DaoMetadataManager[T]) UpdateMetadataForDeletion(table *os.File, 
 			manager.managingInfo.AvailableTableObjectCount[index.fileId] -= 1
 		}
 	}
+	manager.mu.Unlock()
+
 	if err := manager.UpdateIndexes(table, index.fileId, index.filePosition); err != nil {
 
 		return err
