@@ -28,6 +28,8 @@ func TestDao(t *testing.T) {
 
 	path := "dao_dir"
 
+	defer fm.RemoveDir(path)
+
 	descriptor := "obj_test"
 
 	dao, err := dao.New[MockIdentifiable](path, descriptor, 0)
@@ -58,13 +60,23 @@ func TestDao(t *testing.T) {
 	fmt.Printf("%v, size %v", identifiableSavedC, sizeC)
 	fmt.Printf("%v, size %v", identifiableSavedD, sizeD)
 
+	getA, err := dao.Get(identifiableSaved.Id())
 	getB, err := dao.Get(identifiableSavedB.Id())
+	getC, err := dao.Get(identifiableSavedC.Id())
+	getD, err := dao.Get(identifiableSavedD.Id())
+
+	getA, err = dao.Get(identifiableSaved.Id())
+	getC, err = dao.Get(identifiableSavedC.Id())
 
 	if err != nil {
 
 		t.Fail()
 	}
+
+	fmt.Printf("%v", getA)
 	fmt.Printf("%v", getB)
+	fmt.Printf("%v", getC)
+	fmt.Printf("%v", getD)
 
 	identifiableSavedB.Data = []int{2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8}
 
@@ -101,12 +113,12 @@ func TestDao(t *testing.T) {
 	fmt.Printf("%v", deletedSizeB)
 	fmt.Printf("%v", deletedSizeC)
 
-	getC, err := dao.Get(identifiableSavedC.Id())
+	getC, err = dao.Get(identifiableSavedC.Id())
 
 	// should be err here
 	fmt.Printf("%v", getC)
 
-	getD, err := dao.Get(identifiableSavedD.Id())
+	getD, err = dao.Get(identifiableSavedD.Id())
 
 	if err != nil {
 
@@ -119,13 +131,13 @@ func TestDao(t *testing.T) {
 	identifiableSavedE, _, _ := dao.Save(identifiableE)
 
 	fmt.Printf("%v", identifiableSavedE)
-
-	fm.RemoveDir(path)
 }
 
 func TestDaoAsync(t *testing.T) {
 
 	path := "dao_dir"
+
+	defer fm.RemoveDir(path)
 
 	descriptor := "obj_test"
 
@@ -204,6 +216,4 @@ func TestDaoAsync(t *testing.T) {
 	fmt.Printf("%v", resultI)
 	fmt.Printf("%v", resultJ)
 	fmt.Printf("%v", resultK)
-
-	fm.RemoveDir(path)
 }

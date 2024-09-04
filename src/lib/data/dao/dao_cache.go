@@ -13,6 +13,17 @@ type DaoCache[T schema.Identifiable] struct {
 	MaxSize int
 }
 
+func NewCache[T schema.Identifiable]() DaoCache[T] {
+
+	return DaoCache[T]{
+		Cached: make(map[uint64]T),
+
+		LeastRecentlyUsed: make([]uint64, 0),
+
+		MaxSize: 3,
+	}
+}
+
 func (cache *DaoCache[T]) Get(id uint64) *T {
 
 	object, ok := cache.Cached[id]
@@ -34,9 +45,11 @@ func (cache *DaoCache[T]) Save(object T) {
 
 	if len(cache.Cached) == cache.MaxSize {
 
-		last := len(cache.LeastRecentlyUsed)
+		last := cache.LeastRecentlyUsed[0]
 
-		delete(cache.Cached, cache.LeastRecentlyUsed[last])
+		delete(cache.Cached, last)
+
+		cache.LeastRecentlyUsed = slices.Delete(cache.LeastRecentlyUsed, 0, 1)
 	}
 	cache.Cached[object.Id()] = object
 

@@ -73,6 +73,12 @@ func (processor *GetRequest[T]) ProcessWithDependencies(wg *sync.WaitGroup, cont
 
 func (processor *GetRequest[T]) Process() queue.IResult[T] {
 
+	cached := processor.metadataManager.GetCached(processor.objectId)
+
+	if cached != nil {
+
+		return &GetResult[T]{cached, nil}
+	}
 	index, err := processor.metadataManager.GetIndex(processor.objectId)
 
 	if err != nil {
@@ -97,7 +103,7 @@ func (processor *GetRequest[T]) Process() queue.IResult[T] {
 
 		return &GetResult[T]{nil, err}
 	}
-	fmt.Printf("got object %v", object)
+	processor.metadataManager.SaveToCache(object)
 
 	return &GetResult[T]{&object, err}
 }

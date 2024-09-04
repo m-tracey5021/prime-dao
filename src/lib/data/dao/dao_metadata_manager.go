@@ -24,6 +24,10 @@ type IDaoMetadataManager[T schema.Identifiable] interface {
 
 	DeleteMetadata(id uint64) error
 
+	GetCached(id uint64) *T
+
+	SaveToCache(object T)
+
 	UpdateIndexes(table *os.File, fileId, filePosition uint64) error
 
 	UpdateMetadataPreSave() uint64
@@ -98,7 +102,7 @@ func NewMetadataManager[T schema.Identifiable](daoId uint64, fileManager fm.IFil
 
 			ObjectIdCache: DaoIdCache{},
 
-			ObjectCache: DaoCache[T]{},
+			ObjectCache: NewCache[T](),
 
 			TableIdCache: DaoIdCache{&initialTable, make([]uint64, 0)},
 
@@ -211,7 +215,6 @@ func (manager *DaoMetadataManager[T]) UpdateMetadataPreSave() uint64 {
 			return table
 		}
 	}
-	// need a different lock for this because it is currently locked
 	newTableId := manager.NewTableId()
 
 	manager.managingInfo.AvailableTableObjectCount[newTableId] = 1

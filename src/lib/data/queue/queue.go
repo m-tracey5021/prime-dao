@@ -29,10 +29,6 @@ type TSFQueue[T any] struct {
 
 	results chan TSFQueueResult[T]
 
-	requestIds []uint64
-
-	// dependentProcesses map[uint64][]uint64 // e.g. process 0 depends on processes 1, 2, 3
-
 	requestsProcessed []TSFQueueResult[T]
 
 	requestsWaitGroup sync.WaitGroup
@@ -40,8 +36,6 @@ type TSFQueue[T any] struct {
 	resultsWaitGroup sync.WaitGroup
 
 	mu sync.Mutex
-
-	ctxmu sync.Mutex
 }
 
 func NewQueue[T any](numberOfWorkers int, batchSize int, bufferSize int) *TSFQueue[T] {
@@ -58,27 +52,9 @@ func NewQueue[T any](numberOfWorkers int, batchSize int, bufferSize int) *TSFQue
 
 		results: make(chan TSFQueueResult[T], bufferSize),
 
-		requestIds: make([]uint64, 0), // do i need to initialise these?
-
-		// dependentProcesses: make(map[uint64][]uint64, 0),
-
 		requestsProcessed: make([]TSFQueueResult[T], 0),
 	}
 }
-
-// func (queue *TSFQueue[T]) AddDependency(requestId uint64, dependencies []uint64) {
-
-// 	_, found := queue.dependentProcesses[requestId]
-
-// 	if found {
-
-// 		queue.dependentProcesses[requestId] = append(queue.dependentProcesses[requestId], dependencies...)
-
-// 	} else {
-
-// 		queue.dependentProcesses[requestId] = dependencies
-// 	}
-// }
 
 func (queue *TSFQueue[T]) Start(dependencyResolver *QueueDependencyResolver[T]) {
 
@@ -113,16 +89,6 @@ func (queue *TSFQueue[T]) Start(dependencyResolver *QueueDependencyResolver[T]) 
 			}
 		}(i)
 	}
-	// go func() {
-
-	// 	for signal := context.completed {
-
-	// 		// separate lock for this
-
-	// 		context.completions = append(context.completions, signal)
-	// 	}
-	// }
-
 	queue.resultsWaitGroup.Add(1)
 
 	go func() {

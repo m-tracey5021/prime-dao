@@ -37,48 +37,12 @@ func (manager *DaoMetadataManager[T]) DeleteTableId(id uint64) {
 	manager.managingInfo.TableIdCache.DeleteId(id, &manager.idMu)
 }
 
-// func (manager *DaoMetadataManager[T]) AddAvailableTable(tableId uint64) {
+func (manager *DaoMetadataManager[T]) GetCached(id uint64) *T {
 
-// 	// this should be a set so that you cant add the same table twice
-// 	manager.mu.Lock()
+	return manager.managingInfo.ObjectCache.Get(id)
+}
 
-// 	manager.managingInfo.AvailableTables = append(manager.managingInfo.AvailableTables, tableId)
+func (manager *DaoMetadataManager[T]) SaveToCache(object T) {
 
-// 	manager.mu.Unlock()
-// }
-
-// func (manager *DaoMetadataManager[T]) RemoveAvailableTable(tableId uint64) {
-
-// 	manager.mu.Lock()
-
-// 	manager.managingInfo.AvailableTables = slices.DeleteFunc(manager.managingInfo.AvailableTables, func(element uint64) bool {
-
-// 		return element == tableId
-// 	})
-// 	manager.mu.Unlock()
-// }
-
-// func (manager *DaoMetadataManager[T]) AlterCache(id uint64, alteration CacheAlteration) {
-
-// 	manager.mu.Lock()
-
-// 	switch alteration {
-
-// 	case AddTable:
-
-// 		manager.managingInfo.TableIds = append(manager.managingInfo.TableIds, id)
-
-// 	case AddObject:
-
-// 		manager.managingInfo.ObjectIds = append(manager.managingInfo.ObjectIds, id)
-
-// 	case RemoveTable:
-
-// 		manager.managingInfo.TableIds = data.RemoveId(id, manager.managingInfo.TableIds)
-
-// 	case RemoveObject:
-
-// 		manager.managingInfo.ObjectIds = data.RemoveId(id, manager.managingInfo.ObjectIds)
-// 	}
-// 	manager.mu.Unlock()
-// }
+	manager.managingInfo.ObjectCache.Save(object)
+}
