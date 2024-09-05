@@ -3,8 +3,8 @@ package ht
 import (
 	"encoding/binary"
 	"os"
-	"transformer/src/lib/data"
-	"transformer/src/lib/data/schema"
+	"tsf-dao/src/lib/data"
+	"tsf-dao/src/lib/data/schema"
 )
 
 type HashTableBucketHeader struct {

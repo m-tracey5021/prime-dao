@@ -2,7 +2,8 @@ package dao
 
 import (
 	"slices"
-	"transformer/src/lib/data/schema"
+	"sync"
+	"tsf-dao/src/lib/data/schema"
 )
 
 type DaoCache[T schema.Identifiable] struct {
@@ -24,7 +25,9 @@ func NewCache[T schema.Identifiable]() DaoCache[T] {
 	}
 }
 
-func (cache *DaoCache[T]) Get(id uint64) *T {
+func (cache *DaoCache[T]) Get(id uint64, mu *sync.Mutex) *T {
+
+	mu.Lock()
 
 	object, ok := cache.Cached[id]
 
@@ -36,12 +39,18 @@ func (cache *DaoCache[T]) Get(id uint64) *T {
 		})
 		cache.LeastRecentlyUsed = append(cache.LeastRecentlyUsed, id)
 
+		mu.Unlock()
+
 		return &object
 	}
+	mu.Unlock()
+
 	return nil
 }
 
-func (cache *DaoCache[T]) Save(object T) {
+func (cache *DaoCache[T]) Save(object T, mu *sync.Mutex) {
+
+	mu.Lock()
 
 	if len(cache.Cached) == cache.MaxSize {
 
@@ -54,4 +63,6 @@ func (cache *DaoCache[T]) Save(object T) {
 	cache.Cached[object.Id()] = object
 
 	cache.LeastRecentlyUsed = append(cache.LeastRecentlyUsed, object.Id())
+
+	mu.Unlock()
 }

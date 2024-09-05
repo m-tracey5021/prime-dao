@@ -5,10 +5,10 @@ import (
 	"io"
 	"os"
 	"sync"
-	"transformer/src/lib/data/dataio"
-	"transformer/src/lib/data/fm"
-	"transformer/src/lib/data/ht"
-	"transformer/src/lib/data/schema"
+	"tsf-dao/src/lib/data/dataio"
+	"tsf-dao/src/lib/data/fm"
+	"tsf-dao/src/lib/data/ht"
+	"tsf-dao/src/lib/data/schema"
 )
 
 type IDaoMetadataManager[T schema.Identifiable] interface {
@@ -53,6 +53,8 @@ type DaoMetadataManager[T schema.Identifiable] struct {
 	objectIO dataio.IDataIO[T]
 
 	idMu sync.Mutex
+
+	cacheMu sync.Mutex
 
 	mu sync.Mutex
 }
@@ -100,11 +102,11 @@ func NewMetadataManager[T schema.Identifiable](daoId uint64, fileManager fm.IFil
 
 		managingInfo = DaoMetadata[T]{
 
-			ObjectIdCache: DaoIdCache{},
+			ObjectIdStore: DaoIdStore{},
 
-			ObjectCache: NewCache[T](),
+			TableIdStore: DaoIdStore{&initialTable, make([]uint64, 0)},
 
-			TableIdCache: DaoIdCache{&initialTable, make([]uint64, 0)},
+			Cache: NewCache[T](),
 
 			MaxObjects: uint64(2),
 
@@ -144,7 +146,7 @@ func (manager *DaoMetadataManager[T]) GetAllIndexes() ([]*DaoIndex, error) {
 
 	ids := make([]uint64, 0)
 
-	for id := range *manager.managingInfo.ObjectIdCache.Cached + 1 {
+	for id := range *manager.managingInfo.ObjectIdStore.Last + 1 {
 
 		ids = append(ids, id)
 	}
@@ -237,7 +239,7 @@ func (manager *DaoMetadataManager[T]) UpdateMetadataPostSave(tableIdSavedTo uint
 
 func (manager *DaoMetadataManager[T]) UpdateMetadataForDeletion(table *os.File, index DaoIndex) error {
 
-	manager.managingInfo.ObjectIdCache.DeleteId(index.id, &manager.mu)
+	manager.managingInfo.ObjectIdStore.DeleteId(index.id, &manager.mu)
 
 	manager.mu.Lock()
 

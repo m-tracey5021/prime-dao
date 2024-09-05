@@ -2,7 +2,7 @@ package dataio
 
 import (
 	"os"
-	"transformer/src/lib/data/schema"
+	"tsf-dao/src/lib/data/schema"
 
 	"github.com/stretchr/testify/mock"
 )

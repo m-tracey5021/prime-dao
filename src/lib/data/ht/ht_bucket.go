@@ -1,6 +1,6 @@
 package ht
 
-import "transformer/src/lib/data/schema"
+import "tsf-dao/src/lib/data/schema"
 
 type HashTableBucket[T schema.FixedSizeIdentifiable] struct {
 	bucketLocation int

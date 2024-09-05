@@ -1,11 +1,12 @@
 package dao
 
 import (
-	"transformer/src/lib/data"
-	"transformer/src/lib/data/dataio"
-	"transformer/src/lib/data/fm"
-	"transformer/src/lib/data/queue"
-	"transformer/src/lib/data/schema"
+	"fmt"
+	"tsf-dao/src/lib/data"
+	"tsf-dao/src/lib/data/dataio"
+	"tsf-dao/src/lib/data/fm"
+	"tsf-dao/src/lib/data/queue"
+	"tsf-dao/src/lib/data/schema"
 )
 
 type DaoRequestFactory[T schema.Identifiable] struct {
@@ -38,6 +39,8 @@ func (factory *DaoRequestFactory[T]) NewRequestId() uint64 {
 }
 
 func (factory *DaoRequestFactory[T]) CreateSaveRequest(object T, numDeps int) queue.IProcessableRequest[T] {
+
+	fmt.Printf("%v", factory.metadataManager)
 
 	return &SaveRequest[T]{
 

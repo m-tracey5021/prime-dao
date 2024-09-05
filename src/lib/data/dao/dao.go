@@ -1,9 +1,9 @@
 package dao
 
 import (
-	"transformer/src/lib/data/fm"
-	"transformer/src/lib/data/queue"
-	"transformer/src/lib/data/schema"
+	"tsf-dao/src/lib/data/fm"
+	"tsf-dao/src/lib/data/queue"
+	"tsf-dao/src/lib/data/schema"
 )
 
 type TSFDao[T schema.Identifiable] struct {

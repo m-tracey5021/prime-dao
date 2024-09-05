@@ -3,9 +3,9 @@ package dao_test
 import (
 	"fmt"
 	"testing"
-	"transformer/src/lib/data/dao"
-	"transformer/src/lib/data/fm"
-	"transformer/src/lib/data/schema"
+	"tsf-dao/src/lib/data/dao"
+	"tsf-dao/src/lib/data/fm"
+	"tsf-dao/src/lib/data/schema"
 )
 
 type MockIdentifiable struct {

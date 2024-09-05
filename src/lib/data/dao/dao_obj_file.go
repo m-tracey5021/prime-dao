@@ -3,7 +3,7 @@ package dao
 import (
 	"encoding/binary"
 	"os"
-	"transformer/src/lib/data/schema"
+	"tsf-dao/src/lib/data/schema"
 )
 
 type DaoObjFile struct {
