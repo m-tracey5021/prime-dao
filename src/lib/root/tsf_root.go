@@ -39,18 +39,39 @@ func Connect(path string) (*TSFRoot, error) {
 
 		return nil, CorruptedInstallation
 	}
-	return &TSFRoot{
-			fileManager: fm.NewFileManager(path, ""), // TODO ensure this param is useful or create new method
+	fileManager := fm.NewFileManager(path, "tsf")
 
-			metadata: NewMetadata(),
-		},
+	rootTable, err := fileManager.OpenAndLock(fm.Root)
 
-		nil
+	defer fileManager.CloseAndUnlock(rootTable, &err)
+
+	if err != nil {
+
+		return nil, err
+	}
+	size, err := fileManager.Size(rootTable)
+
+	if size > 0 {
+
+		metadataIO := dataio.DataIO[TSFRootMetadata]{}
+
+		metadata, err := metadataIO.ReadSizePrefixed(rootTable)
+
+		if err != nil {
+
+			return nil, err
+		}
+		return &TSFRoot{fileManager: fileManager, metadata: metadata}, err
+
+	} else {
+
+		return &TSFRoot{fileManager: fileManager, metadata: NewMetadata()}, err
+	}
 }
 
 func NewDaoOfType[T schema.DescribedIdentifiable](root *TSFRoot) (uint64, *dao.TSFDao[T], error) {
 
-	id := root.metadata.daoIdStore.NewId(&root.mu)
+	id := root.metadata.DaoIdStore.NewId(&root.mu)
 
 	dao, err := dao.From[T](root.fileManager, id)
 
@@ -68,17 +89,17 @@ func GetDaoOfType[T schema.DescribedIdentifiable](root *TSFRoot, id uint64) (*da
 
 func (root *TSFRoot) NewComponentForName(componentName string) {
 
-	root.metadata.componentDaoMap[componentName] = make([]uint64, 0)
+	root.metadata.ComponentDaoMap[componentName] = make([]uint64, 0)
 }
 
 func (root *TSFRoot) AssociateDaoWithComponent(daoId uint64, componentName string) {
 
-	root.metadata.componentDaoMap[componentName] = append(root.metadata.componentDaoMap[componentName], daoId)
+	root.metadata.ComponentDaoMap[componentName] = append(root.metadata.ComponentDaoMap[componentName], daoId)
 }
 
 func (root *TSFRoot) GetDaoForComponentName(componentName string) ([]uint64, error) {
 
-	ids, ok := root.metadata.componentDaoMap[componentName]
+	ids, ok := root.metadata.ComponentDaoMap[componentName]
 
 	if ok {
 

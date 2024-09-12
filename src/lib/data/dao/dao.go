@@ -24,12 +24,12 @@ func New[T schema.Identifiable](path, descriptor string, id uint64) (*TSFDao[T],
 
 	metadataManager, err := NewMetadataManager[T](id, fileManager)
 
-	requestFactory := NewRequestFactory(fileManager, metadataManager)
-
 	if err != nil {
 
 		return nil, err
 	}
+	requestFactory := NewRequestFactory(fileManager, metadataManager)
+
 	return &TSFDao[T]{
 
 			id: id,
@@ -54,12 +54,12 @@ func From[T schema.DescribedIdentifiable](fileManager fm.IFileManager, id uint64
 
 	metadataManager, err := NewMetadataManager[T](id, fileManager)
 
-	requestFactory := NewRequestFactory(fileManager, metadataManager)
-
 	if err != nil {
 
 		return nil, err
 	}
+	requestFactory := NewRequestFactory(fileManager, metadataManager)
+
 	return &TSFDao[T]{
 
 			id: id,
