@@ -46,6 +46,36 @@ func New[T schema.Identifiable](path, descriptor string, id uint64) (*TSFDao[T],
 		err
 }
 
+func From[T schema.DescribedIdentifiable](fileManager fm.IFileManager, id uint64) (*TSFDao[T], error) {
+
+	var described T
+
+	fileManager = fileManager.Concatenate(described.Descriptor())
+
+	metadataManager, err := NewMetadataManager[T](id, fileManager)
+
+	requestFactory := NewRequestFactory(fileManager, metadataManager)
+
+	if err != nil {
+
+		return nil, err
+	}
+	return &TSFDao[T]{
+
+			id: id,
+
+			fileManager: fileManager,
+
+			metadataManager: metadataManager,
+
+			requestFactory: &requestFactory,
+
+			queue: queue.NewQueue[T](10, 10, 100),
+		},
+
+		err
+}
+
 func (dao TSFDao[T]) Save(object T) (*T, int, error) {
 
 	request := dao.requestFactory.CreateSaveRequest(object, 0)
@@ -119,25 +149,3 @@ func (dao *TSFDao[T]) ExecuteTransaction(transaction DaoTransaction[T]) map[uint
 	}
 	return mappedResults
 }
-
-// func (dao *TSFDao[T]) ExecuteBuild(builder DaoTransaction[T]) map[uint64]queue.IResult[T] {
-
-// 	// do some stuff
-// 	mappedResults := make(map[uint64]queue.IResult[T])
-
-// 	dao.queue = queue.NewQueue[T](10, 10, 100)
-
-// 	dao.queue.Start(&builder.dependencyResolver)
-
-// 	dao.queue.ProcessAsync(builder.Requests()...)
-
-// 	results := dao.queue.Stop()
-
-// 	for _, result := range results {
-
-// 		mappedResults[result.RequestId()] = result.Result()
-// 	}
-// 	dao.requests = make([]queue.IProcessableRequest[T], 0)
-
-// 	return mappedResults
-// }

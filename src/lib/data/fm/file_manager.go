@@ -37,6 +37,8 @@ const (
 	DaoManagingFile
 
 	DaoTable
+
+	Root
 )
 
 type FileManager struct {
@@ -60,6 +62,8 @@ func NewFileManager(path, descriptor string) IFileManager {
 		DaoManagingFile: fmt.Sprintf("%v/%v_dao", path, descriptor),
 
 		DaoTable: fmt.Sprintf("%v/%v_dao_tbl", path, descriptor),
+
+		Root: fmt.Sprintf("%v/rt", path),
 	}
 	return FileManager{path, descriptor, fileMap}
 }
