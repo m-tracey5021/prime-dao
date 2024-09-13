@@ -18,11 +18,7 @@ type IDaoMetadataManager[T schema.Identifiable] interface {
 
 	GetAllIndexes() ([]*DaoIndex, error)
 
-	GetMetadata(id uint64) (*DaoObjFile, error)
-
 	DeleteIndex(id uint64) error
-
-	DeleteMetadata(id uint64) error
 
 	GetCached(id uint64) *T
 
@@ -48,8 +44,6 @@ type DaoMetadataManager[T schema.Identifiable] struct {
 
 	indexHashTable ht.ITSFHashTable[DaoIndex]
 
-	objFileHashTable ht.ITSFHashTable[DaoObjFile]
-
 	objectIO dataio.IDataIO[T]
 
 	idMu sync.Mutex
@@ -62,10 +56,6 @@ type DaoMetadataManager[T schema.Identifiable] struct {
 func NewMetadataManager[T schema.Identifiable](daoId uint64, fileManager fm.IFileManager) (*DaoMetadataManager[T], error) {
 
 	managingInfoIO := dataio.DataIO[DaoMetadata[T]]{}
-
-	indexHashTable := ht.FromFileManager[DaoIndex](daoId, fileManager.Concatenate("idx"))
-
-	objFileHashTable := ht.FromFileManager[DaoObjFile](daoId, fileManager.Concatenate("obj_f"))
 
 	managingFile, err := fileManager.OpenAndLock(fm.DaoManagingFile, daoId)
 
@@ -94,8 +84,6 @@ func NewMetadataManager[T schema.Identifiable](daoId uint64, fileManager fm.IFil
 
 		initialTable := uint64(0)
 
-		initialObjFile := DaoObjFile{initialTable, 0}
-
 		tableMapping := make(map[uint64]int)
 
 		tableMapping[initialTable] = 0
@@ -116,7 +104,6 @@ func NewMetadataManager[T schema.Identifiable](daoId uint64, fileManager fm.IFil
 
 			return &DaoMetadataManager[T]{}, err
 		}
-		objFileHashTable.Save(initialObjFile)
 	}
 	return &DaoMetadataManager[T]{
 
@@ -128,9 +115,7 @@ func NewMetadataManager[T schema.Identifiable](daoId uint64, fileManager fm.IFil
 
 			managingInfoIO: managingInfoIO,
 
-			indexHashTable: indexHashTable,
-
-			objFileHashTable: objFileHashTable,
+			indexHashTable: ht.FromFileManager[DaoIndex](daoId, fileManager.Concatenate("idx")),
 
 			objectIO: dataio.DataIO[T]{},
 		},
@@ -153,19 +138,9 @@ func (manager *DaoMetadataManager[T]) GetAllIndexes() ([]*DaoIndex, error) {
 	return manager.indexHashTable.GetSome(ids...)
 }
 
-func (manager *DaoMetadataManager[T]) GetMetadata(id uint64) (*DaoObjFile, error) {
-
-	return manager.objFileHashTable.Get(id)
-}
-
 func (manager *DaoMetadataManager[T]) DeleteIndex(id uint64) error {
 
 	return manager.indexHashTable.Delete(id)
-}
-
-func (manager *DaoMetadataManager[T]) DeleteMetadata(id uint64) error {
-
-	return manager.objFileHashTable.Delete(id)
 }
 
 func (manager *DaoMetadataManager[T]) UpdateIndexes(table *os.File, fileId, filePosition uint64) error {
