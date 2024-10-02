@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"slices"
 	"tsf-dao/src/lib/data/queue"
 	"tsf-dao/src/lib/data/schema"
 )
@@ -72,4 +73,15 @@ func (transaction *DaoTransaction[T]) Delete(objectId uint64) uint64 {
 	transaction.dependencies = []uint64{}
 
 	return request.RequestId()
+}
+
+func (transaction *DaoTransaction[T]) RemoveRequest(requestId uint64) {
+
+	transaction.requests = slices.DeleteFunc(transaction.requests, func(request queue.IProcessableRequest[T]) bool {
+
+		return request.RequestId() == requestId
+	})
+	transaction.dependencyResolver.RemoveDependency(requestId)
+
+	transaction.dependencies = []uint64{}
 }

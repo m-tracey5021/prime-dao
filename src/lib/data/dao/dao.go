@@ -112,9 +112,9 @@ func (dao TSFDao[T]) Delete(id uint64) (int, error) {
 	return result.Size(), result.Error()
 }
 
-func (dao TSFDao[T]) GetAllIndexes(ids ...uint64) ([]*DaoIndex, error) {
+func (dao TSFDao[T]) AllObjectIds() []uint64 {
 
-	return dao.metadataManager.GetAllIndexes()
+	return dao.metadataManager.AllObjectIds()
 }
 
 func (dao *TSFDao[T]) NewTransaction() DaoTransaction[T] {

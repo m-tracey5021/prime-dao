@@ -92,9 +92,9 @@ func (root *TSFRoot) NewComponentForName(componentName string) {
 	root.metadata.ComponentDaoMap[componentName] = make([]uint64, 0)
 }
 
-func (root *TSFRoot) AssociateDaoWithComponent(daoId uint64, componentName string) {
+func (root *TSFRoot) AssociateDaoWithComponent(componentName string, daoId ...uint64) {
 
-	root.metadata.ComponentDaoMap[componentName] = append(root.metadata.ComponentDaoMap[componentName], daoId)
+	root.metadata.ComponentDaoMap[componentName] = append(root.metadata.ComponentDaoMap[componentName], daoId...)
 }
 
 func (root *TSFRoot) GetDaoForComponentName(componentName string) ([]uint64, error) {

@@ -14,9 +14,9 @@ import (
 type IDaoMetadataManager[T schema.Identifiable] interface {
 	AssignId(object T) T
 
-	GetIndex(id uint64) (*DaoIndex, error)
+	AllObjectIds() []uint64
 
-	GetAllIndexes() ([]*DaoIndex, error)
+	GetIndex(id uint64) (*DaoIndex, error)
 
 	DeleteIndex(id uint64) error
 
@@ -125,17 +125,6 @@ func NewMetadataManager[T schema.Identifiable](daoId uint64, fileManager fm.IFil
 func (manager *DaoMetadataManager[T]) GetIndex(id uint64) (*DaoIndex, error) {
 
 	return manager.indexHashTable.Get(id)
-}
-
-func (manager *DaoMetadataManager[T]) GetAllIndexes() ([]*DaoIndex, error) {
-
-	ids := make([]uint64, 0)
-
-	for id := range *manager.managingInfo.ObjectIdStore.Last + 1 {
-
-		ids = append(ids, id)
-	}
-	return manager.indexHashTable.GetSome(ids...)
 }
 
 func (manager *DaoMetadataManager[T]) DeleteIndex(id uint64) error {

@@ -59,3 +59,16 @@ func (resolver *QueueDependencyResolver[T]) AddDependency(request IProcessableRe
 		resolver.dependentProcesses[request] = dependencies
 	}
 }
+
+func (resolver *QueueDependencyResolver[T]) RemoveDependency(requestId uint64) {
+
+	for request := range resolver.dependentProcesses {
+
+		if request.RequestId() == requestId {
+
+			delete(resolver.dependentProcesses, request)
+
+			return
+		}
+	}
+}

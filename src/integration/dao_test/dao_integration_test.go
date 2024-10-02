@@ -51,9 +51,7 @@ func TestDao(t *testing.T) {
 
 	identifiableSavedD, sizeD, _ := dao.Save(identifiableD)
 
-	indexes, err := dao.GetAllIndexes()
-
-	fmt.Printf("%v", indexes)
+	// fmt.Printf("%v", indexes)
 
 	fmt.Printf("%v, size %v", identifiableSaved, size)
 	fmt.Printf("%v, size %v", identifiableSavedB, sizeB)
