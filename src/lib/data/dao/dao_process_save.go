@@ -81,30 +81,28 @@ func (processor *SaveRequest[T]) Process() queue.IResult[T] {
 
 	if err != nil {
 
-		return &SaveResult[T]{nil, 0, err}
+		return &SaveResult[T]{0, err}
 	}
-	object := processor.metadataManager.AssignId(processor.object)
+	// object := processor.metadataManager.AssignId(processor.object)
 
 	position, err := processor.fileManager.Size(table)
 
 	if err := processor.fileManager.GoTo(position, table); err != nil {
 
-		return &SaveResult[T]{nil, 0, err}
+		return &SaveResult[T]{0, err}
 	}
-	size, err := processor.objectIO.WriteSizePrefixed(table, object)
+	size, err := processor.objectIO.WriteSizePrefixed(table, processor.object)
 
 	if err != nil {
 
-		return &SaveResult[T]{nil, 0, err}
+		return &SaveResult[T]{0, err}
 	}
-	processor.metadataManager.UpdateMetadataPostSave(availableTable, object, uint64(position))
+	processor.metadataManager.UpdateMetadataPostSave(availableTable, processor.object, uint64(position))
 
-	return &SaveResult[T]{&object, size, err}
+	return &SaveResult[T]{size, err}
 }
 
 type SaveResult[T schema.Identifiable] struct {
-	object *T
-
 	sizeWritten int
 
 	err error
@@ -112,7 +110,7 @@ type SaveResult[T schema.Identifiable] struct {
 
 func (result *SaveResult[T]) Object() *T {
 
-	return result.object
+	return nil
 }
 
 func (result *SaveResult[T]) Size() int {

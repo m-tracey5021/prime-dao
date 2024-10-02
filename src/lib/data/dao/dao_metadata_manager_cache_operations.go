@@ -1,8 +1,8 @@
 package dao
 
-func (manager *DaoMetadataManager[T]) AssignId(object T) T {
+func (manager *DaoMetadataManager[T]) NewId() uint64 {
 
-	return object.SetId(manager.NewObjectId()).(T)
+	return manager.NewObjectId()
 }
 
 func (manager *DaoMetadataManager[T]) AllObjectIds() []uint64 {

@@ -76,6 +76,11 @@ func From[T schema.DescribedIdentifiable](fileManager fm.IFileManager, id uint64
 		err
 }
 
+func (dao TSFDao[T]) NewId() uint64 {
+
+	return dao.metadataManager.NewId()
+}
+
 func (dao TSFDao[T]) Save(object T) (*T, int, error) {
 
 	request := dao.requestFactory.CreateSaveRequest(object, 0)

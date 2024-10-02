@@ -12,7 +12,7 @@ import (
 )
 
 type IDaoMetadataManager[T schema.Identifiable] interface {
-	AssignId(object T) T
+	NewId() uint64
 
 	AllObjectIds() []uint64
 
