@@ -103,6 +103,8 @@ func (processor *UpdateRequest[T]) Process() queue.IResult[T] {
 
 		return &UpdateResult[T]{0, err}
 	}
+	processor.metadataManager.UpdateCache(processor.object)
+
 	return &UpdateResult[T]{updatedSize, err}
 }
 

@@ -45,3 +45,13 @@ func (manager *DaoMetadataManager[T]) SaveToCache(object T) {
 
 	manager.managingInfo.Cache.Save(object, &manager.cacheMu)
 }
+
+func (manager *DaoMetadataManager[T]) UpdateCache(object T) {
+
+	manager.managingInfo.Cache.Update(object, &manager.cacheMu)
+}
+
+func (manager *DaoMetadataManager[T]) DeleteFromCache(id uint64) {
+
+	manager.managingInfo.Cache.Delete(id, &manager.cacheMu)
+}

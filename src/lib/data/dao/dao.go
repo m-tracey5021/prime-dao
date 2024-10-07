@@ -81,13 +81,13 @@ func (dao TSFDao[T]) NewId() uint64 {
 	return dao.metadataManager.NewId()
 }
 
-func (dao TSFDao[T]) Save(object T) (*T, int, error) {
+func (dao TSFDao[T]) Save(object T) (int, error) {
 
 	request := dao.requestFactory.CreateSaveRequest(object, 0)
 
 	result := dao.queue.ProcessSync(request)
 
-	return result.Object(), result.Size(), result.Error()
+	return result.Size(), result.Error()
 }
 
 func (dao TSFDao[T]) Get(id uint64) (*T, error) {

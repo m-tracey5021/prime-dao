@@ -24,6 +24,10 @@ type IDaoMetadataManager[T schema.Identifiable] interface {
 
 	SaveToCache(object T)
 
+	UpdateCache(object T)
+
+	DeleteFromCache(id uint64)
+
 	UpdateIndexes(table *os.File, fileId, filePosition uint64) error
 
 	UpdateMetadataPreSave() uint64

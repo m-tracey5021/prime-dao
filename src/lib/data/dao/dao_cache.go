@@ -25,6 +25,25 @@ func NewCache[T schema.Identifiable]() DaoCache[T] {
 	}
 }
 
+func (cache *DaoCache[T]) Save(object T, mu *sync.Mutex) {
+
+	mu.Lock()
+
+	if len(cache.Cached) == cache.MaxSize {
+
+		last := cache.LeastRecentlyUsed[0]
+
+		delete(cache.Cached, last)
+
+		cache.LeastRecentlyUsed = slices.Delete(cache.LeastRecentlyUsed, 0, 1)
+	}
+	cache.Cached[object.Id()] = object
+
+	cache.LeastRecentlyUsed = append(cache.LeastRecentlyUsed, object.Id())
+
+	mu.Unlock()
+}
+
 func (cache *DaoCache[T]) Get(id uint64, mu *sync.Mutex) *T {
 
 	mu.Lock()
@@ -48,21 +67,32 @@ func (cache *DaoCache[T]) Get(id uint64, mu *sync.Mutex) *T {
 	return nil
 }
 
-func (cache *DaoCache[T]) Save(object T, mu *sync.Mutex) {
+func (cache *DaoCache[T]) Update(object T, mu *sync.Mutex) {
 
 	mu.Lock()
 
-	if len(cache.Cached) == cache.MaxSize {
+	object, ok := cache.Cached[object.Id()]
 
-		last := cache.LeastRecentlyUsed[0]
+	if ok {
 
-		delete(cache.Cached, last)
-
-		cache.LeastRecentlyUsed = slices.Delete(cache.LeastRecentlyUsed, 0, 1)
+		cache.Cached[object.Id()] = object
 	}
-	cache.Cached[object.Id()] = object
+	mu.Unlock()
+}
 
-	cache.LeastRecentlyUsed = append(cache.LeastRecentlyUsed, object.Id())
+func (cache *DaoCache[T]) Delete(id uint64, mu *sync.Mutex) {
 
+	mu.Lock()
+
+	_, ok := cache.Cached[id]
+
+	if ok {
+
+		cache.LeastRecentlyUsed = slices.DeleteFunc(cache.LeastRecentlyUsed, func(element uint64) bool {
+
+			return element == id
+		})
+		delete(cache.Cached, id)
+	}
 	mu.Unlock()
 }

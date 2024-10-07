@@ -105,6 +105,8 @@ func (processor *DeleteRequest[T]) Process() queue.IResult[T] {
 
 		return &DeleteResult[T]{0, err}
 	}
+	processor.metadataManager.DeleteFromCache(processor.objectId)
+
 	return &DeleteResult[T]{sizeDeleted, err}
 }
 
