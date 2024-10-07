@@ -1,5 +1,7 @@
 package dao
 
+import "tsf-dao/src/lib/data/fm"
+
 func (manager *DaoMetadataManager[T]) NewId() uint64 {
 
 	return manager.NewObjectId()
@@ -54,4 +56,19 @@ func (manager *DaoMetadataManager[T]) UpdateCache(object T) {
 func (manager *DaoMetadataManager[T]) DeleteFromCache(id uint64) {
 
 	manager.managingInfo.Cache.Delete(id, &manager.cacheMu)
+}
+
+func (manager *DaoMetadataManager[T]) SaveManagingInfo() error {
+
+	managingFile, err := manager.fileManager.OpenAndLock(fm.DaoManagingFile, manager.daoId)
+
+	defer manager.fileManager.CloseAndUnlock(managingFile, &err)
+
+	_, err = manager.managingInfoIO.WriteSizePrefixed(managingFile, *manager.managingInfo)
+
+	if err != nil {
+
+		return err
+	}
+	return err
 }

@@ -35,6 +35,8 @@ type IDaoMetadataManager[T schema.Identifiable] interface {
 	UpdateMetadataPostSave(tableId uint64, object T, position uint64) error
 
 	UpdateMetadataForDeletion(table *os.File, index DaoIndex) error
+
+	SaveManagingInfo() error
 }
 
 type DaoMetadataManager[T schema.Identifiable] struct {
@@ -234,25 +236,5 @@ func (manager *DaoMetadataManager[T]) UpdateMetadataForDeletion(table *os.File, 
 
 		return err
 	}
-	// could run these two in parallel
-	if err := manager.SaveManagingInfo(); err != nil {
-
-		return err
-	}
 	return nil
-}
-
-func (manager *DaoMetadataManager[T]) SaveManagingInfo() error {
-
-	managingFile, err := manager.fileManager.OpenAndLock(fm.DaoManagingFile, manager.daoId)
-
-	defer manager.fileManager.CloseAndUnlock(managingFile, &err)
-
-	_, err = manager.managingInfoIO.WriteSizePrefixed(managingFile, *manager.managingInfo)
-
-	if err != nil {
-
-		return err
-	}
-	return err
 }

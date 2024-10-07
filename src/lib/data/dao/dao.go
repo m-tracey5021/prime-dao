@@ -154,3 +154,8 @@ func (dao *TSFDao[T]) ExecuteTransaction(transaction DaoTransaction[T]) map[uint
 	}
 	return mappedResults
 }
+
+func (dao *TSFDao[T]) SaveMetadata() error {
+
+	return dao.metadataManager.SaveManagingInfo()
+}
