@@ -83,8 +83,6 @@ func (processor *SaveRequest[T]) Process() queue.IResult[T] {
 
 		return &SaveResult[T]{0, err}
 	}
-	// object := processor.metadataManager.AssignId(processor.object)
-
 	position, err := processor.fileManager.Size(table)
 
 	if err := processor.fileManager.GoTo(position, table); err != nil {
