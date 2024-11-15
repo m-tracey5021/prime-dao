@@ -1,7 +1,6 @@
 package dao
 
 import (
-	"slices"
 	"tsf-dao/src/lib/data/queue"
 	"tsf-dao/src/lib/data/schema"
 )
@@ -9,11 +8,18 @@ import (
 type DaoTransaction[T schema.Identifiable] struct {
 	requestFactory *DaoRequestFactory[T]
 
-	requests []queue.IProcessableRequest[T]
+	requests map[uint64]queue.IProcessableRequest[T]
 
 	dependencyResolver *queue.QueueDependencyResolver[T]
 
 	dependencies []uint64
+}
+
+func (transaction *DaoTransaction[T]) AddDependency(requestId uint64, dependencies ...uint64) {
+
+	request := transaction.requests[requestId]
+
+	transaction.dependencyResolver.AddDependency(request, dependencies...)
 }
 
 func (transaction *DaoTransaction[T]) WithDependency(requestIds ...uint64) *DaoTransaction[T] {
@@ -27,9 +33,9 @@ func (transaction *DaoTransaction[T]) Save(object T) uint64 {
 
 	request := transaction.requestFactory.CreateSaveRequest(object, len(transaction.dependencies))
 
-	transaction.requests = append(transaction.requests, request)
+	transaction.requests[request.RequestId()] = request
 
-	transaction.dependencyResolver.AddDependency(request, transaction.dependencies)
+	transaction.dependencyResolver.AddDependency(request, transaction.dependencies...)
 
 	transaction.dependencies = []uint64{}
 
@@ -40,9 +46,9 @@ func (transaction *DaoTransaction[T]) Get(objectId uint64) uint64 {
 
 	request := transaction.requestFactory.CreateGetRequest(objectId, len(transaction.dependencies))
 
-	transaction.requests = append(transaction.requests, request)
+	transaction.requests[request.RequestId()] = request
 
-	transaction.dependencyResolver.AddDependency(request, transaction.dependencies)
+	transaction.dependencyResolver.AddDependency(request, transaction.dependencies...)
 
 	transaction.dependencies = []uint64{}
 
@@ -53,9 +59,9 @@ func (transaction *DaoTransaction[T]) Update(object T) uint64 {
 
 	request := transaction.requestFactory.CreateUpdateRequest(object, len(transaction.dependencies))
 
-	transaction.requests = append(transaction.requests, request)
+	transaction.requests[request.RequestId()] = request
 
-	transaction.dependencyResolver.AddDependency(request, transaction.dependencies)
+	transaction.dependencyResolver.AddDependency(request, transaction.dependencies...)
 
 	transaction.dependencies = []uint64{}
 
@@ -66,9 +72,9 @@ func (transaction *DaoTransaction[T]) Delete(objectId uint64) uint64 {
 
 	request := transaction.requestFactory.CreateDeleteRequest(objectId, len(transaction.dependencies))
 
-	transaction.requests = append(transaction.requests, request)
+	transaction.requests[request.RequestId()] = request
 
-	transaction.dependencyResolver.AddDependency(request, transaction.dependencies)
+	transaction.dependencyResolver.AddDependency(request, transaction.dependencies...)
 
 	transaction.dependencies = []uint64{}
 
@@ -77,10 +83,8 @@ func (transaction *DaoTransaction[T]) Delete(objectId uint64) uint64 {
 
 func (transaction *DaoTransaction[T]) RemoveRequest(requestId uint64) {
 
-	transaction.requests = slices.DeleteFunc(transaction.requests, func(request queue.IProcessableRequest[T]) bool {
+	delete(transaction.requests, requestId)
 
-		return request.RequestId() == requestId
-	})
 	transaction.dependencyResolver.RemoveDependency(requestId)
 
 	transaction.dependencies = []uint64{}

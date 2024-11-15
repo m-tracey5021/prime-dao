@@ -46,7 +46,7 @@ func (resolver *QueueDependencyResolver[T]) ListenForCompletedDependencies() {
 	}()
 }
 
-func (resolver *QueueDependencyResolver[T]) AddDependency(request IProcessableRequest[T], dependencies []uint64) {
+func (resolver *QueueDependencyResolver[T]) AddDependency(request IProcessableRequest[T], dependencies ...uint64) {
 
 	_, found := resolver.dependentProcesses[request]
 

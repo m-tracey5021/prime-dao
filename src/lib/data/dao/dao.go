@@ -4,6 +4,8 @@ import (
 	"tsf-dao/src/lib/data/fm"
 	"tsf-dao/src/lib/data/queue"
 	"tsf-dao/src/lib/data/schema"
+
+	"golang.org/x/exp/maps"
 )
 
 type TSFDao[T schema.Identifiable] struct {
@@ -128,7 +130,7 @@ func (dao *TSFDao[T]) NewTransaction() DaoTransaction[T] {
 
 		requestFactory: dao.requestFactory,
 
-		requests: make([]queue.IProcessableRequest[T], 0),
+		requests: make(map[uint64]queue.IProcessableRequest[T], 0),
 
 		dependencyResolver: queue.NewResolver[T](),
 
@@ -144,7 +146,9 @@ func (dao *TSFDao[T]) ExecuteTransaction(transaction DaoTransaction[T]) map[uint
 
 	dao.queue.Start(transaction.dependencyResolver)
 
-	dao.queue.ProcessAsync(transaction.requests...)
+	requestValues := maps.Values(transaction.requests)
+
+	dao.queue.ProcessAsync(requestValues...)
 
 	results := dao.queue.Stop()
 
