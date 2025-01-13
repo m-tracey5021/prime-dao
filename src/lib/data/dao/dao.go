@@ -1,9 +1,9 @@
 package dao
 
 import (
-	"tsf-dao/src/lib/data/fm"
-	"tsf-dao/src/lib/data/queue"
-	"tsf-dao/src/lib/data/schema"
+	"prime-dao/src/lib/data/fm"
+	"prime-dao/src/lib/data/queue"
+	"prime-dao/src/lib/data/schema"
 
 	"golang.org/x/exp/maps"
 )

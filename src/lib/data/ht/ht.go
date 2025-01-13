@@ -1,9 +1,9 @@
 package ht
 
 import (
-	"tsf-dao/src/lib/data/dataio"
-	"tsf-dao/src/lib/data/fm"
-	"tsf-dao/src/lib/data/schema"
+	"prime-dao/src/lib/data/dataio"
+	"prime-dao/src/lib/data/fm"
+	"prime-dao/src/lib/data/schema"
 )
 
 type Hash struct {

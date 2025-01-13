@@ -2,7 +2,7 @@ package ht
 
 import (
 	"os"
-	"tsf-dao/src/lib/data/schema"
+	"prime-dao/src/lib/data/schema"
 
 	"github.com/stretchr/testify/mock"
 )

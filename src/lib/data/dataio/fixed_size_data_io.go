@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"tsf-dao/src/lib/data/schema"
+	"prime-dao/src/lib/data/schema"
 )
 
 type IFixedSizeDataIO[T schema.FixedSize] interface {

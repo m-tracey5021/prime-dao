@@ -1,7 +1,7 @@
 package root
 
 import (
-	"tsf-dao/src/lib/data/dao"
+	"prime-dao/src/lib/data/dao"
 )
 
 type TSFRootMetadata struct {

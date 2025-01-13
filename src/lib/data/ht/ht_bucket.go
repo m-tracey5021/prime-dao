@@ -1,6 +1,6 @@
 package ht
 
-import "tsf-dao/src/lib/data/schema"
+import "prime-dao/src/lib/data/schema"
 
 type HashTableBucket[T schema.FixedSizeIdentifiable] struct {
 	bucketLocation int

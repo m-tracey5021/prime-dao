@@ -2,10 +2,10 @@ package dao_test
 
 import (
 	"fmt"
+	"prime-dao/src/lib/data/dao"
+	"prime-dao/src/lib/data/fm"
+	"prime-dao/src/lib/data/schema"
 	"testing"
-	"tsf-dao/src/lib/data/dao"
-	"tsf-dao/src/lib/data/fm"
-	"tsf-dao/src/lib/data/schema"
 )
 
 type MockIdentifiable struct {

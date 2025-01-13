@@ -1,4 +1,4 @@
-module tsf-dao
+module prime-dao
 
 go 1.22.5
 

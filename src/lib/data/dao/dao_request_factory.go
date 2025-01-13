@@ -2,11 +2,11 @@ package dao
 
 import (
 	"fmt"
-	"tsf-dao/src/lib/data"
-	"tsf-dao/src/lib/data/dataio"
-	"tsf-dao/src/lib/data/fm"
-	"tsf-dao/src/lib/data/queue"
-	"tsf-dao/src/lib/data/schema"
+	"prime-dao/src/lib/data"
+	"prime-dao/src/lib/data/dataio"
+	"prime-dao/src/lib/data/fm"
+	"prime-dao/src/lib/data/queue"
+	"prime-dao/src/lib/data/schema"
 )
 
 type DaoRequestFactory[T schema.Identifiable] struct {

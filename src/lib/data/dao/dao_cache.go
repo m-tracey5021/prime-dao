@@ -1,9 +1,9 @@
 package dao
 
 import (
+	"prime-dao/src/lib/data/schema"
 	"slices"
 	"sync"
-	"tsf-dao/src/lib/data/schema"
 )
 
 type DaoCache[T schema.Identifiable] struct {

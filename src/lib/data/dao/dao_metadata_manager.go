@@ -4,11 +4,11 @@ import (
 	"errors"
 	"io"
 	"os"
+	"prime-dao/src/lib/data/dataio"
+	"prime-dao/src/lib/data/fm"
+	"prime-dao/src/lib/data/ht"
+	"prime-dao/src/lib/data/schema"
 	"sync"
-	"tsf-dao/src/lib/data/dataio"
-	"tsf-dao/src/lib/data/fm"
-	"tsf-dao/src/lib/data/ht"
-	"tsf-dao/src/lib/data/schema"
 )
 
 type IDaoMetadataManager[T schema.Identifiable] interface {

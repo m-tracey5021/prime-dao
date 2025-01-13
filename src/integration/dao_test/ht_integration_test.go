@@ -6,7 +6,7 @@ package dao_test
 // 	"path/filepath"
 // 	"testing"
 // 	"time"
-// 	"tsf-dao/src/lib/dao/ht"
+// 	"prime-dao/src/lib/dao/ht"
 
 // 	"github.com/stretchr/testify/assert"
 // )

@@ -1,6 +1,6 @@
 package dao
 
-import "tsf-dao/src/lib/data/schema"
+import "prime-dao/src/lib/data/schema"
 
 type DaoMetadata[T schema.Identifiable] struct {
 	ObjectIdStore DaoIdStore

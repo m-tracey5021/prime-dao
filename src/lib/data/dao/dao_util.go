@@ -1,6 +1,6 @@
 package dao
 
-import "tsf-dao/src/lib/data/schema"
+import "prime-dao/src/lib/data/schema"
 
 func GetSome[T schema.DescribedIdentifiable](dao TSFDao[T], ids ...uint64) ([]T, error) {
 

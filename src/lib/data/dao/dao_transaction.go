@@ -1,8 +1,8 @@
 package dao
 
 import (
-	"tsf-dao/src/lib/data/queue"
-	"tsf-dao/src/lib/data/schema"
+	"prime-dao/src/lib/data/queue"
+	"prime-dao/src/lib/data/schema"
 )
 
 type DaoTransaction[T schema.Identifiable] struct {

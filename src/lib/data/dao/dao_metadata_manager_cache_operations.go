@@ -1,6 +1,6 @@
 package dao
 
-import "tsf-dao/src/lib/data/fm"
+import "prime-dao/src/lib/data/fm"
 
 func (manager *DaoMetadataManager[T]) NewId() uint64 {
 
