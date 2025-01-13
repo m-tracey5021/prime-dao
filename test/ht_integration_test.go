@@ -1,4 +1,4 @@
-package dao_test
+package test
 
 // import (
 // 	"io/ioutil"
