@@ -1,7 +1,7 @@
 package root
 
 import (
-	"prime-dao/pkg/data/dao"
+	"github.com/m-tracey5021/prime-dao/pkg/data/dao"
 )
 
 type TSFRootMetadata struct {

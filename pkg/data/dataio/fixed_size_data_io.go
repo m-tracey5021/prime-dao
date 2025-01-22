@@ -4,7 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"prime-dao/pkg/data/schema"
+
+	"github.com/m-tracey5021/prime-dao/pkg/data/schema"
 )
 
 type IFixedSizeDataIO[T schema.FixedSize] interface {

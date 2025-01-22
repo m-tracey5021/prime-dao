@@ -2,7 +2,8 @@ package ht
 
 import (
 	"os"
-	"prime-dao/pkg/data/schema"
+
+	"github.com/m-tracey5021/prime-dao/pkg/data/schema"
 
 	"github.com/stretchr/testify/mock"
 )

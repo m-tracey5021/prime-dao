@@ -1,6 +1,6 @@
 package dao
 
-import "prime-dao/pkg/data/fm"
+import "github.com/m-tracey5021/prime-dao/pkg/data/fm"
 
 func (manager *DaoMetadataManager[T]) NewId() uint64 {
 

@@ -4,10 +4,11 @@ import (
 	"errors"
 	"io"
 	"os"
-	"prime-dao/pkg/data/dataio"
-	"prime-dao/pkg/data/fm"
-	"prime-dao/pkg/data/schema"
 	"unsafe"
+
+	"github.com/m-tracey5021/prime-dao/pkg/data/dataio"
+	"github.com/m-tracey5021/prime-dao/pkg/data/fm"
+	"github.com/m-tracey5021/prime-dao/pkg/data/schema"
 )
 
 type IHashTableManager[T schema.FixedSizeIdentifiable] interface {

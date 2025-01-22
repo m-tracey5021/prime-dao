@@ -3,8 +3,9 @@ package ht
 import (
 	"encoding/binary"
 	"os"
-	"prime-dao/pkg/data"
-	"prime-dao/pkg/data/schema"
+
+	"github.com/m-tracey5021/prime-dao/pkg/data"
+	"github.com/m-tracey5021/prime-dao/pkg/data/schema"
 )
 
 type HashTableBucketHeader struct {

@@ -2,10 +2,11 @@ package test
 
 import (
 	"fmt"
-	"prime-dao/pkg/data/dao"
-	"prime-dao/pkg/data/fm"
-	"prime-dao/pkg/data/schema"
 	"testing"
+
+	"github.com/m-tracey5021/prime-dao/pkg/data/dao"
+	"github.com/m-tracey5021/prime-dao/pkg/data/fm"
+	"github.com/m-tracey5021/prime-dao/pkg/data/schema"
 )
 
 type MockIdentifiable struct {

@@ -1,9 +1,10 @@
 package dao
 
 import (
-	"prime-dao/pkg/data/schema"
 	"slices"
 	"sync"
+
+	"github.com/m-tracey5021/prime-dao/pkg/data/schema"
 )
 
 type DaoCache[T schema.Identifiable] struct {

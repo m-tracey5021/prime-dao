@@ -1,4 +1,4 @@
-module prime-dao
+module github.com/m-tracey5021/prime-dao
 
 go 1.22.5
 

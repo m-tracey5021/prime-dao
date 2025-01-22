@@ -1,8 +1,8 @@
 package dao
 
 import (
-	"prime-dao/pkg/data/queue"
-	"prime-dao/pkg/data/schema"
+	"github.com/m-tracey5021/prime-dao/pkg/data/queue"
+	"github.com/m-tracey5021/prime-dao/pkg/data/schema"
 )
 
 type DaoTransaction[T schema.Identifiable] struct {

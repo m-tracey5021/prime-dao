@@ -2,11 +2,12 @@ package root
 
 import (
 	"os"
-	"prime-dao/pkg/data/dao"
-	"prime-dao/pkg/data/dataio"
-	"prime-dao/pkg/data/fm"
-	"prime-dao/pkg/data/schema"
 	"sync"
+
+	"github.com/m-tracey5021/prime-dao/pkg/data/dao"
+	"github.com/m-tracey5021/prime-dao/pkg/data/dataio"
+	"github.com/m-tracey5021/prime-dao/pkg/data/fm"
+	"github.com/m-tracey5021/prime-dao/pkg/data/schema"
 )
 
 type DaoInit[T schema.Identifiable] interface {

@@ -1,6 +1,6 @@
 package dao
 
-import "prime-dao/pkg/data/schema"
+import "github.com/m-tracey5021/prime-dao/pkg/data/schema"
 
 type DaoMetadata[T schema.Identifiable] struct {
 	ObjectIdStore DaoIdStore

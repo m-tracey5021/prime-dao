@@ -4,11 +4,12 @@ import (
 	"errors"
 	"io"
 	"os"
-	"prime-dao/pkg/data/dataio"
-	"prime-dao/pkg/data/fm"
-	"prime-dao/pkg/data/ht"
-	"prime-dao/pkg/data/schema"
 	"sync"
+
+	"github.com/m-tracey5021/prime-dao/pkg/data/dataio"
+	"github.com/m-tracey5021/prime-dao/pkg/data/fm"
+	"github.com/m-tracey5021/prime-dao/pkg/data/ht"
+	"github.com/m-tracey5021/prime-dao/pkg/data/schema"
 )
 
 type IDaoMetadataManager[T schema.Identifiable] interface {
