@@ -88,11 +88,6 @@ func GetDaoOfType[T schema.DescribedIdentifiable](root *TSFRoot, id uint64) (*da
 	return dao.From[T](root.fileManager, id)
 }
 
-func (root *TSFRoot) NewComponentForName(componentName string) {
-
-	root.metadata.ComponentDaoMap[componentName] = make([]uint64, 0)
-}
-
 func (root *TSFRoot) AssociateDaoWithComponent(componentName string, daoId ...uint64) {
 
 	root.metadata.ComponentDaoMap[componentName] = append(root.metadata.ComponentDaoMap[componentName], daoId...)

@@ -7,6 +7,7 @@ import (
 	"github.com/m-tracey5021/prime-dao/pkg/data/dao"
 	"github.com/m-tracey5021/prime-dao/pkg/data/fm"
 	"github.com/m-tracey5021/prime-dao/pkg/data/schema"
+	"github.com/m-tracey5021/prime-dao/pkg/root"
 )
 
 type MockIdentifiable struct {
@@ -18,6 +19,11 @@ type MockIdentifiable struct {
 func (identifiable MockIdentifiable) Id() uint64 {
 
 	return identifiable.MockId
+}
+
+func (identifiable MockIdentifiable) Descriptor() string {
+
+	return "mock"
 }
 
 func (identifiable MockIdentifiable) SetId(id uint64) schema.Identifiable {
@@ -236,4 +242,52 @@ func TestDaoAsync(t *testing.T) {
 	fmt.Printf("%v", resultI)
 	fmt.Printf("%v", resultJ)
 	fmt.Printf("%v", resultK)
+}
+
+func TestDaoComponentCreate(t *testing.T) {
+
+	rootDir, err := root.Connect("dao_dir")
+
+	if err != nil {
+
+		fmt.Println(err)
+	}
+	daoId, dao, err := root.NewDaoOfType[MockIdentifiable](rootDir)
+
+	if err != nil {
+
+		fmt.Println(err)
+	}
+
+	rootDir.AssociateDaoWithComponent("mock component", daoId)
+
+	identifiable := MockIdentifiable{MockId: dao.NewId(), Data: []int{1, 2}}
+	identifiableB := MockIdentifiable{MockId: dao.NewId(), Data: []int{2, 3, 4}}
+	identifiableC := MockIdentifiable{MockId: dao.NewId(), Data: []int{1, 4}}
+	identifiableD := MockIdentifiable{MockId: dao.NewId(), Data: []int{0, 2}}
+
+	saveTransaction := dao.NewTransaction()
+
+	saveTransaction.Save(identifiable)
+	saveTransaction.Save(identifiableB)
+	saveTransaction.Save(identifiableC)
+	saveTransaction.Save(identifiableD)
+
+	results := dao.ExecuteTransaction(saveTransaction)
+
+	fmt.Println(results)
+
+	daoRetrievedIds, err := rootDir.GetDaoForComponentName("mock component")
+
+	daoRetrieved, err := root.GetDaoOfType[MockIdentifiable](rootDir, daoRetrievedIds[0])
+
+	transaction := daoRetrieved.NewTransaction()
+
+	getRequest := transaction.Get(identifiableB.Id())
+
+	results = dao.ExecuteTransaction(transaction)
+
+	result := results[getRequest]
+
+	fmt.Println(result)
 }
