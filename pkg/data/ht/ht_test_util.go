@@ -61,8 +61,6 @@ func setupHashTableMockDependencies() (
 	TSFHashTable[MockHashable],
 
 ) {
-	id := uint64(0)
-
 	mockFileManager := new(fm.MockFileManager)
 
 	mockTableManager := new(MockHashTableManager[MockHashable])
@@ -71,7 +69,7 @@ func setupHashTableMockDependencies() (
 
 	mockObjectIO := new(dataio.MockFixedSizeDataIO[MockHashable])
 
-	hashTable := TSFHashTable[MockHashable]{id, mockFileManager, mockTableManager, mockBucketHeaderIO, mockObjectIO}
+	hashTable := TSFHashTable[MockHashable]{mockFileManager, mockTableManager, mockBucketHeaderIO, mockObjectIO}
 
 	return mockFileManager, mockTableManager, mockBucketHeaderIO, mockObjectIO, hashTable
 }

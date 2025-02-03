@@ -60,11 +60,11 @@ type DaoMetadataManager[T schema.Identifiable] struct {
 	mu sync.Mutex
 }
 
-func NewMetadataManager[T schema.Identifiable](daoId uint64, fileManager fm.IFileManager) (*DaoMetadataManager[T], error) {
+func NewMetadataManager[T schema.Identifiable](fileManager fm.IFileManager) (*DaoMetadataManager[T], error) {
 
 	managingInfoIO := dataio.DataIO[DaoMetadata[T]]{}
 
-	managingFile, err := fileManager.OpenAndLock(fm.DaoManagingFile, daoId)
+	managingFile, err := fileManager.OpenAndLock(fm.DaoManagingFile)
 
 	defer fileManager.CloseAndUnlock(managingFile, &err)
 
@@ -114,15 +114,13 @@ func NewMetadataManager[T schema.Identifiable](daoId uint64, fileManager fm.IFil
 	}
 	return &DaoMetadataManager[T]{
 
-			daoId: daoId,
-
 			fileManager: fileManager,
 
 			managingInfo: &managingInfo,
 
 			managingInfoIO: managingInfoIO,
 
-			indexHashTable: ht.FromFileManager[DaoIndex](daoId, fileManager.Concatenate("idx")),
+			indexHashTable: ht.FromFileManager[DaoIndex](fileManager.Concatenate("idx")),
 
 			objectIO: dataio.DataIO[T]{},
 		},

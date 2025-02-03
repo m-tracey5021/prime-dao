@@ -8,9 +8,7 @@ import (
 	"golang.org/x/exp/maps"
 )
 
-type TSFDao[T schema.Identifiable] struct {
-	id uint64
-
+type TSFDao[T schema.DescribedIdentifiable] struct {
 	fileManager fm.IFileManager
 
 	metadataManager IDaoMetadataManager[T]
@@ -20,41 +18,13 @@ type TSFDao[T schema.Identifiable] struct {
 	queue *queue.TSFQueue[T]
 }
 
-func New[T schema.Identifiable](path, descriptor string, id uint64) (*TSFDao[T], error) {
-
-	fileManager := fm.NewFileManager(path, descriptor)
-
-	metadataManager, err := NewMetadataManager[T](id, fileManager)
-
-	if err != nil {
-
-		return nil, err
-	}
-	requestFactory := NewRequestFactory(fileManager, metadataManager)
-
-	return &TSFDao[T]{
-
-			id: id,
-
-			fileManager: fileManager,
-
-			metadataManager: metadataManager,
-
-			requestFactory: &requestFactory,
-
-			queue: queue.NewQueue[T](10, 10, 100),
-		},
-
-		err
-}
-
-func From[T schema.DescribedIdentifiable](fileManager fm.IFileManager, id uint64) (*TSFDao[T], error) {
+func From[T schema.DescribedIdentifiable](fileManager fm.IFileManager) (*TSFDao[T], error) {
 
 	var described T
 
 	fileManager = fileManager.Concatenate(described.Descriptor())
 
-	metadataManager, err := NewMetadataManager[T](id, fileManager)
+	metadataManager, err := NewMetadataManager[T](fileManager)
 
 	if err != nil {
 
@@ -63,8 +33,6 @@ func From[T schema.DescribedIdentifiable](fileManager fm.IFileManager, id uint64
 	requestFactory := NewRequestFactory(fileManager, metadataManager)
 
 	return &TSFDao[T]{
-
-			id: id,
 
 			fileManager: fileManager,
 

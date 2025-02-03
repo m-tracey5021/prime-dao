@@ -27,8 +27,6 @@ type ITSFHashTable[T schema.FixedSizeIdentifiable] interface {
 }
 
 type TSFHashTable[T schema.FixedSizeIdentifiable] struct {
-	id uint64
-
 	fileManager fm.IFileManager
 
 	tableManager IHashTableManager[T]
@@ -48,10 +46,10 @@ func New[T schema.FixedSizeIdentifiable](path, descriptor string, id uint64) TSF
 
 	objectIO := dataio.FixedSizeDataIO[T]{}
 
-	return TSFHashTable[T]{id, fileManager, tableManager, bucketHeaderIO, objectIO}
+	return TSFHashTable[T]{fileManager, tableManager, bucketHeaderIO, objectIO}
 }
 
-func FromFileManager[T schema.FixedSizeIdentifiable](id uint64, fileManager fm.IFileManager) ITSFHashTable[T] {
+func FromFileManager[T schema.FixedSizeIdentifiable](fileManager fm.IFileManager) ITSFHashTable[T] {
 
 	tableManager := NewTableManager[T](fileManager)
 
@@ -59,5 +57,5 @@ func FromFileManager[T schema.FixedSizeIdentifiable](id uint64, fileManager fm.I
 
 	objectIO := dataio.FixedSizeDataIO[T]{}
 
-	return &TSFHashTable[T]{id, fileManager, tableManager, bucketHeaderIO, objectIO}
+	return &TSFHashTable[T]{fileManager, tableManager, bucketHeaderIO, objectIO}
 }
