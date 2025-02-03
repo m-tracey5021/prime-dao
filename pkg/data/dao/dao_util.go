@@ -10,8 +10,12 @@ func GetSome[T schema.DescribedIdentifiable](dao TSFDao[T], ids ...uint64) ([]T,
 
 		transaction.Get(id)
 	}
-	result := dao.ExecuteTransaction(transaction)
+	result, err := dao.ExecuteTransaction(transaction)
 
+	if err != nil {
+
+		return []T{}, err
+	}
 	objects := make([]T, 0)
 
 	for _, nthResult := range result {

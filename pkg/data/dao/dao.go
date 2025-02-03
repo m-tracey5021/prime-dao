@@ -106,7 +106,7 @@ func (dao *TSFDao[T]) NewTransaction() DaoTransaction[T] {
 	}
 }
 
-func (dao *TSFDao[T]) ExecuteTransaction(transaction DaoTransaction[T]) map[uint64]queue.IResult[T] {
+func (dao *TSFDao[T]) ExecuteTransaction(transaction DaoTransaction[T]) (map[uint64]queue.IResult[T], error) {
 
 	mappedResults := make(map[uint64]queue.IResult[T])
 
@@ -124,7 +124,11 @@ func (dao *TSFDao[T]) ExecuteTransaction(transaction DaoTransaction[T]) map[uint
 
 		mappedResults[result.RequestId()] = result.Result()
 	}
-	return mappedResults
+	if err := dao.metadataManager.SaveManagingInfo(); err != nil {
+
+		return map[uint64]queue.IResult[T]{}, err
+	}
+	return mappedResults, nil
 }
 
 func (dao *TSFDao[T]) SaveMetadata() error {

@@ -9,13 +9,17 @@ func (manager *DaoMetadataManager[T]) NewId() uint64 {
 
 func (manager *DaoMetadataManager[T]) AllObjectIds() []uint64 {
 
-	ids := make([]uint64, 0)
+	if manager.managingInfo.ObjectIdStore.Last != nil {
 
-	for id := range *manager.managingInfo.ObjectIdStore.Last + 1 {
+		ids := []uint64{}
 
-		ids = append(ids, id)
+		for id := range *manager.managingInfo.ObjectIdStore.Last + 1 {
+
+			ids = append(ids, id)
+		}
+		return ids
 	}
-	return ids
+	return []uint64{}
 }
 
 func (manager *DaoMetadataManager[T]) NewObjectId() uint64 {
