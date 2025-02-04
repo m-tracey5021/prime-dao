@@ -1,9 +1,6 @@
 package dao
 
 import (
-	"fmt"
-	"sync"
-
 	"github.com/m-tracey5021/prime-dao/pkg/data/dataio"
 	"github.com/m-tracey5021/prime-dao/pkg/data/fm"
 	"github.com/m-tracey5021/prime-dao/pkg/data/queue"
@@ -15,7 +12,7 @@ type UpdateRequest[T schema.Identifiable] struct {
 
 	object T
 
-	dependencies chan queue.QueueDependency
+	dependencies chan uint64
 
 	numberOfDependencies int
 
@@ -36,40 +33,19 @@ func (processor *UpdateRequest[T]) ObjectId() uint64 {
 	return processor.object.Id()
 }
 
-func (processor *UpdateRequest[T]) Dependencies() chan queue.QueueDependency {
+func (processor *UpdateRequest[T]) Dependencies() chan uint64 {
 
 	return processor.dependencies
+}
+
+func (processor *UpdateRequest[T]) GetNumDeps() int {
+
+	return processor.numberOfDependencies
 }
 
 func (processor *UpdateRequest[T]) SetNumDeps(deps int) {
 
 	processor.numberOfDependencies = deps
-}
-
-func (processor *UpdateRequest[T]) ProcessWithDependencies(wg *sync.WaitGroup, context *queue.QueueDependencyResolver[T]) queue.IResult[T] {
-
-	defer wg.Done()
-
-	var depWaitGroup sync.WaitGroup
-
-	depWaitGroup.Add(processor.numberOfDependencies)
-
-	go func() {
-
-		for reqCtx := range processor.dependencies {
-
-			reqCtx.RequestWaitGroup.Wait()
-
-			depWaitGroup.Done()
-
-			fmt.Printf("request %v waited for dependency %v", processor.requestId, reqCtx.RequestId)
-		}
-	}()
-	depWaitGroup.Wait()
-
-	close(processor.dependencies)
-
-	return processor.Process()
 }
 
 func (processor *UpdateRequest[T]) Process() queue.IResult[T] {

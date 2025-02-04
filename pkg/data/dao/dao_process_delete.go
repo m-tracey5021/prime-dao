@@ -1,9 +1,6 @@
 package dao
 
 import (
-	"fmt"
-	"sync"
-
 	"github.com/m-tracey5021/prime-dao/pkg/data/dataio"
 	"github.com/m-tracey5021/prime-dao/pkg/data/fm"
 	"github.com/m-tracey5021/prime-dao/pkg/data/queue"
@@ -15,7 +12,7 @@ type DeleteRequest[T schema.Identifiable] struct {
 
 	objectId uint64
 
-	dependencies chan queue.QueueDependency
+	dependencies chan uint64
 
 	numberOfDependencies int
 
@@ -36,40 +33,19 @@ func (processor *DeleteRequest[T]) ObjectId() uint64 {
 	return processor.objectId
 }
 
-func (processor *DeleteRequest[T]) Dependencies() chan queue.QueueDependency {
+func (processor *DeleteRequest[T]) Dependencies() chan uint64 {
 
 	return processor.dependencies
+}
+
+func (processor *DeleteRequest[T]) GetNumDeps() int {
+
+	return processor.numberOfDependencies
 }
 
 func (processor *DeleteRequest[T]) SetNumDeps(deps int) {
 
 	processor.numberOfDependencies = deps
-}
-
-func (processor *DeleteRequest[T]) ProcessWithDependencies(wg *sync.WaitGroup, context *queue.QueueDependencyResolver[T]) queue.IResult[T] {
-
-	defer wg.Done()
-
-	var depWaitGroup sync.WaitGroup
-
-	depWaitGroup.Add(processor.numberOfDependencies)
-
-	go func() {
-
-		for reqCtx := range processor.dependencies {
-
-			reqCtx.RequestWaitGroup.Wait()
-
-			depWaitGroup.Done()
-
-			fmt.Printf("request %v waited for dependency %v", processor.requestId, reqCtx.RequestId)
-		}
-	}()
-	depWaitGroup.Wait()
-
-	close(processor.dependencies)
-
-	return processor.Process()
 }
 
 func (processor *DeleteRequest[T]) Process() queue.IResult[T] {

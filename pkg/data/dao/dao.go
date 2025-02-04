@@ -4,21 +4,19 @@ import (
 	"github.com/m-tracey5021/prime-dao/pkg/data/fm"
 	"github.com/m-tracey5021/prime-dao/pkg/data/queue"
 	"github.com/m-tracey5021/prime-dao/pkg/data/schema"
-
-	"golang.org/x/exp/maps"
 )
 
-type TSFDao[T schema.DescribedIdentifiable] struct {
+type Dao[T schema.DescribedIdentifiable] struct {
 	fileManager fm.IFileManager
 
 	metadataManager IDaoMetadataManager[T]
 
 	requestFactory *DaoRequestFactory[T]
 
-	queue *queue.TSFQueue[T]
+	queue *queue.Queue[T]
 }
 
-func From[T schema.DescribedIdentifiable](fileManager fm.IFileManager) (*TSFDao[T], error) {
+func From[T schema.DescribedIdentifiable](fileManager fm.IFileManager) (*Dao[T], error) {
 
 	var described T
 
@@ -32,7 +30,7 @@ func From[T schema.DescribedIdentifiable](fileManager fm.IFileManager) (*TSFDao[
 	}
 	requestFactory := NewRequestFactory(fileManager, metadataManager)
 
-	return &TSFDao[T]{
+	return &Dao[T]{
 
 			fileManager: fileManager,
 
@@ -46,59 +44,59 @@ func From[T schema.DescribedIdentifiable](fileManager fm.IFileManager) (*TSFDao[
 		err
 }
 
-func (dao TSFDao[T]) NewId() uint64 {
+func (dao Dao[T]) NewId() uint64 {
 
 	return dao.metadataManager.NewId()
 }
 
-func (dao TSFDao[T]) Save(object T) (int, error) {
+func (dao Dao[T]) Save(object T) (int, error) {
 
-	request := dao.requestFactory.CreateSaveRequest(object, 0)
+	request := dao.requestFactory.CreateSaveRequest(object)
 
 	result := dao.queue.ProcessSync(request)
 
 	return result.Size(), result.Error()
 }
 
-func (dao TSFDao[T]) Get(id uint64) (*T, error) {
+func (dao Dao[T]) Get(id uint64) (*T, error) {
 
-	request := dao.requestFactory.CreateGetRequest(id, 0)
+	request := dao.requestFactory.CreateGetRequest(id)
 
 	result := dao.queue.ProcessSync(request)
 
 	return result.Object(), result.Error()
 }
 
-func (dao TSFDao[T]) Update(object T) (int, error) {
+func (dao Dao[T]) Update(object T) (int, error) {
 
-	request := dao.requestFactory.CreateUpdateRequest(object, 0)
-
-	result := dao.queue.ProcessSync(request)
-
-	return result.Size(), result.Error()
-}
-
-func (dao TSFDao[T]) Delete(id uint64) (int, error) {
-
-	request := dao.requestFactory.CreateDeleteRequest(id, 0)
+	request := dao.requestFactory.CreateUpdateRequest(object)
 
 	result := dao.queue.ProcessSync(request)
 
 	return result.Size(), result.Error()
 }
 
-func (dao TSFDao[T]) AllObjectIds() []uint64 {
+func (dao Dao[T]) Delete(id uint64) (int, error) {
+
+	request := dao.requestFactory.CreateDeleteRequest(id)
+
+	result := dao.queue.ProcessSync(request)
+
+	return result.Size(), result.Error()
+}
+
+func (dao Dao[T]) AllObjectIds() []uint64 {
 
 	return dao.metadataManager.AllObjectIds()
 }
 
-func (dao *TSFDao[T]) NewTransaction() DaoTransaction[T] {
+func (dao *Dao[T]) NewTransaction() DaoTransaction[T] {
 
 	return DaoTransaction[T]{
 
 		requestFactory: dao.requestFactory,
 
-		requests: make(map[uint64]queue.IProcessableRequest[T], 0),
+		requests: []queue.IProcessableRequest[T]{},
 
 		dependencyResolver: queue.NewResolver[T](),
 
@@ -106,7 +104,7 @@ func (dao *TSFDao[T]) NewTransaction() DaoTransaction[T] {
 	}
 }
 
-func (dao *TSFDao[T]) ExecuteTransaction(transaction DaoTransaction[T]) (map[uint64]queue.IResult[T], error) {
+func (dao *Dao[T]) ExecuteTransaction(transaction DaoTransaction[T]) (map[uint64]queue.IResult[T], error) {
 
 	mappedResults := make(map[uint64]queue.IResult[T])
 
@@ -114,9 +112,7 @@ func (dao *TSFDao[T]) ExecuteTransaction(transaction DaoTransaction[T]) (map[uin
 
 	dao.queue.Start(transaction.dependencyResolver)
 
-	requestValues := maps.Values(transaction.requests)
-
-	dao.queue.ProcessAsync(requestValues...)
+	dao.queue.ProcessAsync(transaction.requests...)
 
 	results := dao.queue.Stop()
 
@@ -129,9 +125,4 @@ func (dao *TSFDao[T]) ExecuteTransaction(transaction DaoTransaction[T]) (map[uin
 		return map[uint64]queue.IResult[T]{}, err
 	}
 	return mappedResults, nil
-}
-
-func (dao *TSFDao[T]) SaveMetadata() error {
-
-	return dao.metadataManager.SaveManagingInfo()
 }

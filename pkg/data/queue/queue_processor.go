@@ -1,17 +1,15 @@
 package queue
 
-import "sync"
-
 type IProcessableRequest[T any] interface {
 	RequestId() uint64
 
 	ObjectId() uint64
 
-	Dependencies() chan QueueDependency
+	Dependencies() chan uint64
 
 	SetNumDeps(int)
 
-	ProcessWithDependencies(*sync.WaitGroup, *QueueDependencyResolver[T]) IResult[T]
+	GetNumDeps() int
 
 	Process() IResult[T]
 }

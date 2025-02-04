@@ -1,6 +1,9 @@
 package queue
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+)
 
 type TSFQueueResult[T any] struct {
 	requestId uint64
@@ -18,7 +21,7 @@ func (queueResult TSFQueueResult[T]) Result() IResult[T] {
 	return queueResult.result
 }
 
-type TSFQueue[T any] struct {
+type Queue[T any] struct {
 	numberOfWorkers int
 
 	batchSize int
@@ -38,9 +41,9 @@ type TSFQueue[T any] struct {
 	mu sync.Mutex
 }
 
-func NewQueue[T any](numberOfWorkers int, batchSize int, bufferSize int) *TSFQueue[T] {
+func NewQueue[T any](numberOfWorkers int, batchSize int, bufferSize int) *Queue[T] {
 
-	return &TSFQueue[T]{
+	return &Queue[T]{
 
 		numberOfWorkers: numberOfWorkers,
 
@@ -56,7 +59,7 @@ func NewQueue[T any](numberOfWorkers int, batchSize int, bufferSize int) *TSFQue
 	}
 }
 
-func (queue *TSFQueue[T]) Start(dependencyResolver *QueueDependencyResolver[T]) {
+func (queue *Queue[T]) Start(dependencyResolver *QueueDependencyResolver[T]) {
 
 	dependencyResolver.ListenForCompletedDependencies()
 
@@ -72,17 +75,13 @@ func (queue *TSFQueue[T]) Start(dependencyResolver *QueueDependencyResolver[T]) 
 
 				for _, request := range batch {
 
-					var processWaitGroup sync.WaitGroup
+					queue.ProcessDependencies(request)
 
-					processWaitGroup.Add(1)
-
-					result := request.ProcessWithDependencies(&processWaitGroup, dependencyResolver)
+					result := request.Process()
 
 					mappedResult := TSFQueueResult[T]{request.RequestId(), result}
 
-					requestContext := QueueDependency{request.RequestId(), &processWaitGroup}
-
-					dependencyResolver.completed <- requestContext
+					dependencyResolver.completed <- request.RequestId()
 
 					queue.results <- mappedResult
 				}
@@ -106,12 +105,32 @@ func (queue *TSFQueue[T]) Start(dependencyResolver *QueueDependencyResolver[T]) 
 	}()
 }
 
-func (queue *TSFQueue[T]) ProcessSync(request IProcessableRequest[T]) IResult[T] {
+func (queue *Queue[T]) ProcessDependencies(processor IProcessableRequest[T]) {
+
+	var dependencyWaitGroup sync.WaitGroup
+
+	dependencyWaitGroup.Add(processor.GetNumDeps())
+
+	go func() {
+
+		for completed := range processor.Dependencies() {
+
+			dependencyWaitGroup.Done()
+
+			fmt.Printf("\nrequest %v waited for dependency %v", processor.RequestId(), completed)
+		}
+	}()
+	dependencyWaitGroup.Wait()
+
+	close(processor.Dependencies())
+}
+
+func (queue *Queue[T]) ProcessSync(request IProcessableRequest[T]) IResult[T] {
 
 	return request.Process()
 }
 
-func (queue *TSFQueue[T]) ProcessAsync(requests ...IProcessableRequest[T]) {
+func (queue *Queue[T]) ProcessAsync(requests ...IProcessableRequest[T]) {
 
 	numberOfBatches := (len(requests) + queue.batchSize - 1) / queue.batchSize
 
@@ -131,7 +150,7 @@ func (queue *TSFQueue[T]) ProcessAsync(requests ...IProcessableRequest[T]) {
 	}
 }
 
-func (queue *TSFQueue[T]) Stop() []TSFQueueResult[T] {
+func (queue *Queue[T]) Stop() []TSFQueueResult[T] {
 
 	close(queue.channel)
 

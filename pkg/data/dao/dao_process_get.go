@@ -1,9 +1,6 @@
 package dao
 
 import (
-	"fmt"
-	"sync"
-
 	"github.com/m-tracey5021/prime-dao/pkg/data/dataio"
 	"github.com/m-tracey5021/prime-dao/pkg/data/fm"
 	"github.com/m-tracey5021/prime-dao/pkg/data/queue"
@@ -15,7 +12,7 @@ type GetRequest[T schema.Identifiable] struct {
 
 	objectId uint64
 
-	dependencies chan queue.QueueDependency
+	dependencies chan uint64
 
 	numberOfDependencies int
 
@@ -36,9 +33,14 @@ func (processor *GetRequest[T]) ObjectId() uint64 {
 	return processor.objectId
 }
 
-func (processor *GetRequest[T]) Dependencies() chan queue.QueueDependency {
+func (processor *GetRequest[T]) Dependencies() chan uint64 {
 
 	return processor.dependencies
+}
+
+func (processor *GetRequest[T]) GetNumDeps() int {
+
+	return processor.numberOfDependencies
 }
 
 func (processor *GetRequest[T]) SetNumDeps(deps int) {
@@ -46,31 +48,31 @@ func (processor *GetRequest[T]) SetNumDeps(deps int) {
 	processor.numberOfDependencies = deps
 }
 
-func (processor *GetRequest[T]) ProcessWithDependencies(wg *sync.WaitGroup, context *queue.QueueDependencyResolver[T]) queue.IResult[T] {
+// func (processor *GetRequest[T]) ProcessWithDependencies(wg *sync.WaitGroup, context *queue.QueueDependencyResolver[T]) queue.IResult[T] {
 
-	defer wg.Done()
+// 	defer wg.Done()
 
-	var depWaitGroup sync.WaitGroup
+// 	var depWaitGroup sync.WaitGroup
 
-	depWaitGroup.Add(processor.numberOfDependencies)
+// 	depWaitGroup.Add(processor.numberOfDependencies)
 
-	go func() {
+// 	go func() {
 
-		for reqCtx := range processor.dependencies {
+// 		for reqCtx := range processor.dependencies {
 
-			reqCtx.RequestWaitGroup.Wait()
+// 			reqCtx.RequestWaitGroup.Wait()
 
-			depWaitGroup.Done()
+// 			depWaitGroup.Done()
 
-			fmt.Printf("request %v waited for dependency %v", processor.requestId, reqCtx.RequestId)
-		}
-	}()
-	depWaitGroup.Wait()
+// 			fmt.Printf("request %v waited for dependency %v", processor.requestId, reqCtx.RequestId)
+// 		}
+// 	}()
+// 	depWaitGroup.Wait()
 
-	close(processor.dependencies)
+// 	close(processor.dependencies)
 
-	return processor.Process()
-}
+// 	return processor.Process()
+// }
 
 func (processor *GetRequest[T]) Process() queue.IResult[T] {
 

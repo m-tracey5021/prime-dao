@@ -39,7 +39,7 @@ func (factory *DaoRequestFactory[T]) NewRequestId() uint64 {
 	return id
 }
 
-func (factory *DaoRequestFactory[T]) CreateSaveRequest(object T, numDeps int) queue.IProcessableRequest[T] {
+func (factory *DaoRequestFactory[T]) CreateSaveRequest(object T) queue.IProcessableRequest[T] {
 
 	fmt.Printf("%v", factory.metadataManager)
 
@@ -49,9 +49,7 @@ func (factory *DaoRequestFactory[T]) CreateSaveRequest(object T, numDeps int) qu
 
 		object: object,
 
-		dependencies: make(chan queue.QueueDependency),
-
-		numberOfDependencies: numDeps,
+		dependencies: make(chan uint64),
 
 		fileManager: factory.fileManager,
 
@@ -61,7 +59,7 @@ func (factory *DaoRequestFactory[T]) CreateSaveRequest(object T, numDeps int) qu
 	}
 }
 
-func (factory *DaoRequestFactory[T]) CreateGetRequest(objectId uint64, numDeps int) queue.IProcessableRequest[T] {
+func (factory *DaoRequestFactory[T]) CreateGetRequest(objectId uint64) queue.IProcessableRequest[T] {
 
 	return &GetRequest[T]{
 
@@ -69,9 +67,7 @@ func (factory *DaoRequestFactory[T]) CreateGetRequest(objectId uint64, numDeps i
 
 		objectId: objectId,
 
-		dependencies: make(chan queue.QueueDependency),
-
-		numberOfDependencies: numDeps,
+		dependencies: make(chan uint64),
 
 		fileManager: factory.fileManager,
 
@@ -81,7 +77,7 @@ func (factory *DaoRequestFactory[T]) CreateGetRequest(objectId uint64, numDeps i
 	}
 }
 
-func (factory *DaoRequestFactory[T]) CreateUpdateRequest(object T, numDeps int) queue.IProcessableRequest[T] {
+func (factory *DaoRequestFactory[T]) CreateUpdateRequest(object T) queue.IProcessableRequest[T] {
 
 	return &UpdateRequest[T]{
 
@@ -89,9 +85,7 @@ func (factory *DaoRequestFactory[T]) CreateUpdateRequest(object T, numDeps int) 
 
 		object: object,
 
-		dependencies: make(chan queue.QueueDependency),
-
-		numberOfDependencies: numDeps,
+		dependencies: make(chan uint64),
 
 		fileManager: factory.fileManager,
 
@@ -101,7 +95,7 @@ func (factory *DaoRequestFactory[T]) CreateUpdateRequest(object T, numDeps int) 
 	}
 }
 
-func (factory *DaoRequestFactory[T]) CreateDeleteRequest(objectId uint64, numDeps int) queue.IProcessableRequest[T] {
+func (factory *DaoRequestFactory[T]) CreateDeleteRequest(objectId uint64) queue.IProcessableRequest[T] {
 
 	return &DeleteRequest[T]{
 
@@ -109,9 +103,7 @@ func (factory *DaoRequestFactory[T]) CreateDeleteRequest(objectId uint64, numDep
 
 		objectId: objectId,
 
-		dependencies: make(chan queue.QueueDependency),
-
-		numberOfDependencies: numDeps,
+		dependencies: make(chan uint64),
 
 		fileManager: factory.fileManager,
 

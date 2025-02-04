@@ -41,8 +41,6 @@ type IDaoMetadataManager[T schema.Identifiable] interface {
 }
 
 type DaoMetadataManager[T schema.Identifiable] struct {
-	daoId uint64
-
 	fileManager fm.IFileManager
 
 	managingInfo *DaoMetadata[T]
@@ -82,7 +80,9 @@ func NewMetadataManager[T schema.Identifiable](fileManager fm.IFileManager) (*Da
 
 	if size > 0 {
 
-		if managingInfo, err = managingInfoIO.ReadSizePrefixed(managingFile); err != nil {
+		managingInfo, err = managingInfoIO.ReadSizePrefixed(managingFile)
+
+		if err != nil {
 
 			return &DaoMetadataManager[T]{}, err
 		}
@@ -93,13 +93,13 @@ func NewMetadataManager[T schema.Identifiable](fileManager fm.IFileManager) (*Da
 
 		tableMapping := make(map[uint64]int)
 
-		tableMapping[initialTable] = 0
+		tableMapping[initialTable] = 0 // TODO do these fields need to be init'd or can they be iffed elsewhere in the logic
 
 		managingInfo = DaoMetadata[T]{
 
-			ObjectIdStore: DaoIdStore{},
+			ObjectIdStore: NewIdStore(),
 
-			TableIdStore: DaoIdStore{&initialTable, make([]uint64, 0)},
+			TableIdStore: DaoIdStore{int(initialTable), make([]uint64, 0)},
 
 			Cache: NewCache[T](),
 

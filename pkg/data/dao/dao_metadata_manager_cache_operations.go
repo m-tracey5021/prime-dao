@@ -9,17 +9,7 @@ func (manager *DaoMetadataManager[T]) NewId() uint64 {
 
 func (manager *DaoMetadataManager[T]) AllObjectIds() []uint64 {
 
-	if manager.managingInfo.ObjectIdStore.Last != nil {
-
-		ids := []uint64{}
-
-		for id := range *manager.managingInfo.ObjectIdStore.Last + 1 {
-
-			ids = append(ids, id)
-		}
-		return ids
-	}
-	return []uint64{}
+	return manager.managingInfo.ObjectIdStore.AllIds()
 }
 
 func (manager *DaoMetadataManager[T]) NewObjectId() uint64 {
@@ -64,7 +54,7 @@ func (manager *DaoMetadataManager[T]) DeleteFromCache(id uint64) {
 
 func (manager *DaoMetadataManager[T]) SaveManagingInfo() error {
 
-	managingFile, err := manager.fileManager.OpenAndLock(fm.DaoManagingFile, manager.daoId)
+	managingFile, err := manager.fileManager.OpenAndLock(fm.DaoManagingFile)
 
 	defer manager.fileManager.CloseAndUnlock(managingFile, &err)
 

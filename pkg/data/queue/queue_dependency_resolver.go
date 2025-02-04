@@ -2,19 +2,18 @@ package queue
 
 import (
 	"slices"
-	"sync"
 )
 
 type QueueDependency struct {
 	RequestId uint64
 
-	RequestWaitGroup *sync.WaitGroup
+	// RequestWaitGroup *sync.WaitGroup
 }
 
 type QueueDependencyResolver[T any] struct {
 	dependentProcesses map[IProcessableRequest[T]][]uint64 // e.g. process 0 depends on processes 1, 2, 3
 
-	completed chan QueueDependency
+	completed chan uint64
 }
 
 func NewResolver[T any]() *QueueDependencyResolver[T] {
@@ -23,7 +22,7 @@ func NewResolver[T any]() *QueueDependencyResolver[T] {
 
 		dependentProcesses: make(map[IProcessableRequest[T]][]uint64),
 
-		completed: make(chan QueueDependency, 100),
+		completed: make(chan uint64, 100),
 	}
 }
 
@@ -31,15 +30,15 @@ func (resolver *QueueDependencyResolver[T]) ListenForCompletedDependencies() {
 
 	go func() {
 
-		for completedDep := range resolver.completed {
+		for completedDependency := range resolver.completed {
 
 			for process, dependencies := range resolver.dependentProcesses {
 
-				found := slices.Contains(dependencies, completedDep.RequestId)
+				found := slices.Contains(dependencies, completedDependency)
 
 				if found {
 
-					process.Dependencies() <- completedDep
+					process.Dependencies() <- completedDependency
 				}
 			}
 		}
@@ -60,7 +59,7 @@ func (resolver *QueueDependencyResolver[T]) AddDependency(request IProcessableRe
 	}
 }
 
-func (resolver *QueueDependencyResolver[T]) RemoveDependency(requestId uint64) {
+func (resolver *QueueDependencyResolver[T]) RemoveDependencies(requestId uint64) {
 
 	for request := range resolver.dependentProcesses {
 

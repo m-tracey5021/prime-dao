@@ -35,7 +35,7 @@ func Connect(path string) (DaoRoot, error) {
 	return DaoRoot{fileManager}, nil
 }
 
-func Dao[T schema.DescribedIdentifiable](root *DaoRoot) (*dao.TSFDao[T], error) {
+func Dao[T schema.DescribedIdentifiable](root *DaoRoot) (*dao.Dao[T], error) {
 
 	dao, err := dao.From[T](root.fileManager)
 

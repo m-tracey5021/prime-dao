@@ -152,12 +152,12 @@ func TestDaoPersists(t *testing.T) {
 
 		transaction.Get(id)
 	}
-	result := dao.ExecuteTransaction(transaction)
+	result, _ := dao.ExecuteTransaction(transaction)
 
 	fmt.Println(result)
 }
 
-func TestDaoAsync(t *testing.T) {
+func TestDaoAsyncSimple(t *testing.T) {
 
 	path := "dao_dir"
 
@@ -183,7 +183,60 @@ func TestDaoAsync(t *testing.T) {
 	saveTransaction.Save(identifiableC)
 	saveTransaction.Save(identifiableD)
 
-	results := dao.ExecuteTransaction(saveTransaction)
+	results, _ := dao.ExecuteTransaction(saveTransaction)
+
+	// fmt.Printf("%v\n", results)
+
+	transaction := dao.NewTransaction()
+
+	getRequest := transaction.Get(identifiableB.Id())
+
+	identifiableB.Data = []int{2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8}
+
+	requestE := transaction.WithDependency(getRequest).Update(identifiableB)
+
+	requestF := transaction.WithDependency(requestE).Get(identifiableB.Id())
+
+	results, _ = dao.ExecuteTransaction(transaction)
+
+	resultE := results[requestE]
+	resultF := results[requestF]
+
+	y, err := dao.Get(identifiableB.Id())
+
+	fmt.Printf("%v\n", y)
+
+	fmt.Printf("%v\n", resultE)
+	fmt.Printf("%v\n", resultF)
+}
+
+func TestDaoAsync(t *testing.T) {
+
+	path := "dao_dir"
+
+	defer fm.RemoveDir(path)
+
+	descriptor := "obj_test"
+
+	dao, err := dao.From[MockIdentifiable](fm.NewFileManager(path, descriptor))
+
+	if err != nil {
+
+		t.Fail()
+	}
+	identifiable := MockIdentifiable{MockId: dao.NewId(), Data: []int{1, 2}}
+	identifiableB := MockIdentifiable{MockId: dao.NewId(), Data: []int{2, 3, 4}}
+	identifiableC := MockIdentifiable{MockId: dao.NewId(), Data: []int{1, 4}}
+	identifiableD := MockIdentifiable{MockId: dao.NewId(), Data: []int{0, 2}}
+
+	saveTransaction := dao.NewTransaction()
+
+	saveTransaction.Save(identifiable)
+	saveTransaction.Save(identifiableB)
+	saveTransaction.Save(identifiableC)
+	saveTransaction.Save(identifiableD)
+
+	results, _ := dao.ExecuteTransaction(saveTransaction)
 
 	fmt.Printf("%v", results)
 
@@ -215,7 +268,7 @@ func TestDaoAsync(t *testing.T) {
 
 	requestK := transaction.Save(identifiableE)
 
-	results = dao.ExecuteTransaction(transaction)
+	results, _ = dao.ExecuteTransaction(transaction)
 
 	resultE := results[requestE]
 	resultF := results[requestF]
