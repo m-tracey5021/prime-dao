@@ -1,6 +1,7 @@
 package ht
 
 import (
+	"github.com/google/uuid"
 	"github.com/m-tracey5021/prime-dao/pkg/dataio"
 	"github.com/m-tracey5021/prime-dao/pkg/fm"
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
@@ -17,13 +18,11 @@ type Hash struct {
 type ITSFHashTable[T schema.FixedSizeIdentifiable] interface {
 	Save(object T) error
 
-	Get(id uint64) (*T, error)
-
-	GetSome(ids ...uint64) ([]*T, error)
+	Get(id uuid.UUID) (*T, error)
 
 	Update(object T) error
 
-	Delete(id uint64) error
+	Delete(id uuid.UUID) error
 }
 
 type TSFHashTable[T schema.FixedSizeIdentifiable] struct {

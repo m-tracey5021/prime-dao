@@ -4,16 +4,17 @@ import (
 	"encoding/binary"
 	"os"
 
+	"github.com/google/uuid"
 	"github.com/m-tracey5021/prime-dao/pkg/dataio"
 	"github.com/m-tracey5021/prime-dao/pkg/fm"
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
 )
 
 type MockHashable struct {
-	MockHashableId uint64
+	MockHashableId uuid.UUID
 }
 
-func (obj MockHashable) Id() uint64 {
+func (obj MockHashable) Id() uuid.UUID {
 
 	return obj.MockHashableId
 }
@@ -21,11 +22,6 @@ func (obj MockHashable) Id() uint64 {
 func (obj MockHashable) Descriptor() string {
 
 	return "mock_hash"
-}
-
-func (obj MockHashable) SetId(id uint64) schema.Identifiable {
-
-	return MockHashable{id}
 }
 
 func (obj MockHashable) Size() int {
@@ -44,9 +40,9 @@ func (obj MockHashable) WriteSelf(file *os.File) error {
 
 func (obj MockHashable) ReadSelf(file *os.File) (schema.FixedSize, error) {
 
-	var mockHashableId uint64
+	var mockHashableId uuid.UUID
 
-	if err := binary.Read(file, binary.LittleEndian, &mockHashableId); err != nil {
+	if err := binary.Read(file, binary.BigEndian, &mockHashableId); err != nil {
 
 		return nil, err
 	}

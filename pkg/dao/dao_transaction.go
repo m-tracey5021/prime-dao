@@ -3,6 +3,7 @@ package dao
 import (
 	"slices"
 
+	"github.com/google/uuid"
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
 )
 
@@ -65,7 +66,7 @@ func (transaction *DaoTransaction[T]) Save(object T) uint64 {
 	)
 }
 
-func (transaction *DaoTransaction[T]) Get(objectId uint64) uint64 {
+func (transaction *DaoTransaction[T]) Get(objectId uuid.UUID) uint64 {
 
 	return transaction.AddRequest(
 
@@ -95,7 +96,7 @@ func (transaction *DaoTransaction[T]) Update(object T) uint64 {
 	)
 }
 
-func (transaction *DaoTransaction[T]) Delete(objectId uint64) uint64 {
+func (transaction *DaoTransaction[T]) Delete(objectId uuid.UUID) uint64 {
 
 	return transaction.AddRequest(
 

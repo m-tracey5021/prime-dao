@@ -44,12 +44,14 @@ func (dao *Dao[T]) UpdateIndexes(objectFile *os.File, fileId, filePosition uint6
 
 func (dao *Dao[T]) Update(object T) (int, error) {
 
-	index, err := dao.indexHashTable.Get(object.Id())
+	indexPtr, err := dao.indexHashTable.Get(object.Id())
 
 	if err != nil {
 
 		return 0, err
 	}
+	index := *indexPtr
+
 	objectFile, err := dao.fileManager.OpenAndLock(fm.DaoObjectFile, index.fileId)
 
 	defer dao.fileManager.CloseAndUnlock(objectFile, &err)

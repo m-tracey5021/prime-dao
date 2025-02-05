@@ -2,21 +2,23 @@ package ht
 
 import (
 	"errors"
+	"hash/fnv"
 	"io"
 	"os"
 	"unsafe"
 
+	"github.com/google/uuid"
 	"github.com/m-tracey5021/prime-dao/pkg/dataio"
 	"github.com/m-tracey5021/prime-dao/pkg/fm"
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
 )
 
 type IHashTableManager[T schema.FixedSizeIdentifiable] interface {
-	ComputeHash(id uint64) Hash
+	ComputeHash(id uuid.UUID) Hash
 
-	Locate(id uint64) (*os.File, HashTableBucket[T], error)
+	Locate(id uuid.UUID) (*os.File, HashTableBucket[T], error)
 
-	LocateEmpty(id uint64) (*os.File, int, error)
+	LocateEmpty(id uuid.UUID) (*os.File, int, error)
 }
 
 type HashTableManager[T schema.FixedSizeIdentifiable] struct {
@@ -59,13 +61,19 @@ func InjectTableManager[T schema.FixedSizeIdentifiable](fileManager fm.IFileMana
 	return HashTableManager[T]{bucketSize, tableSize, maxCollisions, fileManager, bucketHeaderIO, objectIO}
 }
 
-func (manager HashTableManager[T]) ComputeHash(id uint64) Hash {
+func (manager HashTableManager[T]) ComputeHash(id uuid.UUID) Hash {
+
+	hasher := fnv.New64a()
+
+	hasher.Write(id[:])
+
+	uuidHash := hasher.Sum64()
 
 	// Calculate the table group to store the data in
-	hash := int(id) % manager.tableSize
+	hash := int(uuidHash) % manager.tableSize
 
 	// Calculate the order of the hash i.e. where it sits in relation to the others if hashed
-	order := int(id) / manager.tableSize
+	order := int(uuidHash) / manager.tableSize
 
 	// Calculate the file/partition in which the data is stored
 	tableNumber := order / manager.maxCollisions
@@ -94,7 +102,7 @@ func (manager *HashTableManager[T]) ReadBucketHeader(position int, table *os.Fil
 	return bucketHeader, err
 }
 
-func (manager *HashTableManager[T]) LocateForTableAndPosition(id uint64, table *os.File, position int) (*HashTableBucket[T], error) {
+func (manager *HashTableManager[T]) LocateForTableAndPosition(id uuid.UUID, table *os.File, position int) (*HashTableBucket[T], error) {
 
 	bucketHeader, err := manager.ReadBucketHeader(position, table)
 
@@ -131,7 +139,7 @@ func (manager *HashTableManager[T]) LocateForTableAndPosition(id uint64, table *
 	}
 }
 
-func (manager *HashTableManager[T]) LocateEmptyForTableAndPosition(id uint64, table *os.File, position int) (*int, error) {
+func (manager *HashTableManager[T]) LocateEmptyForTableAndPosition(id uuid.UUID, table *os.File, position int) (*int, error) {
 
 	bucketHeader, err := manager.ReadBucketHeader(position, table)
 
@@ -162,7 +170,7 @@ func (manager *HashTableManager[T]) LocateEmptyForTableAndPosition(id uint64, ta
 	}
 }
 
-func (manager *HashTableManager[T]) Locate(id uint64) (*os.File, HashTableBucket[T], error) {
+func (manager *HashTableManager[T]) Locate(id uuid.UUID) (*os.File, HashTableBucket[T], error) {
 
 	closeTable := true
 
@@ -191,7 +199,7 @@ func (manager *HashTableManager[T]) Locate(id uint64) (*os.File, HashTableBucket
 	return nil, HashTableBucket[T]{}, ObjectDoesNotExist
 }
 
-func (manager *HashTableManager[T]) LocateEmpty(id uint64) (*os.File, int, error) {
+func (manager *HashTableManager[T]) LocateEmpty(id uuid.UUID) (*os.File, int, error) {
 
 	closeTable := true
 

@@ -3,12 +3,13 @@ package dao
 import (
 	"os"
 
+	"github.com/google/uuid"
 	"github.com/m-tracey5021/prime-dao/pkg/fm"
 )
 
 func (dao *Dao[T]) UpdateMetadataForDeletion(table *os.File, index DaoIndex) error {
 
-	dao.metadata.ObjectIdStore.DeleteId(index.id, &dao.idMutex)
+	// dao.metadata.ObjectIdStore.DeleteId(index.id, &dao.idMutex)
 
 	dao.metadataMutex.Lock()
 
@@ -40,7 +41,7 @@ func (dao *Dao[T]) UpdateMetadataForDeletion(table *os.File, index DaoIndex) err
 	return nil
 }
 
-func (dao *Dao[T]) Delete(objectId uint64) (int, error) {
+func (dao *Dao[T]) Delete(objectId uuid.UUID) (int, error) {
 
 	index, err := dao.indexHashTable.Get(objectId)
 

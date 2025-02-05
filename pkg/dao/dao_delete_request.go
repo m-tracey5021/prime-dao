@@ -1,13 +1,14 @@
 package dao
 
 import (
+	"github.com/google/uuid"
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
 )
 
 type DaoDeleteRequest[T schema.Identifiable] struct {
 	requestId uint64
 
-	objectId uint64
+	objectId uuid.UUID
 
 	dependencies chan uint64
 
@@ -19,7 +20,7 @@ func (processor *DaoDeleteRequest[T]) RequestId() uint64 {
 	return processor.requestId
 }
 
-func (processor *DaoDeleteRequest[T]) ObjectId() uint64 {
+func (processor *DaoDeleteRequest[T]) ObjectId() uuid.UUID {
 
 	return processor.objectId
 }

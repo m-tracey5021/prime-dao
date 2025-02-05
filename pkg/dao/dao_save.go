@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"github.com/google/uuid"
 	"github.com/m-tracey5021/prime-dao/pkg/fm"
 )
 
@@ -57,6 +58,8 @@ func (dao *Dao[T]) Save(object T) (int, error) {
 
 		return 0, err
 	}
+	object.SetId(uuid.New())
+
 	size, err := dao.objectIO.WriteSizePrefixed(objectFile, object)
 
 	if err != nil {

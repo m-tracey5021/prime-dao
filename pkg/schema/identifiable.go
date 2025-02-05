@@ -1,7 +1,11 @@
 package schema
 
+import "github.com/google/uuid"
+
 type Identifiable interface {
-	Id() uint64
+	Id() uuid.UUID
+
+	SetId(uuid.UUID)
 
 	Descriptor() string
 }

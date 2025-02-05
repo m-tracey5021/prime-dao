@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"github.com/google/uuid"
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
 )
 
@@ -19,7 +20,7 @@ func (processor *DaoSaveRequest[T]) RequestId() uint64 {
 	return processor.requestId
 }
 
-func (processor *DaoSaveRequest[T]) ObjectId() uint64 {
+func (processor *DaoSaveRequest[T]) ObjectId() uuid.UUID {
 
 	return processor.object.Id()
 }

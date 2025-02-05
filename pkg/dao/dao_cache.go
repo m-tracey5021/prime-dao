@@ -4,13 +4,14 @@ import (
 	"slices"
 	"sync"
 
+	"github.com/google/uuid"
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
 )
 
 type DaoCache[T schema.Identifiable] struct {
-	Cached map[uint64]T
+	Cached map[uuid.UUID]T
 
-	LeastRecentlyUsed []uint64
+	LeastRecentlyUsed []uuid.UUID
 
 	MaxSize int
 }
@@ -18,9 +19,9 @@ type DaoCache[T schema.Identifiable] struct {
 func NewCache[T schema.Identifiable]() DaoCache[T] {
 
 	return DaoCache[T]{
-		Cached: make(map[uint64]T),
+		Cached: make(map[uuid.UUID]T),
 
-		LeastRecentlyUsed: make([]uint64, 0),
+		LeastRecentlyUsed: make([]uuid.UUID, 0),
 
 		MaxSize: 3,
 	}
@@ -45,7 +46,7 @@ func (cache *DaoCache[T]) Save(object T, mu *sync.Mutex) {
 	mu.Unlock()
 }
 
-func (cache *DaoCache[T]) Get(id uint64, mu *sync.Mutex) *T {
+func (cache *DaoCache[T]) Get(id uuid.UUID, mu *sync.Mutex) *T {
 
 	mu.Lock()
 
@@ -53,7 +54,7 @@ func (cache *DaoCache[T]) Get(id uint64, mu *sync.Mutex) *T {
 
 	if ok {
 
-		cache.LeastRecentlyUsed = slices.DeleteFunc(cache.LeastRecentlyUsed, func(element uint64) bool {
+		cache.LeastRecentlyUsed = slices.DeleteFunc(cache.LeastRecentlyUsed, func(element uuid.UUID) bool {
 
 			return element == id
 		})
@@ -81,7 +82,7 @@ func (cache *DaoCache[T]) Update(object T, mu *sync.Mutex) {
 	mu.Unlock()
 }
 
-func (cache *DaoCache[T]) Delete(id uint64, mu *sync.Mutex) {
+func (cache *DaoCache[T]) Delete(id uuid.UUID, mu *sync.Mutex) {
 
 	mu.Lock()
 
@@ -89,7 +90,7 @@ func (cache *DaoCache[T]) Delete(id uint64, mu *sync.Mutex) {
 
 	if ok {
 
-		cache.LeastRecentlyUsed = slices.DeleteFunc(cache.LeastRecentlyUsed, func(element uint64) bool {
+		cache.LeastRecentlyUsed = slices.DeleteFunc(cache.LeastRecentlyUsed, func(element uuid.UUID) bool {
 
 			return element == id
 		})

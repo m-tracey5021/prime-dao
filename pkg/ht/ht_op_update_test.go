@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -12,7 +13,7 @@ func TestUpdate(t *testing.T) {
 	// Given
 	mockFileManager, mockTableManager, mockBucketHeaderIO, mockObjectIO, hashTable := setupHashTableMockDependencies()
 
-	id := uint64(0)
+	id := uuid.New()
 
 	table := new(os.File)
 

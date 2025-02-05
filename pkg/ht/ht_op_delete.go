@@ -1,6 +1,8 @@
 package ht
 
-func (hashTable *TSFHashTable[T]) Delete(id uint64) error {
+import "github.com/google/uuid"
+
+func (hashTable *TSFHashTable[T]) Delete(id uuid.UUID) error {
 
 	table, bucket, err := hashTable.tableManager.Locate(id)
 

@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -13,7 +14,7 @@ func TestDelete(t *testing.T) {
 	// Given
 	mockFileManager, mockTableManager, mockBucketHeaderIO, mockObjectIO, dao := setupHashTableMockDependencies()
 
-	id := uint64(0)
+	id := uuid.New()
 
 	table := new(os.File)
 

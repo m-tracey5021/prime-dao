@@ -4,18 +4,19 @@ import (
 	"encoding/binary"
 	"os"
 
+	"github.com/google/uuid"
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
 )
 
 type DaoIndex struct {
-	id uint64
+	id uuid.UUID
 
 	fileId uint64
 
 	filePosition uint64
 }
 
-func (index DaoIndex) Id() uint64 {
+func (index DaoIndex) Id() uuid.UUID {
 
 	return index.id
 }
@@ -27,12 +28,12 @@ func (index DaoIndex) Descriptor() string {
 
 func (index DaoIndex) Size() int {
 
-	return 24
+	return 32
 }
 
 func (index DaoIndex) WriteSelf(file *os.File) error {
 
-	if err := binary.Write(file, binary.LittleEndian, index.id); err != nil {
+	if err := binary.Write(file, binary.BigEndian, index.id); err != nil {
 
 		return err
 	}
@@ -49,13 +50,13 @@ func (index DaoIndex) WriteSelf(file *os.File) error {
 
 func (index DaoIndex) ReadSelf(file *os.File) (schema.FixedSize, error) {
 
-	var indexId uint64
+	var indexId uuid.UUID
 
 	var fileId uint64
 
 	var filePosition uint64
 
-	if err := binary.Read(file, binary.LittleEndian, &indexId); err != nil {
+	if err := binary.Read(file, binary.BigEndian, &indexId); err != nil {
 
 		return nil, err
 	}

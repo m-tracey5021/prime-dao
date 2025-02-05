@@ -1,6 +1,8 @@
 package ht
 
-func (hashTable *TSFHashTable[T]) Get(id uint64) (*T, error) {
+import "github.com/google/uuid"
+
+func (hashTable *TSFHashTable[T]) Get(id uuid.UUID) (*T, error) {
 
 	table, bucket, err := hashTable.tableManager.Locate(id)
 
@@ -11,21 +13,4 @@ func (hashTable *TSFHashTable[T]) Get(id uint64) (*T, error) {
 		return nil, err
 	}
 	return &bucket.object, err
-}
-
-func (hashTable *TSFHashTable[T]) GetSome(ids ...uint64) ([]*T, error) {
-
-	results := make([]*T, 0)
-
-	for _, id := range ids {
-
-		object, err := hashTable.Get(id)
-
-		if err != nil {
-
-			return results, err
-		}
-		results = append(results, object)
-	}
-	return results, nil
 }

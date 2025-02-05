@@ -100,16 +100,6 @@ func From[T schema.Identifiable](fileManager fm.IFileManager) (Dao[T], error) {
 		err
 }
 
-func (dao *Dao[T]) NewObjectId() uint64 {
-
-	return dao.metadata.ObjectIdStore.NewId(&dao.idMutex)
-}
-
-func (dao *Dao[T]) AllObjectIds() []uint64 {
-
-	return dao.metadata.ObjectIdStore.AllIds()
-}
-
 func (dao *Dao[T]) NewTransaction() DaoTransaction[T] {
 
 	return DaoTransaction[T]{

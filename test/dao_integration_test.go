@@ -4,30 +4,30 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/m-tracey5021/prime-dao/pkg/dao"
 	"github.com/m-tracey5021/prime-dao/pkg/fm"
-	"github.com/m-tracey5021/prime-dao/pkg/schema"
 )
 
 type MockIdentifiable struct {
-	MockId uint64
+	MockId uuid.UUID
 
 	Data []int
 }
 
-func (identifiable MockIdentifiable) Id() uint64 {
+func (identifiable MockIdentifiable) Id() uuid.UUID {
 
 	return identifiable.MockId
+}
+
+func (identifiable *MockIdentifiable) SetId(id uuid.UUID) {
+
+	identifiable.MockId = id
 }
 
 func (identifiable MockIdentifiable) Descriptor() string {
 
 	return "mock"
-}
-
-func (identifiable MockIdentifiable) SetId(id uint64) schema.Identifiable {
-
-	return MockIdentifiable{id, identifiable.Data}
 }
 
 func TestDao(t *testing.T) {
@@ -38,24 +38,24 @@ func TestDao(t *testing.T) {
 
 	descriptor := "obj_test"
 
-	dao, err := dao.From[MockIdentifiable](fm.NewFileManager(path, descriptor))
+	dao, err := dao.From[*MockIdentifiable](fm.NewFileManager(path, descriptor))
 
 	if err != nil {
 
 		t.Fail()
 	}
-	identifiable := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{1, 2}}
-	identifiableB := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{2, 3, 4}}
-	identifiableC := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{1, 4}}
-	identifiableD := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{0, 2}}
+	identifiable := MockIdentifiable{Data: []int{1, 2}}
+	identifiableB := MockIdentifiable{Data: []int{2, 3, 4}}
+	identifiableC := MockIdentifiable{Data: []int{1, 4}}
+	identifiableD := MockIdentifiable{Data: []int{0, 2}}
 
-	dao.Save(identifiable)
+	dao.Save(&identifiable)
 
-	dao.Save(identifiableB)
+	dao.Save(&identifiableB)
 
-	dao.Save(identifiableC)
+	dao.Save(&identifiableC)
 
-	dao.Save(identifiableD)
+	dao.Save(&identifiableD)
 
 	getA, err := dao.Get(identifiable.Id())
 	getB, err := dao.Get(identifiableB.Id())
@@ -77,7 +77,7 @@ func TestDao(t *testing.T) {
 
 	identifiableB.Data = []int{2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8}
 
-	updatedSize, err := dao.Update(identifiableB)
+	updatedSize, err := dao.Update(&identifiableB)
 
 	if err != nil {
 
@@ -125,7 +125,7 @@ func TestDao(t *testing.T) {
 
 	identifiableE := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{0, 2, 9}}
 
-	dao.Save(identifiableE)
+	dao.Save(&identifiableE)
 
 	fmt.Printf("%v", identifiableE)
 }
@@ -138,7 +138,7 @@ func TestDaoPersists(t *testing.T) {
 
 	descriptor := "obj_test"
 
-	dao, err := dao.From[MockIdentifiable](fm.NewFileManager(path, descriptor))
+	dao, err := dao.From[*MockIdentifiable](fm.NewFileManager(path, descriptor))
 
 	if err != nil {
 

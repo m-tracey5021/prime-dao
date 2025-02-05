@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/m-tracey5021/prime-dao/pkg/fm"
 
 	"github.com/stretchr/testify/assert"
@@ -15,7 +16,7 @@ func TestLocateNoResult(t *testing.T) {
 	// Given
 	mockFileManager, mockBucketHeaderIO, mockObjectIO, tableManager := setupTableManagerMockDependencies()
 
-	id := uint64(0)
+	id := uuid.New()
 
 	hash := tableManager.ComputeHash(id)
 
@@ -53,7 +54,7 @@ func TestLocateNoResultWithEOF(t *testing.T) {
 	// Given
 	mockFileManager, mockBucketHeaderIO, mockObjectIO, tableManager := setupTableManagerMockDependencies()
 
-	id := uint64(0)
+	id := uuid.New()
 
 	hash := tableManager.ComputeHash(id)
 
@@ -91,7 +92,7 @@ func TestLocateWithResult(t *testing.T) {
 	// Given
 	mockFileManager, mockBucketHeaderIO, mockObjectIO, tableManager := setupTableManagerMockDependencies()
 
-	id := uint64(0)
+	id := uuid.New()
 
 	hash := tableManager.ComputeHash(id)
 
@@ -133,9 +134,9 @@ func TestLocateWithIdMismatch(t *testing.T) {
 	// Given
 	mockFileManager, mockBucketHeaderIO, mockObjectIO, tableManager := setupTableManagerMockDependencies()
 
-	id := uint64(0)
+	id := uuid.New()
 
-	mismatchId := uint64(1)
+	mismatchId := uuid.New()
 
 	hash := tableManager.ComputeHash(mismatchId)
 
@@ -179,7 +180,7 @@ func TestLocateEmptyNoResultObjectAlreadyExists(t *testing.T) {
 	// Given
 	mockFileManager, mockBucketHeaderIO, mockObjectIO, tableManager := setupTableManagerMockDependencies()
 
-	id := uint64(0)
+	id := uuid.New()
 
 	hash := tableManager.ComputeHash(id)
 
@@ -221,9 +222,9 @@ func TestLocateEmptyNoResultBucketOccupied(t *testing.T) {
 	// Given
 	mockFileManager, mockBucketHeaderIO, mockObjectIO, tableManager := setupTableManagerMockDependencies()
 
-	id := uint64(0)
+	id := uuid.New()
 
-	mismatchId := uint64(1)
+	mismatchId := uuid.New()
 
 	hash := tableManager.ComputeHash(mismatchId)
 
@@ -265,7 +266,7 @@ func TestLocateEmptyWithResult(t *testing.T) {
 	// Given
 	mockFileManager, mockBucketHeaderIO, mockObjectIO, tableManager := setupTableManagerMockDependencies()
 
-	id := uint64(0)
+	id := uuid.New()
 
 	hash := tableManager.ComputeHash(id)
 

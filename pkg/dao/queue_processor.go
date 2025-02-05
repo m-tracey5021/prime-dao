@@ -1,11 +1,14 @@
 package dao
 
-import "github.com/m-tracey5021/prime-dao/pkg/schema"
+import (
+	"github.com/google/uuid"
+	"github.com/m-tracey5021/prime-dao/pkg/schema"
+)
 
 type IProcessableRequest[T schema.Identifiable] interface {
 	RequestId() uint64
 
-	ObjectId() uint64
+	ObjectId() uuid.UUID
 
 	Dependencies() chan uint64
 

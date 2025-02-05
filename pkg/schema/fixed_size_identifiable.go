@@ -1,7 +1,11 @@
 package schema
 
+import "github.com/google/uuid"
+
 type FixedSizeIdentifiable interface {
 	FixedSize
 
-	Identifiable
+	Id() uuid.UUID
+
+	Descriptor() string
 }
