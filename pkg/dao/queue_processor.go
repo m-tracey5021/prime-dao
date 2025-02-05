@@ -2,7 +2,7 @@ package dao
 
 import "github.com/m-tracey5021/prime-dao/pkg/schema"
 
-type IProcessableRequest[T schema.DescribedIdentifiable] interface {
+type IProcessableRequest[T schema.Identifiable] interface {
 	RequestId() uint64
 
 	ObjectId() uint64

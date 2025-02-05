@@ -18,6 +18,11 @@ func (obj MockHashable) Id() uint64 {
 	return obj.MockHashableId
 }
 
+func (obj MockHashable) Descriptor() string {
+
+	return "mock_hash"
+}
+
 func (obj MockHashable) SetId(id uint64) schema.Identifiable {
 
 	return MockHashable{id}

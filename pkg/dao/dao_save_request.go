@@ -4,7 +4,7 @@ import (
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
 )
 
-type DaoSaveRequest[T schema.DescribedIdentifiable] struct {
+type DaoSaveRequest[T schema.Identifiable] struct {
 	requestId uint64
 
 	object T
@@ -46,7 +46,7 @@ func (processor *DaoSaveRequest[T]) Process(dao *Dao[T]) IResult[T] {
 	return &SaveResult[T]{size, err}
 }
 
-type SaveResult[T schema.DescribedIdentifiable] struct {
+type SaveResult[T schema.Identifiable] struct {
 	sizeWritten int
 
 	err error

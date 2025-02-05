@@ -9,7 +9,7 @@ import (
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
 )
 
-type Dao[T schema.DescribedIdentifiable] struct {
+type Dao[T schema.Identifiable] struct {
 	fileManager fm.IFileManager
 
 	metadata DaoMetadata[T]
@@ -27,7 +27,7 @@ type Dao[T schema.DescribedIdentifiable] struct {
 	metadataMutex sync.Mutex
 }
 
-func From[T schema.DescribedIdentifiable](fileManager fm.IFileManager) (Dao[T], error) {
+func From[T schema.Identifiable](fileManager fm.IFileManager) (Dao[T], error) {
 
 	var described T
 

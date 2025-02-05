@@ -19,9 +19,10 @@ func (index DaoIndex) Id() uint64 {
 
 	return index.id
 }
-func (index DaoIndex) SetId(id uint64) schema.Identifiable {
 
-	return DaoIndex{id, index.fileId, index.filePosition}
+func (index DaoIndex) Descriptor() string {
+
+	return "idx"
 }
 
 func (index DaoIndex) Size() int {

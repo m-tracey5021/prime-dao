@@ -4,7 +4,7 @@ import (
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
 )
 
-type DaoDeleteRequest[T schema.DescribedIdentifiable] struct {
+type DaoDeleteRequest[T schema.Identifiable] struct {
 	requestId uint64
 
 	objectId uint64
@@ -46,7 +46,7 @@ func (processor *DaoDeleteRequest[T]) Process(dao *Dao[T]) IResult[T] {
 	return &DeleteResult[T]{sizeDeleted, err}
 }
 
-type DeleteResult[T schema.DescribedIdentifiable] struct {
+type DeleteResult[T schema.Identifiable] struct {
 	sizeDeleted int
 
 	err error

@@ -2,7 +2,7 @@ package dao
 
 import "github.com/m-tracey5021/prime-dao/pkg/schema"
 
-type DaoGetRequest[T schema.DescribedIdentifiable] struct {
+type DaoGetRequest[T schema.Identifiable] struct {
 	requestId uint64
 
 	objectId uint64
@@ -44,7 +44,7 @@ func (processor *DaoGetRequest[T]) Process(dao *Dao[T]) IResult[T] {
 	return &GetResult[T]{object, err}
 }
 
-type GetResult[T schema.DescribedIdentifiable] struct {
+type GetResult[T schema.Identifiable] struct {
 	object *T
 
 	err error

@@ -4,7 +4,7 @@ import (
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
 )
 
-type DaoUpdateRequest[T schema.DescribedIdentifiable] struct {
+type DaoUpdateRequest[T schema.Identifiable] struct {
 	requestId uint64
 
 	object T
@@ -46,7 +46,7 @@ func (processor *DaoUpdateRequest[T]) Process(dao *Dao[T]) IResult[T] {
 	return &UpdateResult[T]{updatedSize, err}
 }
 
-type UpdateResult[T schema.DescribedIdentifiable] struct {
+type UpdateResult[T schema.Identifiable] struct {
 	sizeUpdated int
 
 	err error
