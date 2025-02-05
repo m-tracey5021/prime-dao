@@ -16,7 +16,7 @@ func (dao *Dao[T]) Get(objectId uint64) (*T, error) {
 
 		return nil, err
 	}
-	table, err := dao.fileManager.OpenAndLock(fm.DaoTable, index.fileId)
+	table, err := dao.fileManager.OpenAndLock(fm.DaoObjectFile, index.fileId)
 
 	defer dao.fileManager.CloseAndUnlock(table, &err)
 

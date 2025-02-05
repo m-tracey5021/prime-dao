@@ -34,9 +34,9 @@ const (
 
 	HashTableCollisionTable
 
-	DaoManagingFile
+	DaoMetadataFile
 
-	DaoTable
+	DaoObjectFile
 
 	Root
 )
@@ -59,9 +59,9 @@ func NewFileManager(path, descriptor string) IFileManager {
 
 		HashTableCollisionTable: fmt.Sprintf("%v/%v_ht_c_tbl", path, descriptor),
 
-		DaoManagingFile: fmt.Sprintf("%v/%v_dao", path, descriptor),
+		DaoMetadataFile: fmt.Sprintf("%v/%v_dao", path, descriptor),
 
-		DaoTable: fmt.Sprintf("%v/%v_dao_tbl", path, descriptor),
+		DaoObjectFile: fmt.Sprintf("%v/%v_dao_tbl", path, descriptor),
 
 		Root: fmt.Sprintf("%v/rt", path),
 	}

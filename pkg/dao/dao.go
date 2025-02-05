@@ -33,7 +33,7 @@ func From[T schema.DescribedIdentifiable](fileManager fm.IFileManager) (Dao[T], 
 
 	fileManager = fileManager.Concatenate(described.Descriptor())
 
-	daoMetadataFile, err := fileManager.OpenAndLock(fm.DaoManagingFile)
+	daoMetadataFile, err := fileManager.OpenAndLock(fm.DaoMetadataFile)
 
 	defer fileManager.CloseAndUnlock(daoMetadataFile, &err)
 
@@ -136,7 +136,7 @@ func (dao *Dao[T]) ExecuteTransaction(transaction DaoTransaction[T]) (map[uint64
 
 	results := transactionQueue.Stop()
 
-	daoMetadataFile, err := dao.fileManager.OpenAndLock(fm.DaoManagingFile)
+	daoMetadataFile, err := dao.fileManager.OpenAndLock(fm.DaoMetadataFile)
 
 	defer dao.fileManager.CloseAndUnlock(daoMetadataFile, &err)
 

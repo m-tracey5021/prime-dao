@@ -50,7 +50,7 @@ func (dao *Dao[T]) Update(object T) (int, error) {
 
 		return 0, err
 	}
-	objectFile, err := dao.fileManager.OpenAndLock(fm.DaoTable, index.fileId)
+	objectFile, err := dao.fileManager.OpenAndLock(fm.DaoObjectFile, index.fileId)
 
 	defer dao.fileManager.CloseAndUnlock(objectFile, &err)
 

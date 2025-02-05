@@ -48,7 +48,7 @@ func (dao *Dao[T]) Delete(objectId uint64) (int, error) {
 
 		return 0, err
 	}
-	table, err := dao.fileManager.OpenAndLock(fm.DaoTable, index.fileId)
+	table, err := dao.fileManager.OpenAndLock(fm.DaoObjectFile, index.fileId)
 
 	defer dao.fileManager.CloseAndUnlock(table, &err)
 

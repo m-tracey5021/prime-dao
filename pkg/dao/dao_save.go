@@ -43,7 +43,7 @@ func (dao *Dao[T]) Save(object T) (int, error) {
 
 	availableTable := dao.UpdateMetadataPreSave()
 
-	objectFile, err := dao.fileManager.OpenAndLock(fm.DaoTable, availableTable)
+	objectFile, err := dao.fileManager.OpenAndLock(fm.DaoObjectFile, availableTable)
 
 	defer dao.fileManager.CloseAndUnlock(objectFile, &err)
 
