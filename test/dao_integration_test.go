@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/m-tracey5021/prime-dao/pkg/data/dao"
-	"github.com/m-tracey5021/prime-dao/pkg/data/fm"
-	"github.com/m-tracey5021/prime-dao/pkg/data/schema"
+	"github.com/m-tracey5021/prime-dao/pkg/dao"
+	"github.com/m-tracey5021/prime-dao/pkg/fm"
+	"github.com/m-tracey5021/prime-dao/pkg/schema"
 )
 
 type MockIdentifiable struct {
@@ -44,10 +44,10 @@ func TestDao(t *testing.T) {
 
 		t.Fail()
 	}
-	identifiable := MockIdentifiable{MockId: dao.NewId(), Data: []int{1, 2}}
-	identifiableB := MockIdentifiable{MockId: dao.NewId(), Data: []int{2, 3, 4}}
-	identifiableC := MockIdentifiable{MockId: dao.NewId(), Data: []int{1, 4}}
-	identifiableD := MockIdentifiable{MockId: dao.NewId(), Data: []int{0, 2}}
+	identifiable := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{1, 2}}
+	identifiableB := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{2, 3, 4}}
+	identifiableC := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{1, 4}}
+	identifiableD := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{0, 2}}
 
 	dao.Save(identifiable)
 
@@ -123,7 +123,7 @@ func TestDao(t *testing.T) {
 	}
 	fmt.Printf("%v", getD)
 
-	identifiableE := MockIdentifiable{MockId: dao.NewId(), Data: []int{0, 2, 9}}
+	identifiableE := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{0, 2, 9}}
 
 	dao.Save(identifiableE)
 
@@ -171,10 +171,10 @@ func TestDaoAsyncSimple(t *testing.T) {
 
 		t.Fail()
 	}
-	identifiable := MockIdentifiable{MockId: dao.NewId(), Data: []int{1, 2}}
-	identifiableB := MockIdentifiable{MockId: dao.NewId(), Data: []int{2, 3, 4}}
-	identifiableC := MockIdentifiable{MockId: dao.NewId(), Data: []int{1, 4}}
-	identifiableD := MockIdentifiable{MockId: dao.NewId(), Data: []int{0, 2}}
+	identifiable := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{1, 2}}
+	identifiableB := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{2, 3, 4}}
+	identifiableC := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{1, 4}}
+	identifiableD := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{0, 2}}
 
 	saveTransaction := dao.NewTransaction()
 
@@ -224,10 +224,10 @@ func TestDaoAsync(t *testing.T) {
 
 		t.Fail()
 	}
-	identifiable := MockIdentifiable{MockId: dao.NewId(), Data: []int{1, 2}}
-	identifiableB := MockIdentifiable{MockId: dao.NewId(), Data: []int{2, 3, 4}}
-	identifiableC := MockIdentifiable{MockId: dao.NewId(), Data: []int{1, 4}}
-	identifiableD := MockIdentifiable{MockId: dao.NewId(), Data: []int{0, 2}}
+	identifiable := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{1, 2}}
+	identifiableB := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{2, 3, 4}}
+	identifiableC := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{1, 4}}
+	identifiableD := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{0, 2}}
 
 	saveTransaction := dao.NewTransaction()
 
@@ -264,7 +264,7 @@ func TestDaoAsync(t *testing.T) {
 
 	requestJ := transaction.Get(identifiableD.Id())
 
-	identifiableE := MockIdentifiable{MockId: dao.NewId(), Data: []int{0, 2, 9}}
+	identifiableE := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{0, 2, 9}}
 
 	requestK := transaction.Save(identifiableE)
 
