@@ -15,7 +15,7 @@ type MockIdentifiable struct {
 	Data []int
 }
 
-func (identifiable MockIdentifiable) Id() uuid.UUID {
+func (identifiable *MockIdentifiable) Id() uuid.UUID {
 
 	return identifiable.MockId
 }
@@ -25,7 +25,7 @@ func (identifiable *MockIdentifiable) SetId(id uuid.UUID) {
 	identifiable.MockId = id
 }
 
-func (identifiable MockIdentifiable) Descriptor() string {
+func (identifiable *MockIdentifiable) Descriptor() string {
 
 	return "mock"
 }
@@ -123,7 +123,7 @@ func TestDao(t *testing.T) {
 	}
 	fmt.Printf("%v", getD)
 
-	identifiableE := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{0, 2, 9}}
+	identifiableE := MockIdentifiable{Data: []int{0, 2, 9}}
 
 	dao.Save(&identifiableE)
 
@@ -144,17 +144,9 @@ func TestDaoPersists(t *testing.T) {
 
 		t.Fail()
 	}
-	all := dao.AllObjectIds()
+	all, err := dao.GetAll()
 
-	transaction := dao.NewTransaction()
-
-	for _, id := range all {
-
-		transaction.Get(id)
-	}
-	result, _ := dao.ExecuteTransaction(transaction)
-
-	fmt.Println(result)
+	fmt.Println(all)
 }
 
 func TestDaoAsyncSimple(t *testing.T) {
@@ -165,23 +157,23 @@ func TestDaoAsyncSimple(t *testing.T) {
 
 	descriptor := "obj_test"
 
-	dao, err := dao.From[MockIdentifiable](fm.NewFileManager(path, descriptor))
+	dao, err := dao.From[*MockIdentifiable](fm.NewFileManager(path, descriptor))
 
 	if err != nil {
 
 		t.Fail()
 	}
-	identifiable := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{1, 2}}
-	identifiableB := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{2, 3, 4}}
-	identifiableC := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{1, 4}}
-	identifiableD := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{0, 2}}
+	identifiable := MockIdentifiable{Data: []int{1, 2}}
+	identifiableB := MockIdentifiable{Data: []int{2, 3, 4}}
+	identifiableC := MockIdentifiable{Data: []int{1, 4}}
+	identifiableD := MockIdentifiable{Data: []int{0, 2}}
 
 	saveTransaction := dao.NewTransaction()
 
-	saveTransaction.Save(identifiable)
-	saveTransaction.Save(identifiableB)
-	saveTransaction.Save(identifiableC)
-	saveTransaction.Save(identifiableD)
+	saveTransaction.Save(&identifiable)
+	saveTransaction.Save(&identifiableB)
+	saveTransaction.Save(&identifiableC)
+	saveTransaction.Save(&identifiableD)
 
 	results, _ := dao.ExecuteTransaction(saveTransaction)
 
@@ -193,7 +185,7 @@ func TestDaoAsyncSimple(t *testing.T) {
 
 	identifiableB.Data = []int{2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8}
 
-	requestE := transaction.WithDependency(getRequest).Update(identifiableB)
+	requestE := transaction.WithDependency(getRequest).Update(&identifiableB)
 
 	requestF := transaction.WithDependency(requestE).Get(identifiableB.Id())
 
@@ -218,23 +210,23 @@ func TestDaoAsync(t *testing.T) {
 
 	descriptor := "obj_test"
 
-	dao, err := dao.From[MockIdentifiable](fm.NewFileManager(path, descriptor))
+	dao, err := dao.From[*MockIdentifiable](fm.NewFileManager(path, descriptor))
 
 	if err != nil {
 
 		t.Fail()
 	}
-	identifiable := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{1, 2}}
-	identifiableB := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{2, 3, 4}}
-	identifiableC := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{1, 4}}
-	identifiableD := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{0, 2}}
+	identifiable := MockIdentifiable{Data: []int{1, 2}}
+	identifiableB := MockIdentifiable{Data: []int{2, 3, 4}}
+	identifiableC := MockIdentifiable{Data: []int{1, 4}}
+	identifiableD := MockIdentifiable{Data: []int{0, 2}}
 
 	saveTransaction := dao.NewTransaction()
 
-	saveTransaction.Save(identifiable)
-	saveTransaction.Save(identifiableB)
-	saveTransaction.Save(identifiableC)
-	saveTransaction.Save(identifiableD)
+	saveTransaction.Save(&identifiable)
+	saveTransaction.Save(&identifiableB)
+	saveTransaction.Save(&identifiableC)
+	saveTransaction.Save(&identifiableD)
 
 	results, _ := dao.ExecuteTransaction(saveTransaction)
 
@@ -246,7 +238,7 @@ func TestDaoAsync(t *testing.T) {
 
 	identifiableB.Data = []int{2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8}
 
-	requestE := transaction.WithDependency(getRequest).Update(identifiableB)
+	requestE := transaction.WithDependency(getRequest).Update(&identifiableB)
 
 	requestF := transaction.WithDependency(requestE).Get(identifiableB.Id())
 
@@ -264,9 +256,9 @@ func TestDaoAsync(t *testing.T) {
 
 	requestJ := transaction.Get(identifiableD.Id())
 
-	identifiableE := MockIdentifiable{MockId: dao.NewObjectId(), Data: []int{0, 2, 9}}
+	identifiableE := MockIdentifiable{Data: []int{0, 2, 9}}
 
-	requestK := transaction.Save(identifiableE)
+	requestK := transaction.Save(&identifiableE)
 
 	results, _ = dao.ExecuteTransaction(transaction)
 
