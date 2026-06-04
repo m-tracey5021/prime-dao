@@ -71,10 +71,10 @@ package test
 
 // 	testObjectB := ht.MockHashable{idB}
 
-// 	testObjectC := ht.MockHashable{idC}
-// 	testObjectD := ht.MockHashable{idD}
-// 	testObjectE := ht.MockHashable{idE}
-// 	testObjectF := ht.MockHashable{idF}
+// testObjectC := ht.MockHashable{idC}
+// testObjectD := ht.MockHashable{idD}
+// testObjectE := ht.MockHashable{idE}
+// testObjectF := ht.MockHashable{idF}
 
 // 	hashableDao.Save(testObject)
 

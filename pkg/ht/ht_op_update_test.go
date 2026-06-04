@@ -21,7 +21,7 @@ func TestUpdate(t *testing.T) {
 
 	bucket := HashTableBucket[MockHashable]{bucketLocation: location}
 
-	object := MockHashable{id}
+	object := MockHashable{id, 0}
 
 	var innerErr error = nil
 

@@ -17,7 +17,7 @@ func TestGet(t *testing.T) {
 
 	table := new(os.File)
 
-	retrievedObject := MockHashable{id}
+	retrievedObject := MockHashable{id, 0}
 
 	bucket := HashTableBucket[MockHashable]{object: retrievedObject}
 

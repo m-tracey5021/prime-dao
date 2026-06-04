@@ -2,6 +2,7 @@ package dao
 
 import (
 	"os"
+	"strconv"
 
 	"github.com/google/uuid"
 	"github.com/m-tracey5021/prime-dao/pkg/fm"
@@ -49,7 +50,7 @@ func (dao *Dao[T]) Delete(objectId uuid.UUID) (int, error) {
 
 		return 0, err
 	}
-	table, err := dao.fileManager.OpenAndLock(fm.DaoObjectFile, index.fileId)
+	table, err := dao.fileManager.OpenAndLock(fm.DaoObjectFile, strconv.FormatUint(index.fileId, 10))
 
 	defer dao.fileManager.CloseAndUnlock(table, &err)
 

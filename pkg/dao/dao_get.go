@@ -3,6 +3,7 @@ package dao
 import (
 	"errors"
 	"io"
+	"strconv"
 
 	"github.com/google/uuid"
 	"github.com/m-tracey5021/prime-dao/pkg/fm"
@@ -22,7 +23,7 @@ func (dao *Dao[T]) Get(objectId uuid.UUID) (*T, error) {
 
 		return nil, err
 	}
-	table, err := dao.fileManager.OpenAndLock(fm.DaoObjectFile, index.fileId)
+	table, err := dao.fileManager.OpenAndLock(fm.DaoObjectFile, strconv.FormatUint(index.fileId, 10))
 
 	defer dao.fileManager.CloseAndUnlock(table, &err)
 
@@ -53,7 +54,7 @@ func (dao *Dao[T]) GetAll() ([]T, error) {
 
 	for _, objectFileId := range dao.metadata.TableIdStore.AllIds() {
 
-		table, err := dao.fileManager.OpenAndLock(fm.DaoObjectFile, objectFileId)
+		table, err := dao.fileManager.OpenAndLock(fm.DaoObjectFile, strconv.FormatUint(objectFileId, 10))
 
 		if err != nil {
 

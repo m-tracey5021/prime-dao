@@ -16,7 +16,7 @@ func TestSave(t *testing.T) {
 
 	id := uuid.New()
 
-	objectToSave := MockHashable{id}
+	objectToSave := MockHashable{id, 0}
 
 	table := new(os.File)
 

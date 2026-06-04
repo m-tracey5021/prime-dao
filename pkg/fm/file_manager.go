@@ -12,7 +12,7 @@ import (
 type IFileManager interface {
 	Concatenate(descriptor string) IFileManager
 
-	OpenAndLock(fileAlias FileAlias, idChain ...uint64) (*os.File, error)
+	OpenAndLock(fileAlias FileAlias, idChain ...string) (*os.File, error)
 
 	GoTo(position int, file *os.File) error
 
@@ -33,6 +33,14 @@ const (
 	HashTableMainTable
 
 	HashTableCollisionTable
+
+	ListFile
+
+	BTree
+
+	BTreeNodeFile
+
+	BTreeKeyFile
 
 	DaoMetadataFile
 
@@ -59,6 +67,14 @@ func NewFileManager(path, descriptor string) IFileManager {
 
 		HashTableCollisionTable: fmt.Sprintf("%v/%v_ht_c_tbl", path, descriptor),
 
+		ListFile: fmt.Sprintf("%v/%v_lst", path, descriptor),
+
+		BTree: fmt.Sprintf("%v/%v_bt", path, descriptor),
+
+		BTreeNodeFile: fmt.Sprintf("%v/%v_bt_n", path, descriptor),
+
+		BTreeKeyFile: fmt.Sprintf("%v/%v_bt_k", path, descriptor),
+
 		DaoMetadataFile: fmt.Sprintf("%v/%v_dao", path, descriptor),
 
 		DaoObjectFile: fmt.Sprintf("%v/%v_dao_tbl", path, descriptor),
@@ -75,7 +91,7 @@ func (fileManager FileManager) Concatenate(descriptor string) IFileManager {
 	return NewFileManager(fileManager.path, concatenatedDescriptor)
 }
 
-func (fileManager FileManager) OpenAndLock(fileAlias FileAlias, idChain ...uint64) (*os.File, error) {
+func (fileManager FileManager) OpenAndLock(fileAlias FileAlias, idChain ...string) (*os.File, error) {
 
 	filePath, ok := fileManager.fileMap[fileAlias]
 

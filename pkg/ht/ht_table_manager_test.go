@@ -98,7 +98,7 @@ func TestLocateWithResult(t *testing.T) {
 
 	bucketHeader := HashTableBucketHeader{occupied: true}
 
-	object := MockHashable{id}
+	object := MockHashable{id, 0}
 
 	table := new(os.File)
 
@@ -142,7 +142,7 @@ func TestLocateWithIdMismatch(t *testing.T) {
 
 	bucketHeader := HashTableBucketHeader{occupied: true}
 
-	object := MockHashable{id}
+	object := MockHashable{id, 0}
 
 	table := new(os.File)
 
@@ -186,7 +186,7 @@ func TestLocateEmptyNoResultObjectAlreadyExists(t *testing.T) {
 
 	bucketHeader := HashTableBucketHeader{occupied: true}
 
-	object := MockHashable{id}
+	object := MockHashable{id, 0}
 
 	table := new(os.File)
 
@@ -230,7 +230,7 @@ func TestLocateEmptyNoResultBucketOccupied(t *testing.T) {
 
 	bucketHeader := HashTableBucketHeader{occupied: true}
 
-	object := MockHashable{id}
+	object := MockHashable{id, 0}
 
 	table := new(os.File)
 

@@ -4,22 +4,9 @@ import (
 	"encoding/binary"
 	"os"
 
+	"github.com/m-tracey5021/prime-dao/pkg/dataio"
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
 )
-
-func BoolToByte(value bool) byte {
-
-	if value {
-
-		return 1
-	}
-	return 0
-}
-
-func ByteToBool(value byte) bool {
-
-	return value != 0
-}
 
 type HashTableBucketHeader struct {
 	occupied bool
@@ -38,9 +25,9 @@ func (header HashTableBucketHeader) Size() int {
 
 func (header HashTableBucketHeader) WriteSelf(file *os.File) error {
 
-	occupied := BoolToByte(header.occupied)
+	occupied := dataio.BoolToByte(header.occupied)
 
-	deleted := BoolToByte(header.deleted)
+	deleted := dataio.BoolToByte(header.deleted)
 
 	if err := binary.Write(file, binary.LittleEndian, occupied); err != nil {
 
@@ -77,5 +64,5 @@ func (header HashTableBucketHeader) ReadSelf(file *os.File) (schema.FixedSize, e
 
 		return nil, err
 	}
-	return HashTableBucketHeader{ByteToBool(occupied), ByteToBool(deleted), collisionTableId}, nil
+	return HashTableBucketHeader{dataio.ByteToBool(occupied), dataio.ByteToBool(deleted), collisionTableId}, nil
 }

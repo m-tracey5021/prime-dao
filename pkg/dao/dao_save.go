@@ -1,6 +1,8 @@
 package dao
 
 import (
+	"strconv"
+
 	"github.com/google/uuid"
 	"github.com/m-tracey5021/prime-dao/pkg/fm"
 )
@@ -44,7 +46,7 @@ func (dao *Dao[T]) Save(object T) (int, error) {
 
 	availableTable := dao.UpdateMetadataPreSave()
 
-	objectFile, err := dao.fileManager.OpenAndLock(fm.DaoObjectFile, availableTable)
+	objectFile, err := dao.fileManager.OpenAndLock(fm.DaoObjectFile, strconv.FormatUint(availableTable, 10))
 
 	defer dao.fileManager.CloseAndUnlock(objectFile, &err)
 

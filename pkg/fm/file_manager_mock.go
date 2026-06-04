@@ -17,7 +17,7 @@ func (mockFileManager *MockFileManager) Concatenate(descriptor string) IFileMana
 	return args.Get(0).(IFileManager)
 }
 
-func (mockFileManager *MockFileManager) OpenAndLock(fileAlias FileAlias, idChain ...uint64) (*os.File, error) {
+func (mockFileManager *MockFileManager) OpenAndLock(fileAlias FileAlias, idChain ...string) (*os.File, error) {
 
 	args := mockFileManager.Called(fileAlias, idChain)
 

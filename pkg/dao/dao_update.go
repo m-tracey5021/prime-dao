@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"strconv"
 
 	"github.com/m-tracey5021/prime-dao/pkg/fm"
 )
@@ -52,7 +53,7 @@ func (dao *Dao[T]) Update(object T) (int, error) {
 	}
 	index := *indexPtr
 
-	objectFile, err := dao.fileManager.OpenAndLock(fm.DaoObjectFile, index.fileId)
+	objectFile, err := dao.fileManager.OpenAndLock(fm.DaoObjectFile, strconv.FormatUint(index.fileId, 10))
 
 	defer dao.fileManager.CloseAndUnlock(objectFile, &err)
 

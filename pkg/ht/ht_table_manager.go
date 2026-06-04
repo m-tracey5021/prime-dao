@@ -5,6 +5,7 @@ import (
 	"hash/fnv"
 	"io"
 	"os"
+	"strconv"
 	"unsafe"
 
 	"github.com/google/uuid"
@@ -176,7 +177,7 @@ func (manager *HashTableManager[T]) Locate(id uuid.UUID) (*os.File, HashTableBuc
 
 	hash := manager.ComputeHash(id)
 
-	table, err := manager.fileManager.OpenAndLock(fm.HashTableCollisionTable, uint64(hash.tableGroup), uint64(hash.tableNumber))
+	table, err := manager.fileManager.OpenAndLock(fm.HashTableCollisionTable, strconv.Itoa(hash.tableGroup), strconv.Itoa(hash.tableNumber))
 
 	defer manager.CloseConditionally(&closeTable, table, &err)
 
@@ -205,7 +206,7 @@ func (manager *HashTableManager[T]) LocateEmpty(id uuid.UUID) (*os.File, int, er
 
 	hash := manager.ComputeHash(id)
 
-	table, err := manager.fileManager.OpenAndLock(fm.HashTableCollisionTable, uint64(hash.tableGroup), uint64(hash.tableNumber))
+	table, err := manager.fileManager.OpenAndLock(fm.HashTableCollisionTable, strconv.Itoa(hash.tableGroup), strconv.Itoa(hash.tableNumber))
 
 	defer manager.CloseConditionally(&closeTable, table, &err)
 

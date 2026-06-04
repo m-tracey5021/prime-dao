@@ -8,6 +8,20 @@ import (
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
 )
 
+func BoolToByte(value bool) byte {
+
+	if value {
+
+		return 1
+	}
+	return 0
+}
+
+func ByteToBool(value byte) bool {
+
+	return value != 0
+}
+
 type IFixedSizeDataIO[T schema.FixedSize] interface {
 	Write(file *os.File, object T) error
 

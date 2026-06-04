@@ -12,11 +12,18 @@ import (
 
 type MockHashable struct {
 	MockHashableId uuid.UUID
+
+	Data uint64
 }
 
 func (obj MockHashable) Id() uuid.UUID {
 
 	return obj.MockHashableId
+}
+
+func (obj *MockHashable) SetId(id uuid.UUID) {
+
+	obj.MockHashableId = id
 }
 
 func (obj MockHashable) Descriptor() string {
@@ -26,12 +33,16 @@ func (obj MockHashable) Descriptor() string {
 
 func (obj MockHashable) Size() int {
 
-	return 8
+	return 24
 }
 
 func (obj MockHashable) WriteSelf(file *os.File) error {
 
 	if err := binary.Write(file, binary.LittleEndian, obj.MockHashableId); err != nil {
+
+		return err
+	}
+	if err := binary.Write(file, binary.LittleEndian, obj.Data); err != nil {
 
 		return err
 	}
@@ -42,11 +53,17 @@ func (obj MockHashable) ReadSelf(file *os.File) (schema.FixedSize, error) {
 
 	var mockHashableId uuid.UUID
 
+	var data uint64
+
 	if err := binary.Read(file, binary.BigEndian, &mockHashableId); err != nil {
 
 		return nil, err
 	}
-	return MockHashable{mockHashableId}, nil
+	if err := binary.Read(file, binary.BigEndian, &data); err != nil {
+
+		return nil, err
+	}
+	return MockHashable{mockHashableId, data}, nil
 }
 
 func setupHashTableMockDependencies() (
