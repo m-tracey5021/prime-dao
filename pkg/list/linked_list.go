@@ -1,8 +1,6 @@
 package list
 
 import (
-	"errors"
-	"io"
 	"os"
 
 	"github.com/google/uuid"
@@ -11,63 +9,17 @@ import (
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
 )
 
-type Iterator[T schema.FixedSize] struct {
-	current int
-
-	fileManager fm.IFileManager
-
-	objectFile *os.File
-
-	err *error
-
-	objectIO dataio.FixedSizeDataIO[T]
-}
-
-func (list LinkedList[T]) Iter() (Iterator[T], error) {
-
-	objectFile, err := list.fileManager.OpenAndLock(fm.ListFile, list.id.String())
-
-	if err != nil {
-
-		return Iterator[T]{}, err
-	}
-	return Iterator[T]{-1, list.fileManager, objectFile, &err, dataio.FixedSizeDataIO[T]{}}, nil
-}
-
-func (iter *Iterator[T]) Next() (*T, error) {
-
-	read, err := iter.objectIO.Read(iter.objectFile)
-
-	if errors.Is(err, io.EOF) {
-
-		return nil, nil
-	}
-	iter.current += 1
-
-	return &read, nil
-}
-
-func (iter *Iterator[T]) Current() int {
-
-	return iter.current
-}
-
-func (iter Iterator[T]) Close(err *error) {
-
-	iter.fileManager.CloseAndUnlock(iter.objectFile, iter.err)
-}
-
-type LinkedList[T schema.FixedSize] struct {
+type LinkedList[T schema.Identifiable] struct {
 	id uuid.UUID
 
 	size int
 
 	fileManager fm.IFileManager
 
-	objectIO dataio.FixedSizeDataIO[T]
+	objectIO dataio.DataIO[T]
 }
 
-func NewList[T schema.FixedSize](fileManager fm.IFileManager) LinkedList[T] {
+func NewIdentifiableList[T schema.Identifiable](fileManager fm.IFileManager) LinkedList[T] {
 
 	id := uuid.New()
 
@@ -77,29 +29,7 @@ func NewList[T schema.FixedSize](fileManager fm.IFileManager) LinkedList[T] {
 
 		fileManager: fileManager,
 
-		objectIO: dataio.FixedSizeDataIO[T]{},
-	}
-}
-
-func From[T schema.FixedSize](fileManager fm.IFileManager, id uuid.UUID) LinkedList[T] {
-
-	objectFile, err := fileManager.OpenAndLock(fm.ListFile, id.String())
-
-	defer fileManager.CloseAndUnlock(objectFile, &err)
-
-	fileSize, err := fileManager.Size(objectFile)
-
-	var t T
-
-	return LinkedList[T]{
-
-		id: id,
-
-		size: fileSize / t.Size(),
-
-		fileManager: fileManager,
-
-		objectIO: dataio.FixedSizeDataIO[T]{},
+		objectIO: dataio.DataIO[T]{},
 	}
 }
 
@@ -113,16 +43,46 @@ func (list LinkedList[T]) Size() int {
 	return list.size
 }
 
-func (list LinkedList[T]) Copy(fileManager fm.IFileManager, index int) (LinkedList[T], error) {
+func (list LinkedList[T]) GetPositionOfIndex(file *os.File, index int) (int, int, error) {
+
+	for range index - 1 {
+
+		if _, err := list.objectIO.ReadSizePrefixed(file); err != nil {
+
+			return 0, 0, err
+		}
+	}
+	start, err := list.fileManager.CurrentPosition(file)
+
+	if err != nil {
+
+		return 0, 0, err
+	}
+	if _, err := list.objectIO.ReadSizePrefixed(file); err != nil {
+
+		return 0, 0, err
+	}
+	end, err := list.fileManager.CurrentPosition(file)
+
+	if err != nil {
+
+		return 0, 0, err
+	}
+	return start, end, nil
+}
+
+func (list LinkedList[T]) Copy(index int) (LinkedList[T], error) {
 
 	objectFile, err := list.fileManager.OpenAndLock(fm.ListFile, list.id.String())
 
 	defer list.fileManager.CloseAndUnlock(objectFile, &err)
 
-	var t T
+	position, _, err := list.GetPositionOfIndex(objectFile, index)
 
-	position := t.Size() * index
+	if err != nil {
 
+		return LinkedList[T]{}, err
+	}
 	totalLength, err := list.fileManager.Size(objectFile)
 
 	copyLength := totalLength - position
@@ -151,11 +111,11 @@ func (list LinkedList[T]) Copy(fileManager fm.IFileManager, index int) (LinkedLi
 
 		id: newId,
 
-		size: copyLength / t.Size(),
+		size: list.size - index,
 
-		fileManager: fileManager,
+		fileManager: list.fileManager, // have changed this from being passed in, not sure if it matters or not
 
-		objectIO: dataio.FixedSizeDataIO[T]{},
+		objectIO: dataio.DataIO[T]{},
 	}, err
 }
 
@@ -165,236 +125,57 @@ func (list LinkedList[T]) Replace(object T, index int) error {
 
 	defer list.fileManager.CloseAndUnlock(objectFile, &err)
 
-	var t T
-
-	position := index * t.Size()
-
-	if err := list.fileManager.GoTo(position, objectFile); err != nil {
-
-		return err
-	}
-	err = list.objectIO.Write(objectFile, object)
-
-	return err
-}
-
-// TODO sort out errors being covered by return statement
-func (list LinkedList[T]) Index(index int) (T, error) {
-
-	objectFile, err := list.fileManager.OpenAndLock(fm.ListFile, list.id.String())
-
-	defer list.fileManager.CloseAndUnlock(objectFile, &err)
-
-	var t T
-
-	position := index * t.Size()
-
-	if err := list.fileManager.GoTo(position, objectFile); err != nil {
-
-		return t, err
-	}
-	if object, err := list.objectIO.Read(objectFile); err != nil {
-
-		return t, err
-
-	} else {
-
-		return object, err
-	}
-}
-
-func (list LinkedList[T]) ToSlice() ([]T, error) {
-
-	objectFile, err := list.fileManager.OpenAndLock(fm.ListFile, list.id.String())
-
-	defer list.fileManager.CloseAndUnlock(objectFile, &err)
-
-	slice := []T{}
-
-	for range list.size {
-
-		object, err := list.objectIO.Read(objectFile)
-
-		if err != nil {
-
-			return []T{}, err
-		}
-		slice = append(slice, object)
-	}
-	return slice, err
-}
-
-func (list *LinkedList[T]) Insert(object T, index int) error {
-
-	objectFile, err := list.fileManager.OpenAndLock(fm.ListFile, list.id.String())
-
-	defer list.fileManager.CloseAndUnlock(objectFile, &err)
-
-	var t T
-
-	position := index * t.Size()
+	start, end, err := list.GetPositionOfIndex(objectFile, index)
 
 	totalLength, err := list.fileManager.Size(objectFile)
 
-	if err != nil {
+	copyLength := totalLength - end
+
+	copyBuffer := make([]byte, copyLength)
+
+	if err := list.fileManager.GoTo(end, objectFile); err != nil {
 
 		return err
 	}
-	remainingBuffer := make([]byte, totalLength-position)
-
-	if err := list.fileManager.GoTo(position, objectFile); err != nil {
+	if _, err = objectFile.Read(copyBuffer); err != nil {
 
 		return err
 	}
-	if _, err = objectFile.Read(remainingBuffer); err != nil {
-
-		return err
-	}
-	if err = objectFile.Truncate(int64(position)); err != nil {
-
-		return err
-	}
-	if err := list.fileManager.GoTo(position, objectFile); err != nil {
-
-		return err
-	}
-	if err := list.objectIO.Write(objectFile, object); err != nil {
-
-		return err
-	}
-	_, err = objectFile.Write(remainingBuffer)
-
-	list.size += 1
-
-	return err
-}
-
-func (list *LinkedList[T]) Append(object T) error {
-
-	objectFile, err := list.fileManager.OpenAndLock(fm.ListFile, list.id.String())
-
-	defer list.fileManager.CloseAndUnlock(objectFile, &err)
-
-	size, err := list.fileManager.Size(objectFile)
-
-	if err != nil {
-
-		return err
-	}
-	if err := list.fileManager.GoTo(size, objectFile); err != nil {
-
-		return err
-	}
-	err = list.objectIO.Write(objectFile, object)
-
-	list.size += 1
-
-	return err
-}
-
-func (list *LinkedList[T]) AppendAll(other LinkedList[T]) error {
-
-	objectFile, err := list.fileManager.OpenAndLock(fm.ListFile, list.id.String())
-
-	defer list.fileManager.CloseAndUnlock(objectFile, &err)
-
-	toAppend, err := list.fileManager.OpenAndLock(fm.ListFile, other.id.String())
-
-	defer list.fileManager.CloseAndUnlock(toAppend, &err)
-
-	initialSize, err := list.fileManager.Size(objectFile)
-
-	if err != nil {
-
-		return err
-	}
-	sizeToAppend, err := list.fileManager.Size(toAppend)
-
-	if err != nil {
-
-		return err
-	}
-	buffer := make([]byte, sizeToAppend)
-
-	if _, err := toAppend.Read(buffer); err != nil {
-
-		return err
-	}
-	if err := list.fileManager.GoTo(initialSize, objectFile); err != nil {
-
-		return err
-	}
-	if _, err = objectFile.Write(buffer); err != nil {
-
-		return err
-	}
-	list.size += other.Size()
-
-	return err
-}
-
-func (list *LinkedList[T]) Remove(index int) error {
-
-	objectFile, err := list.fileManager.OpenAndLock(fm.ListFile, list.id.String())
-
-	defer list.fileManager.CloseAndUnlock(objectFile, &err)
-
-	var t T
-
-	position := index * t.Size()
-
-	start := (index + 1) * t.Size()
-
-	totalLength, err := list.fileManager.Size(objectFile)
-
-	if err != nil {
-
-		return err
-	}
-	remainingBuffer := make([]byte, totalLength-start)
-
 	if err := list.fileManager.GoTo(start, objectFile); err != nil {
 
 		return err
 	}
-	if _, err = objectFile.Read(remainingBuffer); err != nil {
+	if _, err := list.objectIO.WriteSizePrefixed(objectFile, object); err != nil {
 
 		return err
 	}
-	if err = objectFile.Truncate(int64(position)); err != nil {
+	if _, err = objectFile.Write(copyBuffer); err != nil {
 
 		return err
 	}
-	if err := list.fileManager.GoTo(position, objectFile); err != nil {
-
-		return err
-	}
-	_, err = objectFile.Write(remainingBuffer)
-
-	list.size -= 1
-
-	return err
+	return nil
 }
 
-func (list *LinkedList[T]) Truncate(index int) error {
+// func (list LinkedList[T]) Index(index int) (T, error) {
 
-	objectFile, err := list.fileManager.OpenAndLock(fm.ListFile, list.id.String())
+// 	objectFile, err := list.fileManager.OpenAndLock(fm.ListFile, list.id.String())
 
-	defer list.fileManager.CloseAndUnlock(objectFile, &err)
+// 	defer list.fileManager.CloseAndUnlock(objectFile, &err)
 
-	var t T
+// 	var t T
 
-	position := index * t.Size()
+// 	position := index * t.Size()
 
-	totalLength, err := list.fileManager.Size(objectFile)
+// 	if err := list.fileManager.GoTo(position, objectFile); err != nil {
 
-	truncatedLength := totalLength - position
+// 		return t, err
+// 	}
+// 	if object, err := list.objectIO.Read(objectFile); err != nil {
 
-	numberOfObjectsTruncated := truncatedLength / t.Size()
+// 		return t, err
 
-	err = objectFile.Truncate(int64(position))
+// 	} else {
 
-	list.size -= numberOfObjectsTruncated
-
-	return err
-}
+// 		return object, err
+// 	}
+// }

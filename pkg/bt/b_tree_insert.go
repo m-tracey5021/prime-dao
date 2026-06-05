@@ -11,13 +11,11 @@ func (btree *BTree[T]) Insert(object T) error {
 
 	if btree.root.Keys == uuid.Nil {
 
-		rootKeys := list.NewList[BTreeNodeKey](btree.fileManager)
+		rootKeys := list.NewList[T](btree.fileManager)
 
 		root := BTreeNode{rootKeys.Id(), uuid.Nil}
 
-		nodeKey := BTreeNodeKey{object.Id(), 0, 0}
-
-		if err := rootKeys.Append(nodeKey); err != nil {
+		if err := rootKeys.Append(object); err != nil {
 
 			return err
 		}
@@ -31,9 +29,9 @@ func (btree *BTree[T]) Insert(object T) error {
 
 func (btree *BTree[T]) InsertSearchRecurse(object T, parent *BTreeNode, parentIndex *int, node BTreeNode) error {
 
-	keys := list.From[BTreeNodeKey](btree.fileManager, node.Keys)
+	keys := list.From[T](btree.fileManager, node.Keys)
 
-	indexForKey, found, err := btree.IndexForKey(keys, object.Id())
+	indexForKey, found, err := btree.IndexForKey(keys, object)
 
 	if err != nil {
 
@@ -51,15 +49,13 @@ func (btree *BTree[T]) InsertSearchRecurse(object T, parent *BTreeNode, parentIn
 
 		} else { // insert into child keys
 
-			newKey := BTreeNodeKey{object.Id(), 0, 0}
-
 			if indexForKey == keys.Size() {
 
-				return keys.Append(newKey)
+				return keys.Append(object)
 
 			} else {
 
-				return keys.Insert(newKey, indexForKey)
+				return keys.Insert(object, indexForKey)
 			}
 		}
 
@@ -81,11 +77,9 @@ func (btree *BTree[T]) InsertSearchRecurse(object T, parent *BTreeNode, parentIn
 
 func (btree *BTree[T]) SplitNode(object T, parent *BTreeNode, child BTreeNode, index int) error {
 
-	newKey := BTreeNodeKey{object.Id(), 0, 0}
+	originalKeys := list.From[T](btree.fileManager, child.Keys)
 
-	originalKeys := list.From[BTreeNodeKey](btree.fileManager, child.Keys)
-
-	originalKeys.Insert(newKey, index)
+	originalKeys.Insert(object, index)
 
 	middleKeyIndex := originalKeys.Size() / 2
 
@@ -109,7 +103,7 @@ func (btree *BTree[T]) SplitNode(object T, parent *BTreeNode, child BTreeNode, i
 
 	if parent != nil {
 
-		parentKeys := list.From[BTreeNodeKey](btree.fileManager, parent.Keys)
+		parentKeys := list.From[T](btree.fileManager, parent.Keys)
 
 		if parentKeys.Size() == btree.order-1 { // if parent is full
 
@@ -141,7 +135,7 @@ func (btree *BTree[T]) SplitNode(object T, parent *BTreeNode, child BTreeNode, i
 
 	} else {
 
-		rootKeys := list.NewList[BTreeNodeKey](btree.fileManager)
+		rootKeys := list.NewList[T](btree.fileManager)
 
 		rootChildren := list.NewList[BTreeNode](btree.fileManager)
 

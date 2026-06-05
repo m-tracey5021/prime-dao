@@ -1,8 +1,11 @@
 package dao
 
 import (
+	"bytes"
 	"sync"
 
+	"github.com/google/uuid"
+	"github.com/m-tracey5021/prime-dao/pkg/bt"
 	"github.com/m-tracey5021/prime-dao/pkg/dataio"
 	"github.com/m-tracey5021/prime-dao/pkg/fm"
 	"github.com/m-tracey5021/prime-dao/pkg/ht"
@@ -18,6 +21,8 @@ type Dao[T schema.Identifiable] struct {
 
 	indexHashTable ht.ITSFHashTable[DaoIndex]
 
+	indexBTree bt.BTree[DaoIndex]
+
 	objectIO dataio.DataIO[T]
 
 	idMutex sync.Mutex
@@ -27,7 +32,7 @@ type Dao[T schema.Identifiable] struct {
 	metadataMutex sync.Mutex
 }
 
-func From[T schema.Identifiable](fileManager fm.IFileManager) (Dao[T], error) {
+func From[T schema.Identifiable](fileManager fm.IFileManager) (*Dao[T], error) {
 
 	var described T
 
@@ -39,13 +44,13 @@ func From[T schema.Identifiable](fileManager fm.IFileManager) (Dao[T], error) {
 
 	if err != nil {
 
-		return Dao[T]{}, err
+		return &Dao[T]{}, err
 	}
 	size, err := fileManager.Size(daoMetadataFile)
 
 	if err != nil {
 
-		return Dao[T]{}, err
+		return &Dao[T]{}, err
 	}
 	metadataIO := dataio.DataIO[DaoMetadata[T]]{}
 
@@ -57,7 +62,7 @@ func From[T schema.Identifiable](fileManager fm.IFileManager) (Dao[T], error) {
 
 		if err != nil {
 
-			return Dao[T]{}, err
+			return &Dao[T]{}, err
 		}
 
 	} else {
@@ -82,22 +87,38 @@ func From[T schema.Identifiable](fileManager fm.IFileManager) (Dao[T], error) {
 		}
 		if _, err := metadataIO.WriteSizePrefixed(daoMetadataFile, metadata); err != nil {
 
-			return Dao[T]{}, err
+			return &Dao[T]{}, err
 		}
 	}
-	return Dao[T]{
+	dao := Dao[T]{
 
-			fileManager: fileManager,
+		fileManager: fileManager,
 
-			metadata: metadata,
+		metadata: metadata,
 
-			metadataIO: metadataIO,
+		metadataIO: metadataIO,
 
-			indexHashTable: ht.FromFileManager[DaoIndex](fileManager.Concatenate("idx")),
+		indexHashTable: ht.FromFileManager[DaoIndex](fileManager.Concatenate("idx")),
 
-			objectIO: dataio.DataIO[T]{},
-		},
-		err
+		indexBTree: bt.BTree[DaoIndex]{},
+
+		objectIO: dataio.DataIO[T]{},
+	}
+	btree, err := bt.NewBTree(3, fileManager, dao.Compare)
+	/*
+		TODO do this a bit cleaner, it is odd creating the dao, then
+		setting the function on the btree from the dao, to then add
+		it back to the dao again afterwards. This also means we have to
+		return a pointer to the dao because it copies the lock
+	*/
+
+	if err != nil {
+
+		return &Dao[T]{}, err
+	}
+	dao.indexBTree = btree
+
+	return &dao, nil
 }
 
 func (dao *Dao[T]) NewTransaction() DaoTransaction[T] {
@@ -141,4 +162,30 @@ func (dao *Dao[T]) ExecuteTransaction(transaction DaoTransaction[T]) (map[uint64
 		mappedResults[result.RequestId()] = result.Result()
 	}
 	return mappedResults, nil
+}
+
+/*
+	Can extend this functions at some point to be
+	able to add different comparators for different types
+	and build the btree based on that order
+*/
+
+func (dao *Dao[T]) Compare(a, b DaoIndex) int {
+
+	objectA, err := dao.Get(a.id)
+
+	if err != nil {
+
+		return 0
+	}
+	objectB, err := dao.Get(b.id)
+
+	uuidCompare := CompareUUIDs((*objectA).Id(), (*objectB).Id())
+
+	return uuidCompare
+}
+
+func CompareUUIDs(a, b uuid.UUID) int {
+
+	return bytes.Compare(a[:], b[:]) // Lexicographic comparison
 }

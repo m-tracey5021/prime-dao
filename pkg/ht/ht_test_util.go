@@ -26,6 +26,11 @@ func (obj *MockHashable) SetId(id uuid.UUID) {
 	obj.MockHashableId = id
 }
 
+func (obj *MockHashable) Compare(other schema.Orderable) schema.Order {
+
+	return schema.Equal
+}
+
 func (obj MockHashable) Descriptor() string {
 
 	return "mock_hash"

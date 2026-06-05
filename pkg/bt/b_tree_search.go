@@ -5,16 +5,21 @@ import (
 	"github.com/m-tracey5021/prime-dao/pkg/list"
 )
 
-func (btree BTree[T]) Search(object T) (*BTreeNode, int, *BTreeNodeKey, int, error) {
+/*
+Figure out what i need to pass in here to
+compare on whatever value is selected to be the relevant
+comparison, maybe need to introduce another type parameter
+*/
+func (btree BTree[T]) Search(object T) (*BTreeNode, int, *T, int, error) {
 
 	return btree.SearchRecurse(object, btree.root, 0)
 }
 
-func (btree BTree[T]) SearchRecurse(object T, node BTreeNode, nodeIndex int) (*BTreeNode, int, *BTreeNodeKey, int, error) {
+func (btree BTree[T]) SearchRecurse(object T, node BTreeNode, nodeIndex int) (*BTreeNode, int, *T, int, error) {
 
-	keys := list.From[BTreeNodeKey](btree.fileManager, node.Keys)
+	keys := list.From[T](btree.fileManager, node.Keys)
 
-	indexForKey, found, err := btree.IndexForKey(keys, object.Id())
+	indexForKey, found, err := btree.IndexForKey(keys, object)
 
 	if err != nil {
 

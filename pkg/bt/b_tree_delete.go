@@ -9,120 +9,113 @@ import (
 
 func (btree *BTree[T]) Delete(object T) error {
 
-	node, nodeIndex, key, keyIndex, err := btree.Search(object)
+	node, nodeIndex, _, keyIndex, err := btree.Search(object)
 
 	if err != nil {
 
 		return err
 	}
-	keys := list.From[BTreeNodeKey](btree.fileManager, node.Keys)
+	keys := list.From[T](btree.fileManager, node.Keys)
 
 	// if its a leaf node, then just delete the key, if the node has no
 	// children after deletion, then need to handle underflow
 	if node.Children == uuid.Nil {
 
-		if key.Size() > 1 {
+		if err := keys.Remove(keyIndex); err != nil {
 
-			return keys.Remove(keyIndex)
-
-		} else {
-
-			if err := keys.Remove(0); err != nil {
-
-				return err
-			}
-			parent := btree.parentage[*node]
-
-			parentKeys := list.From[BTreeNodeKey](btree.fileManager, parent.Keys)
-
-			siblings := list.From[BTreeNode](btree.fileManager, parent.Children)
-
-			// make sure to adjust parentage if necessary within Rotate
-			rotatedLeft, err := btree.Rotate(nodeIndex, keys, parentKeys, siblings, true)
-
-			if err != nil {
-
-				return err
-			}
-			if !rotatedLeft {
-
-				rotatedRight, err := btree.Rotate(nodeIndex, keys, parentKeys, siblings, false)
-
-				if err != nil {
-
-					return err
-				}
-				if !rotatedLeft && !rotatedRight {
-
-					// merge case
-				}
-			}
-			// if size of keys is less than minimum required (m/2 - 1),
-			// then borrow key from immediate sibling from left to right
-
-			// if the left sibling has extra keys, send the largest to the parent, and the parent down
-			// to replace the deleted key in the child
-
-			// if the right sibling has extra keys, send it to replace the deleted key
-
-			// if neither has enough keys, merge them together through the parent
+			return err
+		}
+		// No underflow if node still has enough keys
+		if keys.Size() >= btree.MinKeys() {
 
 			return nil
 		}
+		return btree.Underflow(*node, nodeIndex)
 
 	} else {
 
-		if keys.Size() > 1 {
+		// Internal node, so replace with in-order predecessor
+		children := list.From[BTreeNode](btree.fileManager, node.Children)
 
-			// if the interal node has more than the minimum number of keys, choose either its inorder predecessor or successor and move it up to the node
-			// if the nodes which contain the predecessor and successor both have the minimum number of keys, merge
-			// the children together either side of where the deletion took place
+		leftChild, err := children.Index(keyIndex)
 
-			// get the next key after this one wherever it is in the children
-			children := list.From[BTreeNode](btree.fileManager, node.Children)
+		if err != nil {
 
-			// merge all children after this point and between next node which still remains in parent
-			child, err := children.Index(keyIndex)
-
-			if err != nil {
-
-				return err
-			}
-			secondKeyIndex := keyIndex + 1
-
-			secondChild, err := children.Index(secondKeyIndex)
-
-			if err != nil {
-
-				return err
-			}
-			childKeys := list.From[BTreeNodeKey](btree.fileManager, child.Keys)
-
-			secondChildKeys := list.From[BTreeNodeKey](btree.fileManager, secondChild.Keys)
-
-			if err := childKeys.AppendAll(secondChildKeys); err != nil {
-
-				return err
-			}
-			if err := children.Remove(secondKeyIndex); err != nil {
-
-				return err
-			}
-			return keys.Remove(keyIndex)
-
-		} else {
-
-			// if the internal node only has the minimum number of keys
-			// delete then key and borrow from the child keys where possible, if
-			// not possible, then merge the children, move the children into the empty parent
+			return err
 		}
+		predecessor, predecessorNode, predecessorKeyIndex, err := btree.RightMostKey(leftChild)
 
-		// handle underflow
+		if err != nil {
+
+			return err
+		}
+		// Replace the deleted key with the predecessor
+		if err := keys.Replace(predecessor, keyIndex); err != nil {
+
+			return err
+		}
+		// Delete the predecessor from its leaf node
+		predecessorKeys := list.From[BTreeNodeKey](btree.fileManager, predecessorNode.Keys)
+
+		if err := predecessorKeys.Remove(predecessorKeyIndex); err != nil {
+
+			return err
+		}
+		if predecessorKeys.Size() < btree.MinKeys() {
+
+			predecessorNodeIndex, err := btree.IndexAsChildNode(predecessorNode)
+
+			if err != nil {
+
+				return err
+			}
+			return btree.Underflow(predecessorNode, predecessorNodeIndex)
+		}
 		return nil
 	}
 }
 
-func (btree *BTree[T]) Rotate(nodeIndex int, nodeKeys list.LinkedList[BTreeNodeKey], parentKeys list.LinkedList[BTreeNodeKey], siblings list.LinkedList[BTreeNode], rotateLeft bool) (bool, error) {
+func (btree *BTree[T]) Underflow(node BTreeNode, nodeIndex int) error {
+
+	parent, exists := btree.parentage[node]
+
+	if !exists {
+		// Node is root, underflow at root is fine (tree shrinks)
+		return nil
+	}
+	parentKeys := list.From[BTreeNodeKey](btree.fileManager, parent.Keys)
+
+	siblings := list.From[BTreeNode](btree.fileManager, parent.Children)
+
+	nodeKeys := list.From[BTreeNodeKey](btree.fileManager, node.Keys)
+
+	// Try rotating from left sibling first
+	rotatedLeft, err := btree.Rotate(nodeIndex, nodeKeys, parentKeys, siblings, true)
+
+	if err != nil {
+
+		return err
+	}
+	if rotatedLeft {
+
+		return nil
+	}
+	// Try rotating from right sibling
+	rotatedRight, err := btree.Rotate(nodeIndex, nodeKeys, parentKeys, siblings, false)
+
+	if err != nil {
+		return err
+
+	}
+	if rotatedRight {
+		return nil
+
+	}
+	// Neither rotation worked, so merge instead
+	return btree.Merge(node, nodeIndex, nodeKeys, parentKeys, siblings)
+}
+
+func (btree *BTree[T]) Rotate(nodeIndex int, nodeKeys list.FixedSizeLinkedList[BTreeNodeKey], parentKeys list.FixedSizeLinkedList[BTreeNodeKey], siblings list.FixedSizeLinkedList[BTreeNode], rotateLeft bool) (bool, error) {
 
 	canRotate := false
 
@@ -140,47 +133,162 @@ func (btree *BTree[T]) Rotate(nodeIndex int, nodeKeys list.LinkedList[BTreeNodeK
 
 		siblingIndex = nodeIndex + 1
 	}
-	if canRotate {
+	if !canRotate {
 
-		relevantSibling, err := siblings.Index(siblingIndex)
+		return false, nil
+	}
+	relevantSibling, err := siblings.Index(siblingIndex)
+
+	if err != nil {
+
+		return false, err
+	}
+	relevantKeys := list.From[BTreeNodeKey](btree.fileManager, relevantSibling.Keys)
+
+	if relevantKeys.Size() <= btree.MinKeys() {
+
+		return false, nil
+	}
+	// Left rotation: borrow largest from left sibling
+	// Right rotation: borrow smallest from right sibling
+	keyIndex := relevantKeys.Size() - 1
+
+	if !rotateLeft {
+
+		keyIndex = 0
+	}
+	keyToTransfer, err := relevantKeys.Index(keyIndex)
+	if err != nil {
+
+		return false, err
+	}
+	// Separator key in parent sits between the two nodes
+	parentKeyIndex := nodeIndex - 1
+
+	if !rotateLeft {
+
+		parentKeyIndex = nodeIndex
+	}
+	parentKey, err := parentKeys.Index(parentKeyIndex)
+
+	if err != nil {
+
+		return false, err
+	}
+	// Remove transferred key from sibling
+	if err := relevantKeys.Remove(keyIndex); err != nil {
+
+		return false, err
+	}
+	// Sibling's key replaces the separator in parent
+	if err := parentKeys.Replace(keyToTransfer, parentKeyIndex); err != nil {
+
+		return false, err
+	}
+	// Parent's old separator key goes into the underflowing node
+	if err := nodeKeys.Append(parentKey); err != nil {
+
+		return false, err
+	}
+	return true, nil
+}
+
+// merge combines a node with a sibling, pulling the separator key down from the parent
+func (btree *BTree[T]) Merge(node BTreeNode, nodeIndex int, nodeKeys list.FixedSizeLinkedList[BTreeNodeKey], parentKeys list.FixedSizeLinkedList[BTreeNodeKey], siblings list.FixedSizeLinkedList[BTreeNode]) error {
+
+	// Prefer merging with left sibling, otherwise right
+	var leftIndex, rightIndex int
+
+	if nodeIndex > 0 {
+
+		leftIndex = nodeIndex - 1
+
+		rightIndex = nodeIndex
+
+	} else {
+
+		leftIndex = nodeIndex
+
+		rightIndex = nodeIndex + 1
+	}
+	separatorIndex := leftIndex
+
+	leftNode, err := siblings.Index(leftIndex)
+
+	if err != nil {
+
+		return err
+	}
+	rightNode, err := siblings.Index(rightIndex)
+
+	if err != nil {
+
+		return err
+	}
+	leftKeys := list.From[BTreeNodeKey](btree.fileManager, leftNode.Keys)
+
+	rightKeys := list.From[BTreeNodeKey](btree.fileManager, rightNode.Keys)
+
+	// Pull separator key down from parent into left node
+	separatorKey, err := parentKeys.Index(separatorIndex)
+
+	if err != nil {
+
+		return err
+	}
+	if err := leftKeys.Append(separatorKey); err != nil {
+
+		return err
+	}
+	// Append all right node keys into left node
+	if err := leftKeys.AppendAll(rightKeys); err != nil {
+
+		return err
+	}
+	// If internal nodes, move right node's children into left node
+	if rightNode.Children != uuid.Nil {
+
+		leftChildren := list.From[BTreeNode](btree.fileManager, leftNode.Children)
+
+		rightChildren := list.From[BTreeNode](btree.fileManager, rightNode.Children)
+
+		if err := leftChildren.AppendAll(rightChildren); err != nil {
+
+			return err
+		}
+		// Update parentage for moved children
+		for i := 0; i < rightChildren.Size(); i++ {
+
+			child, err := rightChildren.Index(i)
+
+			if err != nil {
+
+				return err
+			}
+			btree.parentage[child] = leftNode
+		}
+	}
+	// Remove the separator key and right node from parent
+	if err := parentKeys.Remove(separatorIndex); err != nil {
+
+		return err
+	}
+	if err := siblings.Remove(rightIndex); err != nil {
+
+		return err
+	}
+	// Parent may now be underflowing, recurse upward
+	parent := btree.parentage[node]
+
+	if parentKeys.Size() < btree.MinKeys() {
+
+		parentIndex, err := btree.IndexAsChildNode(parent)
 
 		if err != nil {
 
-			return false, err
+			return err
 		}
-		relevantKeys := list.From[BTreeNodeKey](btree.fileManager, relevantSibling.Keys)
-
-		if relevantKeys.Size() > 1 {
-
-			keyIndex := 0
-
-			if !rotateLeft {
-
-				keyIndex = relevantKeys.Size() - 1
-			}
-			keyToTransfer, err := relevantKeys.Index(keyIndex)
-
-			if err != nil {
-
-				return false, err
-			}
-			parentKey, err := parentKeys.Index(nodeIndex)
-
-			if err != nil {
-
-				return false, err
-			}
-			if err := parentKeys.Replace(keyToTransfer, nodeIndex); err != nil {
-
-				return false, err
-			}
-			if err := nodeKeys.Append(parentKey); err != nil {
-
-				return false, err
-			}
-			return true, nil
-		}
-		return false, nil
+		return btree.Underflow(parent, parentIndex)
 	}
-	return false, nil
+	return nil
 }

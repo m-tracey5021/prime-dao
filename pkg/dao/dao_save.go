@@ -39,6 +39,10 @@ func (dao *Dao[T]) UpdateMetadataPostSave(tableIdSavedTo uint64, object T, posit
 
 		return err
 	}
+	if err := dao.indexBTree.Insert(index); err != nil {
+
+		return err
+	}
 	return nil
 }
 

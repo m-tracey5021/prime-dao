@@ -70,3 +70,7 @@ func (index DaoIndex) ReadSelf(file *os.File) (schema.FixedSize, error) {
 	}
 	return DaoIndex{indexId, fileId, filePosition}, nil
 }
+
+// func (index DaoIndex) Compare(other schema.Orderable) schema.Order {
+
+// }

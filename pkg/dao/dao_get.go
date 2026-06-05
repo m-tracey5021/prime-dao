@@ -78,3 +78,16 @@ func (dao *Dao[T]) GetAll() ([]T, error) {
 	}
 	return objects, err
 }
+
+// func (dao *Dao[T]) Scan(object T) (*T, error) {
+
+// 	// add caching here aswell, as above
+// 	index, err := dao.indexHashTable.Get(object.Id())
+
+// 	if err != nil {
+
+// 		return nil, err
+// 	}
+
+// 	x, y, z, a, b := dao.indexBTree.Search(*index)
+// }

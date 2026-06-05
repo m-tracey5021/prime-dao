@@ -11,7 +11,7 @@ import (
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
 )
 
-type BTree[T schema.Identifiable] struct {
+type BTree[T schema.FixedSizeIdentifiable] struct {
 	order int
 
 	fileManager fm.IFileManager
@@ -19,9 +19,11 @@ type BTree[T schema.Identifiable] struct {
 	root BTreeNode
 
 	parentage map[BTreeNode]BTreeNode
+
+	comparator func(a, b T) int
 }
 
-func NewBTree[T schema.Identifiable](order int, fileManager fm.IFileManager) (BTree[T], error) {
+func NewBTree[T schema.FixedSizeIdentifiable](order int, fileManager fm.IFileManager, comparator func(a, b T) int) (BTree[T], error) {
 
 	rootFile, err := fileManager.OpenAndLock(fm.BTree)
 
@@ -57,7 +59,7 @@ func NewBTree[T schema.Identifiable](order int, fileManager fm.IFileManager) (BT
 
 			return BTree[T]{}, err
 		}
-		return BTree[T]{order, fileManager, root, map[BTreeNode]BTreeNode{}}, err
+		return BTree[T]{order, fileManager, root, map[BTreeNode]BTreeNode{}, comparator}, err
 	}
 }
 
@@ -76,7 +78,7 @@ func (btree *BTree[T]) SaveRoot(node BTreeNode) error {
 	return err
 }
 
-func (btree BTree[T]) IndexForKey(keys list.LinkedList[BTreeNodeKey], objectId uuid.UUID) (int, bool, error) {
+func (btree BTree[T]) IndexForKey(keys list.FixedSizeLinkedList[T], object T) (int, bool, error) {
 
 	iterator, err := keys.Iter()
 
@@ -94,9 +96,7 @@ func (btree BTree[T]) IndexForKey(keys list.LinkedList[BTreeNodeKey], objectId u
 	}
 	for key != nil {
 
-		// logic
-
-		uuidCompare := btree.CompareUUIDs(objectId, key.Id)
+		uuidCompare := btree.comparator(object, *key)
 
 		if uuidCompare == -1 { // new < existing
 
@@ -121,6 +121,113 @@ func (btree BTree[T]) IndexForKey(keys list.LinkedList[BTreeNodeKey], objectId u
 		}
 	}
 	return int(keys.Size()), false, err
+}
+
+// func (btree BTree[T]) IndexForKey(keys list.FixedSizeLinkedList[T], objectId uuid.UUID) (int, bool, error) {
+
+// 	iterator, err := keys.Iter()
+
+// 	if err != nil {
+
+// 		return 0, false, err
+// 	}
+// 	defer iterator.Close(&err)
+
+// 	key, err := iterator.Next()
+
+// 	if err != nil {
+
+// 		return 0, false, err
+// 	}
+// 	for key != nil {
+
+// 		uuidCompare := btree.CompareUUIDs(objectId, (*key).Id())
+
+// if uuidCompare == -1 { // new < existing
+
+// 	// new key points to the current compared key as the next key
+
+// 	return iterator.Current(), false, err
+
+// } else if uuidCompare == 1 { // new > existing
+
+// 	// go to next key, unless this is last key
+
+// 	key, err = iterator.Next()
+
+// 	if err != nil {
+
+// 		return 0, false, err
+// 	}
+
+// } else { // new == existing
+
+// 	return iterator.Current(), true, err
+// }
+// 	}
+// 	return int(keys.Size()), false, err
+// }
+
+func (btree *BTree[T]) IndexAsChildNode(node BTreeNode) (int, error) {
+
+	parent, exists := btree.parentage[node]
+
+	if !exists {
+
+		return 0, fmt.Errorf("node has no parent")
+	}
+	siblings := list.From[BTreeNode](btree.fileManager, parent.Children)
+
+	for i := 0; i < siblings.Size(); i++ {
+
+		sibling, err := siblings.Index(i)
+
+		if err != nil {
+
+			return 0, err
+		}
+		if sibling == node {
+
+			return i, nil
+		}
+	}
+	return 0, fmt.Errorf("node not found in parent's children")
+}
+
+func (btree *BTree[T]) RightMostKey(node BTreeNode) (T, BTreeNode, int, error) {
+
+	var t T
+
+	keys := list.From[T](btree.fileManager, node.Keys)
+
+	// If leaf, return the rightmost key
+	if node.Children == uuid.Nil {
+
+		lastIndex := keys.Size() - 1
+
+		key, err := keys.Index(lastIndex)
+
+		if err != nil {
+
+			return t, BTreeNode{}, 0, err
+		}
+		return key, node, lastIndex, nil
+	}
+	// Otherwise recurse into the rightmost child
+	children := list.From[BTreeNode](btree.fileManager, node.Children)
+
+	lastChild, err := children.Index(children.Size() - 1)
+
+	if err != nil {
+
+		return t, BTreeNode{}, 0, err
+	}
+	return btree.RightMostKey(lastChild)
+}
+
+func (btree *BTree[T]) MinKeys() int {
+
+	return (btree.order / 2) - 1
 }
 
 func (btree *BTree[T]) ToString() string {
@@ -170,7 +277,6 @@ func (btree *BTree[T]) BuildString(str *string, node BTreeNode, level int) error
 
 			btree.BuildString(str, child, level+1)
 		}
-
 	}
 	return nil
 }
