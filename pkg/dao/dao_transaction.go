@@ -7,7 +7,7 @@ import (
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
 )
 
-type DaoTransaction[T schema.Identifiable] struct {
+type DaoTransaction[T schema.Orderable] struct {
 	requestIds map[uint64]struct{}
 
 	requests []IProcessableRequest[T]

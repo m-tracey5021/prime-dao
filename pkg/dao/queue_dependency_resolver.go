@@ -6,13 +6,13 @@ import (
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
 )
 
-type QueueDependencyResolver[T schema.Identifiable] struct {
+type QueueDependencyResolver[T schema.Orderable] struct {
 	dependentProcesses map[IProcessableRequest[T]][]uint64 // e.g. process 0 depends on processes 1, 2, 3
 
 	completed chan uint64
 }
 
-func NewResolver[T schema.Identifiable]() *QueueDependencyResolver[T] {
+func NewResolver[T schema.Orderable]() *QueueDependencyResolver[T] {
 
 	return &QueueDependencyResolver[T]{
 

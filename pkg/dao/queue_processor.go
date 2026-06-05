@@ -5,7 +5,7 @@ import (
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
 )
 
-type IProcessableRequest[T schema.Identifiable] interface {
+type IProcessableRequest[T schema.Orderable] interface {
 	RequestId() uint64
 
 	ObjectId() uuid.UUID

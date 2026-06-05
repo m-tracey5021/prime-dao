@@ -7,7 +7,7 @@ import (
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
 )
 
-type TSFQueueResult[T schema.Identifiable] struct {
+type TSFQueueResult[T schema.Orderable] struct {
 	requestId uint64
 
 	result IResult[T]
@@ -23,7 +23,7 @@ func (queueResult TSFQueueResult[T]) Result() IResult[T] {
 	return queueResult.result
 }
 
-type Queue[T schema.Identifiable] struct {
+type Queue[T schema.Orderable] struct {
 	numberOfWorkers int
 
 	batchSize int
@@ -43,7 +43,7 @@ type Queue[T schema.Identifiable] struct {
 	mu sync.Mutex
 }
 
-func NewQueue[T schema.Identifiable](numberOfWorkers int, batchSize int, bufferSize int) *Queue[T] {
+func NewQueue[T schema.Orderable](numberOfWorkers int, batchSize int, bufferSize int) *Queue[T] {
 
 	return &Queue[T]{
 

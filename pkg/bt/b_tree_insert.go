@@ -7,7 +7,7 @@ import (
 	"github.com/m-tracey5021/prime-dao/pkg/list"
 )
 
-func (btree *BTree[T]) Insert(object T) error {
+func (btree *BTree[T, U]) Insert(object T) error {
 
 	if btree.root.Keys == uuid.Nil {
 
@@ -27,7 +27,7 @@ func (btree *BTree[T]) Insert(object T) error {
 	}
 }
 
-func (btree *BTree[T]) InsertSearchRecurse(object T, parent *BTreeNode, parentIndex *int, node BTreeNode) error {
+func (btree *BTree[T, U]) InsertSearchRecurse(object T, parent *BTreeNode, parentIndex *int, node BTreeNode) error {
 
 	keys := list.From[T](btree.fileManager, node.Keys)
 
@@ -75,7 +75,7 @@ func (btree *BTree[T]) InsertSearchRecurse(object T, parent *BTreeNode, parentIn
 	}
 }
 
-func (btree *BTree[T]) SplitNode(object T, parent *BTreeNode, child BTreeNode, index int) error {
+func (btree *BTree[T, U]) SplitNode(object T, parent *BTreeNode, child BTreeNode, index int) error {
 
 	originalKeys := list.From[T](btree.fileManager, child.Keys)
 

@@ -12,7 +12,9 @@ import (
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
 )
 
-type Dao[T schema.Identifiable] struct {
+// U is the sort key type
+
+type Dao[T schema.Orderable] struct {
 	fileManager fm.IFileManager
 
 	metadata DaoMetadata[T]
@@ -21,7 +23,7 @@ type Dao[T schema.Identifiable] struct {
 
 	indexHashTable ht.ITSFHashTable[DaoIndex]
 
-	indexBTree bt.BTree[DaoIndex]
+	indexBTree bt.BTree[DaoIndex, T]
 
 	objectIO dataio.DataIO[T]
 
@@ -32,7 +34,7 @@ type Dao[T schema.Identifiable] struct {
 	metadataMutex sync.Mutex
 }
 
-func From[T schema.Identifiable](fileManager fm.IFileManager) (*Dao[T], error) {
+func From[T schema.Orderable](fileManager fm.IFileManager) (*Dao[T], error) {
 
 	var described T
 
@@ -100,11 +102,11 @@ func From[T schema.Identifiable](fileManager fm.IFileManager) (*Dao[T], error) {
 
 		indexHashTable: ht.FromFileManager[DaoIndex](fileManager.Concatenate("idx")),
 
-		indexBTree: bt.BTree[DaoIndex]{},
+		indexBTree: bt.BTree[DaoIndex, T]{},
 
 		objectIO: dataio.DataIO[T]{},
 	}
-	btree, err := bt.NewBTree(3, fileManager, dao.Compare)
+	btree, err := bt.NewBTree[DaoIndex, T](3, fileManager, dao.GetCompareValue)
 	/*
 		TODO do this a bit cleaner, it is odd creating the dao, then
 		setting the function on the btree from the dao, to then add
@@ -183,6 +185,11 @@ func (dao *Dao[T]) Compare(a, b DaoIndex) int {
 	uuidCompare := CompareUUIDs((*objectA).Id(), (*objectB).Id())
 
 	return uuidCompare
+}
+
+func (dao *Dao[T]) GetCompareValue(index DaoIndex) (*T, error) {
+
+	return dao.Get(index.id)
 }
 
 func CompareUUIDs(a, b uuid.UUID) int {

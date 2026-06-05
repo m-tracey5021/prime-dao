@@ -11,7 +11,7 @@ import (
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
 )
 
-type BTree[T schema.FixedSizeIdentifiable] struct {
+type BTree[T schema.FixedSizeIdentifiable, U schema.Orderable] struct {
 	order int
 
 	fileManager fm.IFileManager
@@ -20,10 +20,12 @@ type BTree[T schema.FixedSizeIdentifiable] struct {
 
 	parentage map[BTreeNode]BTreeNode
 
-	comparator func(a, b T) int
+	// comparator func(a, b U) int
+
+	getCompareValue func(key T) (*U, error)
 }
 
-func NewBTree[T schema.FixedSizeIdentifiable](order int, fileManager fm.IFileManager, comparator func(a, b T) int) (BTree[T], error) {
+func NewBTree[T schema.FixedSizeIdentifiable, U schema.Orderable](order int, fileManager fm.IFileManager, getCompareValue func(key T) (*U, error)) (BTree[T, U], error) {
 
 	rootFile, err := fileManager.OpenAndLock(fm.BTree)
 
@@ -33,11 +35,11 @@ func NewBTree[T schema.FixedSizeIdentifiable](order int, fileManager fm.IFileMan
 
 	if err != nil {
 
-		return BTree[T]{}, err
+		return BTree[T, U]{}, err
 	}
 	if size == 0 {
 
-		return BTree[T]{
+		return BTree[T, U]{
 
 				order: order,
 
@@ -57,13 +59,13 @@ func NewBTree[T schema.FixedSizeIdentifiable](order int, fileManager fm.IFileMan
 
 		if err != nil {
 
-			return BTree[T]{}, err
+			return BTree[T, U]{}, err
 		}
-		return BTree[T]{order, fileManager, root, map[BTreeNode]BTreeNode{}, comparator}, err
+		return BTree[T, U]{order, fileManager, root, map[BTreeNode]BTreeNode{}, getCompareValue}, err
 	}
 }
 
-func (btree *BTree[T]) SaveRoot(node BTreeNode) error {
+func (btree *BTree[T, U]) SaveRoot(node BTreeNode) error {
 
 	btree.root = node
 
@@ -78,7 +80,7 @@ func (btree *BTree[T]) SaveRoot(node BTreeNode) error {
 	return err
 }
 
-func (btree BTree[T]) IndexForKey(keys list.FixedSizeLinkedList[T], object T) (int, bool, error) {
+func (btree BTree[T, U]) IndexForKey(keys list.FixedSizeLinkedList[T], startKey T) (int, bool, error) {
 
 	iterator, err := keys.Iter()
 
@@ -88,27 +90,31 @@ func (btree BTree[T]) IndexForKey(keys list.FixedSizeLinkedList[T], object T) (i
 	}
 	defer iterator.Close(&err)
 
-	key, err := iterator.Next()
+	currentKey, err := iterator.Next()
 
 	if err != nil {
 
 		return 0, false, err
 	}
-	for key != nil {
+	for currentKey != nil {
 
-		uuidCompare := btree.comparator(object, *key)
+		a, err := btree.getCompareValue(startKey)
 
-		if uuidCompare == -1 { // new < existing
+		b, err := btree.getCompareValue(*currentKey)
+
+		compareValue := (*a).Compare(*b)
+
+		if compareValue == -1 { // new < existing
 
 			// new key points to the current compared key as the next key
 
 			return iterator.Current(), false, err
 
-		} else if uuidCompare == 1 { // new > existing
+		} else if compareValue == 1 { // new > existing
 
 			// go to next key, unless this is last key
 
-			key, err = iterator.Next()
+			currentKey, err = iterator.Next()
 
 			if err != nil {
 
@@ -123,7 +129,7 @@ func (btree BTree[T]) IndexForKey(keys list.FixedSizeLinkedList[T], object T) (i
 	return int(keys.Size()), false, err
 }
 
-// func (btree BTree[T]) IndexForKey(keys list.FixedSizeLinkedList[T], objectId uuid.UUID) (int, bool, error) {
+// func (btree BTree[T, U]) IndexForKey(keys list.FixedSizeLinkedList[T], objectId uuid.UUID) (int, bool, error) {
 
 // 	iterator, err := keys.Iter()
 
@@ -168,7 +174,7 @@ func (btree BTree[T]) IndexForKey(keys list.FixedSizeLinkedList[T], object T) (i
 // 	return int(keys.Size()), false, err
 // }
 
-func (btree *BTree[T]) IndexAsChildNode(node BTreeNode) (int, error) {
+func (btree *BTree[T, U]) IndexAsChildNode(node BTreeNode) (int, error) {
 
 	parent, exists := btree.parentage[node]
 
@@ -194,7 +200,7 @@ func (btree *BTree[T]) IndexAsChildNode(node BTreeNode) (int, error) {
 	return 0, fmt.Errorf("node not found in parent's children")
 }
 
-func (btree *BTree[T]) RightMostKey(node BTreeNode) (T, BTreeNode, int, error) {
+func (btree *BTree[T, U]) RightMostKey(node BTreeNode) (T, BTreeNode, int, error) {
 
 	var t T
 
@@ -225,12 +231,12 @@ func (btree *BTree[T]) RightMostKey(node BTreeNode) (T, BTreeNode, int, error) {
 	return btree.RightMostKey(lastChild)
 }
 
-func (btree *BTree[T]) MinKeys() int {
+func (btree *BTree[T, U]) MinKeys() int {
 
 	return (btree.order / 2) - 1
 }
 
-func (btree *BTree[T]) ToString() string {
+func (btree *BTree[T, U]) ToString() string {
 
 	str := ""
 
@@ -239,7 +245,7 @@ func (btree *BTree[T]) ToString() string {
 	return str
 }
 
-func (btree *BTree[T]) BuildString(str *string, node BTreeNode, level int) error {
+func (btree *BTree[T, U]) BuildString(str *string, node BTreeNode, level int) error {
 
 	*str += "\n"
 
@@ -281,7 +287,7 @@ func (btree *BTree[T]) BuildString(str *string, node BTreeNode, level int) error
 	return nil
 }
 
-func (btree BTree[T]) CompareUUIDs(a, b uuid.UUID) int {
+func (btree BTree[T, U]) CompareUUIDs(a, b uuid.UUID) int {
 
 	return bytes.Compare(a[:], b[:]) // Lexicographic comparison
 }

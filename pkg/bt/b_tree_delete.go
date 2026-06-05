@@ -7,7 +7,7 @@ import (
 
 // https://www.programiz.com/dsa/deletion-from-a-b-tree
 
-func (btree *BTree[T]) Delete(object T) error {
+func (btree *BTree[T, U]) Delete(object T) error {
 
 	node, nodeIndex, _, keyIndex, err := btree.Search(object)
 
@@ -75,7 +75,7 @@ func (btree *BTree[T]) Delete(object T) error {
 	}
 }
 
-func (btree *BTree[T]) Underflow(node BTreeNode, nodeIndex int) error {
+func (btree *BTree[T, U]) Underflow(node BTreeNode, nodeIndex int) error {
 
 	parent, exists := btree.parentage[node]
 
@@ -115,7 +115,7 @@ func (btree *BTree[T]) Underflow(node BTreeNode, nodeIndex int) error {
 	return btree.Merge(node, nodeIndex, nodeKeys, parentKeys, siblings)
 }
 
-func (btree *BTree[T]) Rotate(nodeIndex int, nodeKeys list.FixedSizeLinkedList[BTreeNodeKey], parentKeys list.FixedSizeLinkedList[BTreeNodeKey], siblings list.FixedSizeLinkedList[BTreeNode], rotateLeft bool) (bool, error) {
+func (btree *BTree[T, U]) Rotate(nodeIndex int, nodeKeys list.FixedSizeLinkedList[BTreeNodeKey], parentKeys list.FixedSizeLinkedList[BTreeNodeKey], siblings list.FixedSizeLinkedList[BTreeNode], rotateLeft bool) (bool, error) {
 
 	canRotate := false
 
@@ -194,7 +194,7 @@ func (btree *BTree[T]) Rotate(nodeIndex int, nodeKeys list.FixedSizeLinkedList[B
 }
 
 // merge combines a node with a sibling, pulling the separator key down from the parent
-func (btree *BTree[T]) Merge(node BTreeNode, nodeIndex int, nodeKeys list.FixedSizeLinkedList[BTreeNodeKey], parentKeys list.FixedSizeLinkedList[BTreeNodeKey], siblings list.FixedSizeLinkedList[BTreeNode]) error {
+func (btree *BTree[T, U]) Merge(node BTreeNode, nodeIndex int, nodeKeys list.FixedSizeLinkedList[BTreeNodeKey], parentKeys list.FixedSizeLinkedList[BTreeNodeKey], siblings list.FixedSizeLinkedList[BTreeNode]) error {
 
 	// Prefer merging with left sibling, otherwise right
 	var leftIndex, rightIndex int

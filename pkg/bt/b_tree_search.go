@@ -10,12 +10,12 @@ Figure out what i need to pass in here to
 compare on whatever value is selected to be the relevant
 comparison, maybe need to introduce another type parameter
 */
-func (btree BTree[T]) Search(object T) (*BTreeNode, int, *T, int, error) {
+func (btree BTree[T, U]) Search(object T) (*BTreeNode, int, *T, int, error) {
 
 	return btree.SearchRecurse(object, btree.root, 0)
 }
 
-func (btree BTree[T]) SearchRecurse(object T, node BTreeNode, nodeIndex int) (*BTreeNode, int, *T, int, error) {
+func (btree BTree[T, U]) SearchRecurse(object T, node BTreeNode, nodeIndex int) (*BTreeNode, int, *T, int, error) {
 
 	keys := list.From[T](btree.fileManager, node.Keys)
 

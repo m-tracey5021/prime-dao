@@ -7,7 +7,7 @@ import (
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
 )
 
-type ComponentStore[T schema.Identifiable] struct {
+type ComponentStore[T schema.Orderable] struct {
 	objectsOnDisk map[uuid.UUID]T
 
 	objectsInMemory map[uuid.UUID]T
@@ -21,7 +21,7 @@ type ComponentStore[T schema.Identifiable] struct {
 	transaction DaoTransaction[T]
 }
 
-func NewComponentStore[T schema.Identifiable](dao *Dao[T]) ComponentStore[T] {
+func NewComponentStore[T schema.Orderable](dao *Dao[T]) ComponentStore[T] {
 
 	return ComponentStore[T]{
 		objectsOnDisk: map[uuid.UUID]T{},

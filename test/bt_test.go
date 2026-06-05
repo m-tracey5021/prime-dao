@@ -27,7 +27,12 @@ func TestBTree(t *testing.T) {
 
 	fileManager := fm.NewFileManager(path, descriptor)
 
-	btree, err := bt.NewBTree[*ht.MockHashable](3, fileManager, func(a, b *ht.MockHashable) int { return 0 })
+	testObjectData := MockIdentifiable{uuid.New(), []int{8}}
+
+	btree, err := bt.NewBTree[ht.MockHashable, MockIdentifiable](3, fileManager, func(key ht.MockHashable) (*MockIdentifiable, error) {
+
+		return &testObjectData, nil
+	})
 
 	if err != nil {
 
@@ -42,49 +47,49 @@ func TestBTree(t *testing.T) {
 	testObjectF := ht.MockHashable{uuid.New(), 20}
 	testObjectG := ht.MockHashable{uuid.New(), 17}
 
-	if err := btree.Insert(&testObjectA); err != nil {
+	if err := btree.Insert(testObjectA); err != nil {
 
 		t.Fail()
 	}
 	str := btree.ToString()
 
 	fmt.Println(str)
-	if err := btree.Insert(&testObjectB); err != nil {
+	if err := btree.Insert(testObjectB); err != nil {
 
 		t.Fail()
 	}
 	str = btree.ToString()
 
 	fmt.Println(str)
-	if err := btree.Insert(&testObjectC); err != nil {
+	if err := btree.Insert(testObjectC); err != nil {
 
 		t.Fail()
 	}
 	str = btree.ToString()
 
 	fmt.Println(str)
-	if err := btree.Insert(&testObjectD); err != nil {
+	if err := btree.Insert(testObjectD); err != nil {
 
 		t.Fail()
 	}
 	str = btree.ToString()
 
 	fmt.Println(str)
-	if err := btree.Insert(&testObjectE); err != nil {
+	if err := btree.Insert(testObjectE); err != nil {
 
 		t.Fail()
 	}
 	str = btree.ToString()
 
 	fmt.Println(str)
-	if err := btree.Insert(&testObjectF); err != nil {
+	if err := btree.Insert(testObjectF); err != nil {
 
 		t.Fail()
 	}
 	str = btree.ToString()
 
 	fmt.Println(str)
-	if err := btree.Insert(&testObjectG); err != nil {
+	if err := btree.Insert(testObjectG); err != nil {
 
 		t.Fail()
 	}
@@ -92,14 +97,14 @@ func TestBTree(t *testing.T) {
 
 	fmt.Println(str)
 
-	result, _, _, _, err := btree.Search(&testObjectE)
+	result, _, _, _, err := btree.Search(testObjectE)
 
 	if err != nil {
 
 		t.Fail()
 	}
 	fmt.Println(result)
-	if err := btree.Delete(&testObjectD); err != nil {
+	if err := btree.Delete(testObjectD); err != nil {
 
 		t.Fail()
 	}
@@ -119,7 +124,12 @@ func TestBTreeDeleteCase1(t *testing.T) {
 
 	fileManager := fm.NewFileManager(path, descriptor)
 
-	btree, err := bt.NewBTree[*ht.MockHashable](3, fileManager, func(a, b *ht.MockHashable) int { return 0 })
+	testObjectData := MockIdentifiable{uuid.New(), []int{8}}
+
+	btree, err := bt.NewBTree[ht.MockHashable, MockIdentifiable](3, fileManager, func(key ht.MockHashable) (*MockIdentifiable, error) {
+		// finish this function by returning a map that mocks the real values
+		return &testObjectData, nil
+	})
 
 	if err != nil {
 
@@ -134,49 +144,49 @@ func TestBTreeDeleteCase1(t *testing.T) {
 	testObjectF := ht.MockHashable{uuid.New(), 20}
 	testObjectG := ht.MockHashable{uuid.New(), 17}
 
-	if err := btree.Insert(&testObjectA); err != nil {
+	if err := btree.Insert(testObjectA); err != nil {
 
 		t.Fail()
 	}
 	str := btree.ToString()
 
 	fmt.Println(str)
-	if err := btree.Insert(&testObjectB); err != nil {
+	if err := btree.Insert(testObjectB); err != nil {
 
 		t.Fail()
 	}
 	str = btree.ToString()
 
 	fmt.Println(str)
-	if err := btree.Insert(&testObjectC); err != nil {
+	if err := btree.Insert(testObjectC); err != nil {
 
 		t.Fail()
 	}
 	str = btree.ToString()
 
 	fmt.Println(str)
-	if err := btree.Insert(&testObjectD); err != nil {
+	if err := btree.Insert(testObjectD); err != nil {
 
 		t.Fail()
 	}
 	str = btree.ToString()
 
 	fmt.Println(str)
-	if err := btree.Insert(&testObjectE); err != nil {
+	if err := btree.Insert(testObjectE); err != nil {
 
 		t.Fail()
 	}
 	str = btree.ToString()
 
 	fmt.Println(str)
-	if err := btree.Insert(&testObjectF); err != nil {
+	if err := btree.Insert(testObjectF); err != nil {
 
 		t.Fail()
 	}
 	str = btree.ToString()
 
 	fmt.Println(str)
-	if err := btree.Insert(&testObjectG); err != nil {
+	if err := btree.Insert(testObjectG); err != nil {
 
 		t.Fail()
 	}
@@ -184,14 +194,14 @@ func TestBTreeDeleteCase1(t *testing.T) {
 
 	fmt.Println(str)
 
-	result, _, _, _, err := btree.Search(&testObjectE)
+	result, _, _, _, err := btree.Search(testObjectE)
 
 	if err != nil {
 
 		t.Fail()
 	}
 	fmt.Println(result)
-	if err := btree.Delete(&testObjectD); err != nil {
+	if err := btree.Delete(testObjectD); err != nil {
 
 		t.Fail()
 	}

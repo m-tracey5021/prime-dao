@@ -5,7 +5,7 @@ import (
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
 )
 
-type DaoGetRequest[T schema.Identifiable] struct {
+type DaoGetRequest[T schema.Orderable] struct {
 	requestId uint64
 
 	objectId uuid.UUID

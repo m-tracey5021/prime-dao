@@ -11,7 +11,9 @@ const (
 )
 
 type Orderable interface {
-	FixedSizeIdentifiable
+	Identifiable
+
+	SortKeyValue() any
 
 	Compare(Orderable) Order
 }
