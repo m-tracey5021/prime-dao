@@ -10,16 +10,16 @@ Figure out what i need to pass in here to
 compare on whatever value is selected to be the relevant
 comparison, maybe need to introduce another type parameter
 */
-func (btree BTree[T, U]) Search(object T) (*BTreeNode, int, *T, int, error) {
+func (btree BTree[T, U]) Search(id uuid.UUID) (*BTreeNode, int, *T, int, error) {
 
-	return btree.SearchRecurse(object, btree.root, 0)
+	return btree.SearchRecurse(id, btree.root, 0)
 }
 
-func (btree BTree[T, U]) SearchRecurse(object T, node BTreeNode, nodeIndex int) (*BTreeNode, int, *T, int, error) {
+func (btree BTree[T, U]) SearchRecurse(id uuid.UUID, node BTreeNode, nodeIndex int) (*BTreeNode, int, *T, int, error) {
 
 	keys := list.From[T](btree.fileManager, node.Keys)
 
-	indexForKey, found, err := btree.IndexForKey(keys, object)
+	indexForKey, found, err := btree.IndexForExistingKey(keys, id)
 
 	if err != nil {
 
@@ -49,7 +49,7 @@ func (btree BTree[T, U]) SearchRecurse(object T, node BTreeNode, nodeIndex int) 
 			}
 			btree.parentage[child] = node
 
-			return btree.SearchRecurse(object, child, indexForKey)
+			return btree.SearchRecurse(id, child, indexForKey)
 		}
 		return nil, 0, nil, 0, nil
 	}

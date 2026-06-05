@@ -1,7 +1,6 @@
 package test
 
 import (
-	"encoding/binary"
 	"fmt"
 	"testing"
 
@@ -10,12 +9,6 @@ import (
 	"github.com/m-tracey5021/prime-dao/pkg/fm"
 	"github.com/m-tracey5021/prime-dao/pkg/ht"
 )
-
-func UUIDFromInt(id uint64) uuid.UUID {
-	var b [16]byte
-	binary.BigEndian.PutUint64(b[8:], id) // Store in the last 8 bytes
-	return uuid.UUID(b)
-}
 
 func TestBTree(t *testing.T) {
 
@@ -27,17 +20,13 @@ func TestBTree(t *testing.T) {
 
 	fileManager := fm.NewFileManager(path, descriptor)
 
-	testObjectData := MockIdentifiable{uuid.New(), []int{8}}
-
-	btree, err := bt.NewBTree[ht.MockHashable, MockIdentifiable](3, fileManager, func(key ht.MockHashable) (*MockIdentifiable, error) {
-
-		return &testObjectData, nil
-	})
-
-	if err != nil {
-
-		t.Fail()
-	}
+	testObjectDataA := MockIdentifiable{uuid.New(), []int{8}}
+	testObjectDataB := MockIdentifiable{uuid.New(), []int{8}}
+	testObjectDataC := MockIdentifiable{uuid.New(), []int{8}}
+	testObjectDataD := MockIdentifiable{uuid.New(), []int{8}}
+	testObjectDataE := MockIdentifiable{uuid.New(), []int{8}}
+	testObjectDataF := MockIdentifiable{uuid.New(), []int{8}}
+	testObjectDataG := MockIdentifiable{uuid.New(), []int{8}}
 
 	testObjectA := ht.MockHashable{uuid.New(), 8}
 	testObjectB := ht.MockHashable{uuid.New(), 9}
@@ -46,6 +35,26 @@ func TestBTree(t *testing.T) {
 	testObjectE := ht.MockHashable{uuid.New(), 15}
 	testObjectF := ht.MockHashable{uuid.New(), 20}
 	testObjectG := ht.MockHashable{uuid.New(), 17}
+
+	btree, err := bt.NewBTree[ht.MockHashable, MockIdentifiable](3, fileManager, func(key uuid.UUID) (*MockIdentifiable, error) {
+
+		mapping := map[uuid.UUID]*MockIdentifiable{
+
+			testObjectA.Id(): &testObjectDataA,
+			testObjectB.Id(): &testObjectDataB,
+			testObjectC.Id(): &testObjectDataC,
+			testObjectD.Id(): &testObjectDataD,
+			testObjectE.Id(): &testObjectDataE,
+			testObjectF.Id(): &testObjectDataF,
+			testObjectG.Id(): &testObjectDataG,
+		}
+		return mapping[key], nil
+	})
+
+	if err != nil {
+
+		t.Fail()
+	}
 
 	if err := btree.Insert(testObjectA); err != nil {
 
@@ -97,7 +106,7 @@ func TestBTree(t *testing.T) {
 
 	fmt.Println(str)
 
-	result, _, _, _, err := btree.Search(testObjectE)
+	result, _, _, _, err := btree.Search(testObjectE.Id())
 
 	if err != nil {
 
@@ -124,17 +133,13 @@ func TestBTreeDeleteCase1(t *testing.T) {
 
 	fileManager := fm.NewFileManager(path, descriptor)
 
-	testObjectData := MockIdentifiable{uuid.New(), []int{8}}
-
-	btree, err := bt.NewBTree[ht.MockHashable, MockIdentifiable](3, fileManager, func(key ht.MockHashable) (*MockIdentifiable, error) {
-		// finish this function by returning a map that mocks the real values
-		return &testObjectData, nil
-	})
-
-	if err != nil {
-
-		t.Fail()
-	}
+	testObjectDataA := MockIdentifiable{uuid.New(), []int{8}}
+	testObjectDataB := MockIdentifiable{uuid.New(), []int{8}}
+	testObjectDataC := MockIdentifiable{uuid.New(), []int{8}}
+	testObjectDataD := MockIdentifiable{uuid.New(), []int{8}}
+	testObjectDataE := MockIdentifiable{uuid.New(), []int{8}}
+	testObjectDataF := MockIdentifiable{uuid.New(), []int{8}}
+	testObjectDataG := MockIdentifiable{uuid.New(), []int{8}}
 
 	testObjectA := ht.MockHashable{uuid.New(), 8}
 	testObjectB := ht.MockHashable{uuid.New(), 9}
@@ -143,6 +148,26 @@ func TestBTreeDeleteCase1(t *testing.T) {
 	testObjectE := ht.MockHashable{uuid.New(), 15}
 	testObjectF := ht.MockHashable{uuid.New(), 20}
 	testObjectG := ht.MockHashable{uuid.New(), 17}
+
+	btree, err := bt.NewBTree[ht.MockHashable, MockIdentifiable](3, fileManager, func(key uuid.UUID) (*MockIdentifiable, error) {
+
+		mapping := map[uuid.UUID]*MockIdentifiable{
+
+			testObjectA.Id(): &testObjectDataA,
+			testObjectB.Id(): &testObjectDataB,
+			testObjectC.Id(): &testObjectDataC,
+			testObjectD.Id(): &testObjectDataD,
+			testObjectE.Id(): &testObjectDataE,
+			testObjectF.Id(): &testObjectDataF,
+			testObjectG.Id(): &testObjectDataG,
+		}
+		return mapping[key], nil
+	})
+
+	if err != nil {
+
+		t.Fail()
+	}
 
 	if err := btree.Insert(testObjectA); err != nil {
 
@@ -194,7 +219,7 @@ func TestBTreeDeleteCase1(t *testing.T) {
 
 	fmt.Println(str)
 
-	result, _, _, _, err := btree.Search(testObjectE)
+	result, _, _, _, err := btree.Search(testObjectE.Id())
 
 	if err != nil {
 

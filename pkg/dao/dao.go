@@ -187,9 +187,9 @@ func (dao *Dao[T]) Compare(a, b DaoIndex) int {
 	return uuidCompare
 }
 
-func (dao *Dao[T]) GetCompareValue(index DaoIndex) (*T, error) {
+func (dao *Dao[T]) GetCompareValue(indexId uuid.UUID) (*T, error) {
 
-	return dao.Get(index.id)
+	return dao.Get(indexId)
 }
 
 func CompareUUIDs(a, b uuid.UUID) int {

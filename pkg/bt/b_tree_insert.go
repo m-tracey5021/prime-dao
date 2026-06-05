@@ -31,7 +31,7 @@ func (btree *BTree[T, U]) InsertSearchRecurse(object T, parent *BTreeNode, paren
 
 	keys := list.From[T](btree.fileManager, node.Keys)
 
-	indexForKey, found, err := btree.IndexForKey(keys, object)
+	indexForKey, found, err := btree.IndexForExistingKey(keys, object.Id())
 
 	if err != nil {
 

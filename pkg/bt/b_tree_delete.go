@@ -9,7 +9,7 @@ import (
 
 func (btree *BTree[T, U]) Delete(object T) error {
 
-	node, nodeIndex, _, keyIndex, err := btree.Search(object)
+	node, nodeIndex, _, keyIndex, err := btree.Search(object.Id())
 
 	if err != nil {
 

@@ -22,10 +22,10 @@ type BTree[T schema.FixedSizeIdentifiable, U schema.Orderable] struct {
 
 	// comparator func(a, b U) int
 
-	getCompareValue func(key T) (*U, error)
+	getCompareValue func(keyId uuid.UUID) (*U, error)
 }
 
-func NewBTree[T schema.FixedSizeIdentifiable, U schema.Orderable](order int, fileManager fm.IFileManager, getCompareValue func(key T) (*U, error)) (BTree[T, U], error) {
+func NewBTree[T schema.FixedSizeIdentifiable, U schema.Orderable](order int, fileManager fm.IFileManager, getCompareValue func(keyId uuid.UUID) (*U, error)) (BTree[T, U], error) {
 
 	rootFile, err := fileManager.OpenAndLock(fm.BTree)
 
@@ -80,7 +80,7 @@ func (btree *BTree[T, U]) SaveRoot(node BTreeNode) error {
 	return err
 }
 
-func (btree BTree[T, U]) IndexForKey(keys list.FixedSizeLinkedList[T], startKey T) (int, bool, error) {
+func (btree BTree[T, U]) IndexForExistingKey(keys list.FixedSizeLinkedList[T], targetKeyId uuid.UUID) (int, bool, error) {
 
 	iterator, err := keys.Iter()
 
@@ -98,11 +98,58 @@ func (btree BTree[T, U]) IndexForKey(keys list.FixedSizeLinkedList[T], startKey 
 	}
 	for currentKey != nil {
 
-		a, err := btree.getCompareValue(startKey)
+		a, err := btree.getCompareValue(targetKeyId)
 
-		b, err := btree.getCompareValue(*currentKey)
+		b, err := btree.getCompareValue((*currentKey).Id())
 
 		compareValue := (*a).Compare(*b)
+
+		if compareValue == -1 { // new < existing
+
+			// new key points to the current compared key as the next key
+
+			return iterator.Current(), false, err
+
+		} else if compareValue == 1 { // new > existing
+
+			// go to next key, unless this is last key
+
+			currentKey, err = iterator.Next()
+
+			if err != nil {
+
+				return 0, false, err
+			}
+
+		} else { // new == existing
+
+			return iterator.Current(), true, err
+		}
+	}
+	return int(keys.Size()), false, err
+}
+
+func (btree BTree[T, U]) IndexForNonExistingKey(keys list.FixedSizeLinkedList[T], object T, sortValue U) (int, bool, error) {
+
+	iterator, err := keys.Iter()
+
+	if err != nil {
+
+		return 0, false, err
+	}
+	defer iterator.Close(&err)
+
+	currentKey, err := iterator.Next()
+
+	if err != nil {
+
+		return 0, false, err
+	}
+	for currentKey != nil {
+
+		b, err := btree.getCompareValue((*currentKey).Id())
+
+		compareValue := sortValue.Compare(*b)
 
 		if compareValue == -1 { // new < existing
 
