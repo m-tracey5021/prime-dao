@@ -337,12 +337,6 @@ func (btree *BTree[T, U]) BuildString(str *string, node BTreeNode, level int) er
 
 	keys := list.From[T](btree.fileManager, node.Keys)
 
-	var t T
-
-	x := 24 / t.Size()
-
-	_ = x + x
-
 	keysActual, err := keys.ToSlice()
 
 	if err != nil {
@@ -351,7 +345,14 @@ func (btree *BTree[T, U]) BuildString(str *string, node BTreeNode, level int) er
 	}
 	for _, key := range keysActual {
 
-		*str += fmt.Sprintf("%v, ", key)
+		if value, err := btree.getCompareValue(key.Id()); err == nil {
+
+			*str += fmt.Sprintf("(key: %v, value: %v,", key, *value)
+
+		} else {
+
+			return err
+		}
 	}
 	*str += "]"
 
