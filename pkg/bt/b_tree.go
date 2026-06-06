@@ -49,6 +49,8 @@ func NewBTree[T schema.FixedSizeIdentifiable, U constraints.Ordered](order int, 
 				root: BTreeNode{uuid.Nil, uuid.Nil},
 
 				parentage: map[BTreeNode]BTreeNode{},
+
+				getCompareValue: getCompareValue,
 			},
 			err
 
@@ -333,7 +335,13 @@ func (btree *BTree[T, U]) BuildString(str *string, node BTreeNode, level int) er
 	}
 	*str += "["
 
-	keys := list.From[BTreeNodeKey](btree.fileManager, node.Keys)
+	keys := list.From[T](btree.fileManager, node.Keys)
+
+	var t T
+
+	x := 24 / t.Size()
+
+	_ = x + x
 
 	keysActual, err := keys.ToSlice()
 
