@@ -1,17 +1,20 @@
 module github.com/m-tracey5021/prime-dao
 
-go 1.22.5
-
-require github.com/stretchr/testify v1.9.0
-
-require github.com/google/uuid v1.6.0 // indirect
+go 1.25.0
 
 require (
-	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/google/uuid v1.6.0
+	github.com/stretchr/testify v1.11.1
+)
+
+require github.com/rogpeppe/go-internal v1.12.0 // indirect
+
+require (
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/kr/pretty v0.3.1 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
-	golang.org/x/exp v0.0.0-20241108190413-2d47ceb2692f
+	golang.org/x/exp v0.0.0-20260603202125-055de637280b
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

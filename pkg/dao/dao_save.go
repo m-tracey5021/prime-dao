@@ -7,7 +7,7 @@ import (
 	"github.com/m-tracey5021/prime-dao/pkg/fm"
 )
 
-func (dao *Dao[T]) UpdateMetadataPreSave() uint64 {
+func (dao *Dao[T, U]) UpdateMetadataPreSave() uint64 {
 
 	dao.metadataMutex.Lock()
 
@@ -31,7 +31,7 @@ func (dao *Dao[T]) UpdateMetadataPreSave() uint64 {
 	return newTableId
 }
 
-func (dao *Dao[T]) UpdateMetadataPostSave(tableIdSavedTo uint64, object T, position uint64) error {
+func (dao *Dao[T, U]) UpdateMetadataPostSave(tableIdSavedTo uint64, object T, position uint64) error {
 
 	index := DaoIndex{object.Id(), tableIdSavedTo, position}
 
@@ -46,7 +46,7 @@ func (dao *Dao[T]) UpdateMetadataPostSave(tableIdSavedTo uint64, object T, posit
 	return nil
 }
 
-func (dao *Dao[T]) Save(object T) (int, error) {
+func (dao *Dao[T, U]) Save(object T) (int, error) {
 
 	availableTable := dao.UpdateMetadataPreSave()
 

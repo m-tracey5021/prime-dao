@@ -9,9 +9,10 @@ import (
 	"github.com/m-tracey5021/prime-dao/pkg/fm"
 	"github.com/m-tracey5021/prime-dao/pkg/list"
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
+	"golang.org/x/exp/constraints"
 )
 
-type BTree[T schema.FixedSizeIdentifiable, U schema.Orderable] struct {
+type BTree[T schema.FixedSizeIdentifiable, U constraints.Ordered] struct {
 	order int
 
 	fileManager fm.IFileManager
@@ -25,7 +26,7 @@ type BTree[T schema.FixedSizeIdentifiable, U schema.Orderable] struct {
 	getCompareValue func(keyId uuid.UUID) (*U, error)
 }
 
-func NewBTree[T schema.FixedSizeIdentifiable, U schema.Orderable](order int, fileManager fm.IFileManager, getCompareValue func(keyId uuid.UUID) (*U, error)) (BTree[T, U], error) {
+func NewBTree[T schema.FixedSizeIdentifiable, U constraints.Ordered](order int, fileManager fm.IFileManager, getCompareValue func(keyId uuid.UUID) (*U, error)) (BTree[T, U], error) {
 
 	rootFile, err := fileManager.OpenAndLock(fm.BTree)
 
@@ -80,7 +81,24 @@ func (btree *BTree[T, U]) SaveRoot(node BTreeNode) error {
 	return err
 }
 
-func (btree BTree[T, U]) IndexForExistingKey(keys list.FixedSizeLinkedList[T], targetKeyId uuid.UUID) (int, bool, error) {
+func (btree BTree[T, U]) CompareSearchValues(a, b U) int {
+
+	if a < b {
+
+		return -1
+
+	} else if a > b {
+
+		return 1
+
+	} else {
+
+		return 0
+	}
+}
+
+// when searching for something, create a dummy value for type U which returns the relevant V for comparison when called
+func (btree BTree[T, U]) IndexForExistingKey(keys list.FixedSizeLinkedList[T], targetObjectSortValue U) (int, bool, error) {
 
 	iterator, err := keys.Iter()
 
@@ -98,11 +116,13 @@ func (btree BTree[T, U]) IndexForExistingKey(keys list.FixedSizeLinkedList[T], t
 	}
 	for currentKey != nil {
 
-		a, err := btree.getCompareValue(targetKeyId)
+		other, err := btree.getCompareValue((*currentKey).Id())
 
-		b, err := btree.getCompareValue((*currentKey).Id())
+		if err != nil {
 
-		compareValue := (*a).Compare(*b)
+			return 0, false, err
+		}
+		compareValue := btree.CompareSearchValues(targetObjectSortValue, *other)
 
 		if compareValue == -1 { // new < existing
 
@@ -129,7 +149,7 @@ func (btree BTree[T, U]) IndexForExistingKey(keys list.FixedSizeLinkedList[T], t
 	return int(keys.Size()), false, err
 }
 
-func (btree BTree[T, U]) IndexForNonExistingKey(keys list.FixedSizeLinkedList[T], object T, sortValue U) (int, bool, error) {
+func (btree BTree[T, U]) IndexForNonExistingKeyOnSave(keys list.FixedSizeLinkedList[T], targetKey T) (int, bool, error) {
 
 	iterator, err := keys.Iter()
 
@@ -147,9 +167,20 @@ func (btree BTree[T, U]) IndexForNonExistingKey(keys list.FixedSizeLinkedList[T]
 	}
 	for currentKey != nil {
 
-		b, err := btree.getCompareValue((*currentKey).Id())
+		// at this point the actual data should already be saved somewhere so it will be retrievable
+		target, err := btree.getCompareValue(targetKey.Id())
 
-		compareValue := sortValue.Compare(*b)
+		if err != nil {
+
+			return 0, false, err
+		}
+		other, err := btree.getCompareValue((*currentKey).Id())
+
+		if err != nil {
+
+			return 0, false, err
+		}
+		compareValue := btree.CompareSearchValues(*target, *other)
 
 		if compareValue == -1 { // new < existing
 

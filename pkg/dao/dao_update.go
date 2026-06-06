@@ -9,7 +9,7 @@ import (
 	"github.com/m-tracey5021/prime-dao/pkg/fm"
 )
 
-func (dao *Dao[T]) UpdateIndexes(objectFile *os.File, fileId, filePosition uint64) error {
+func (dao *Dao[T, U]) UpdateIndexes(objectFile *os.File, fileId, filePosition uint64) error {
 
 	if err := dao.fileManager.GoTo(int(filePosition), objectFile); err != nil {
 
@@ -43,7 +43,7 @@ func (dao *Dao[T]) UpdateIndexes(objectFile *os.File, fileId, filePosition uint6
 	return nil
 }
 
-func (dao *Dao[T]) Update(object T) (int, error) {
+func (dao *Dao[T, U]) Update(object T) (int, error) {
 
 	indexPtr, err := dao.indexHashTable.Get(object.Id())
 

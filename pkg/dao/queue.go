@@ -5,36 +5,37 @@ import (
 	"sync"
 
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
+	"golang.org/x/exp/constraints"
 )
 
-type TSFQueueResult[T schema.Orderable] struct {
+type TSFQueueResult[T schema.Orderable[U], U constraints.Ordered] struct {
 	requestId uint64
 
 	result IResult[T]
 }
 
-func (queueResult TSFQueueResult[T]) RequestId() uint64 {
+func (queueResult TSFQueueResult[T, U]) RequestId() uint64 {
 
 	return queueResult.requestId
 }
 
-func (queueResult TSFQueueResult[T]) Result() IResult[T] {
+func (queueResult TSFQueueResult[T, U]) Result() IResult[T] {
 
 	return queueResult.result
 }
 
-type Queue[T schema.Orderable] struct {
+type Queue[T schema.Orderable[U], U constraints.Ordered] struct {
 	numberOfWorkers int
 
 	batchSize int
 
 	bufferSize int
 
-	channel chan []IProcessableRequest[T]
+	channel chan []IProcessableRequest[T, U]
 
-	results chan TSFQueueResult[T]
+	results chan TSFQueueResult[T, U]
 
-	requestsProcessed []TSFQueueResult[T]
+	requestsProcessed []TSFQueueResult[T, U]
 
 	requestsWaitGroup sync.WaitGroup
 
@@ -43,9 +44,9 @@ type Queue[T schema.Orderable] struct {
 	mu sync.Mutex
 }
 
-func NewQueue[T schema.Orderable](numberOfWorkers int, batchSize int, bufferSize int) *Queue[T] {
+func NewQueue[T schema.Orderable[U], U constraints.Ordered](numberOfWorkers int, batchSize int, bufferSize int) *Queue[T, U] {
 
-	return &Queue[T]{
+	return &Queue[T, U]{
 
 		numberOfWorkers: numberOfWorkers,
 
@@ -53,15 +54,15 @@ func NewQueue[T schema.Orderable](numberOfWorkers int, batchSize int, bufferSize
 
 		bufferSize: bufferSize,
 
-		channel: make(chan []IProcessableRequest[T], bufferSize),
+		channel: make(chan []IProcessableRequest[T, U], bufferSize),
 
-		results: make(chan TSFQueueResult[T], bufferSize),
+		results: make(chan TSFQueueResult[T, U], bufferSize),
 
-		requestsProcessed: make([]TSFQueueResult[T], 0),
+		requestsProcessed: make([]TSFQueueResult[T, U], 0),
 	}
 }
 
-func (queue *Queue[T]) Start(dependencyResolver *QueueDependencyResolver[T], dao *Dao[T]) {
+func (queue *Queue[T, U]) Start(dependencyResolver *QueueDependencyResolver[T, U], dao *Dao[T, U]) {
 
 	dependencyResolver.ListenForCompletedDependencies()
 
@@ -81,7 +82,7 @@ func (queue *Queue[T]) Start(dependencyResolver *QueueDependencyResolver[T], dao
 
 					result := request.Process(dao)
 
-					mappedResult := TSFQueueResult[T]{request.RequestId(), result}
+					mappedResult := TSFQueueResult[T, U]{request.RequestId(), result}
 
 					dependencyResolver.completed <- request.RequestId()
 
@@ -107,7 +108,7 @@ func (queue *Queue[T]) Start(dependencyResolver *QueueDependencyResolver[T], dao
 	}()
 }
 
-func (queue *Queue[T]) ProcessDependencies(processor IProcessableRequest[T]) {
+func (queue *Queue[T, U]) ProcessDependencies(processor IProcessableRequest[T, U]) {
 
 	var dependencyWaitGroup sync.WaitGroup
 
@@ -127,7 +128,7 @@ func (queue *Queue[T]) ProcessDependencies(processor IProcessableRequest[T]) {
 	close(processor.Dependencies())
 }
 
-func (queue *Queue[T]) ProcessAsync(requests ...IProcessableRequest[T]) {
+func (queue *Queue[T, U]) ProcessAsync(requests ...IProcessableRequest[T, U]) {
 
 	numberOfBatches := (len(requests) + queue.batchSize - 1) / queue.batchSize
 
@@ -147,7 +148,7 @@ func (queue *Queue[T]) ProcessAsync(requests ...IProcessableRequest[T]) {
 	}
 }
 
-func (queue *Queue[T]) Stop() []TSFQueueResult[T] {
+func (queue *Queue[T, U]) Stop() []TSFQueueResult[T, U] {
 
 	close(queue.channel)
 

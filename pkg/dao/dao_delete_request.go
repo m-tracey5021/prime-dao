@@ -3,9 +3,10 @@ package dao
 import (
 	"github.com/google/uuid"
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
+	"golang.org/x/exp/constraints"
 )
 
-type DaoDeleteRequest[T schema.Orderable] struct {
+type DaoDeleteRequest[T schema.Orderable[U], U constraints.Ordered] struct {
 	requestId uint64
 
 	objectId uuid.UUID
@@ -15,32 +16,32 @@ type DaoDeleteRequest[T schema.Orderable] struct {
 	numberOfDependencies int
 }
 
-func (processor *DaoDeleteRequest[T]) RequestId() uint64 {
+func (processor *DaoDeleteRequest[T, U]) RequestId() uint64 {
 
 	return processor.requestId
 }
 
-func (processor *DaoDeleteRequest[T]) ObjectId() uuid.UUID {
+func (processor *DaoDeleteRequest[T, U]) ObjectId() uuid.UUID {
 
 	return processor.objectId
 }
 
-func (processor *DaoDeleteRequest[T]) Dependencies() chan uint64 {
+func (processor *DaoDeleteRequest[T, U]) Dependencies() chan uint64 {
 
 	return processor.dependencies
 }
 
-func (processor *DaoDeleteRequest[T]) GetNumDeps() int {
+func (processor *DaoDeleteRequest[T, U]) GetNumDeps() int {
 
 	return processor.numberOfDependencies
 }
 
-func (processor *DaoDeleteRequest[T]) SetNumDeps(deps int) {
+func (processor *DaoDeleteRequest[T, U]) SetNumDeps(deps int) {
 
 	processor.numberOfDependencies = deps
 }
 
-func (processor *DaoDeleteRequest[T]) Process(dao *Dao[T]) IResult[T] {
+func (processor *DaoDeleteRequest[T, U]) Process(dao *Dao[T, U]) IResult[T] {
 
 	sizeDeleted, err := dao.Delete(processor.objectId)
 

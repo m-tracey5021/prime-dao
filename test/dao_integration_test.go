@@ -31,25 +31,14 @@ func (identifiable MockIdentifiable) Descriptor() string {
 	return "mock"
 }
 
-func (identifiable MockIdentifiable) SortKeyValue() any {
+func (identifiable MockIdentifiable) SortKeyValue() int {
 
 	return 1
 }
 
-func (identifiable MockIdentifiable) Compare(other schema.Orderable) schema.Order {
+func (identifiable MockIdentifiable) Compare(other schema.Orderable[int]) schema.Order {
 
-	if other.SortKeyValue().(int) > identifiable.SortKeyValue().(int) {
-
-		return schema.Smaller
-
-	} else if other.SortKeyValue().(int) < identifiable.SortKeyValue().(int) {
-
-		return schema.Larger
-
-	} else {
-
-		return schema.Equal
-	}
+	return schema.Equal
 }
 
 func TestDao(t *testing.T) {
@@ -60,7 +49,7 @@ func TestDao(t *testing.T) {
 
 	descriptor := "obj_test"
 
-	dao, err := dao.From[MockIdentifiable](fm.NewFileManager(path, descriptor))
+	dao, err := dao.From[MockIdentifiable, int](fm.NewFileManager(path, descriptor))
 
 	if err != nil {
 

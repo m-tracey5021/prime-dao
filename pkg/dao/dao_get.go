@@ -9,7 +9,7 @@ import (
 	"github.com/m-tracey5021/prime-dao/pkg/fm"
 )
 
-func (dao *Dao[T]) Get(objectId uuid.UUID) (*T, error) {
+func (dao *Dao[T, U]) Get(objectId uuid.UUID) (*T, error) {
 
 	cached := dao.metadata.Cache.Get(objectId, &dao.cacheMutex)
 
@@ -46,7 +46,7 @@ func (dao *Dao[T]) Get(objectId uuid.UUID) (*T, error) {
 	return &object, err
 }
 
-func (dao *Dao[T]) GetAll() ([]T, error) {
+func (dao *Dao[T, U]) GetAll() ([]T, error) {
 
 	objects := []T{}
 
@@ -79,7 +79,7 @@ func (dao *Dao[T]) GetAll() ([]T, error) {
 	return objects, err
 }
 
-// func (dao *Dao[T]) Scan(object T) (*T, error) {
+// func (dao *Dao[T, U]) Scan(object T) (*T, error) {
 
 // 	// add caching here aswell, as above
 // 	index, err := dao.indexHashTable.Get(object.Id())

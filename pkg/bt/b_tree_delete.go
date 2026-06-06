@@ -7,9 +7,9 @@ import (
 
 // https://www.programiz.com/dsa/deletion-from-a-b-tree
 
-func (btree *BTree[T, U]) Delete(object T) error {
+func (btree *BTree[T, U]) Delete(searchValue U) error {
 
-	node, nodeIndex, _, keyIndex, err := btree.Search(object.Id())
+	node, nodeIndex, _, keyIndex, err := btree.Search(searchValue)
 
 	if err != nil {
 
@@ -55,7 +55,7 @@ func (btree *BTree[T, U]) Delete(object T) error {
 			return err
 		}
 		// Delete the predecessor from its leaf node
-		predecessorKeys := list.From[BTreeNodeKey](btree.fileManager, predecessorNode.Keys)
+		predecessorKeys := list.From[T](btree.fileManager, predecessorNode.Keys)
 
 		if err := predecessorKeys.Remove(predecessorKeyIndex); err != nil {
 
@@ -83,11 +83,11 @@ func (btree *BTree[T, U]) Underflow(node BTreeNode, nodeIndex int) error {
 		// Node is root, underflow at root is fine (tree shrinks)
 		return nil
 	}
-	parentKeys := list.From[BTreeNodeKey](btree.fileManager, parent.Keys)
+	parentKeys := list.From[T](btree.fileManager, parent.Keys)
 
 	siblings := list.From[BTreeNode](btree.fileManager, parent.Children)
 
-	nodeKeys := list.From[BTreeNodeKey](btree.fileManager, node.Keys)
+	nodeKeys := list.From[T](btree.fileManager, node.Keys)
 
 	// Try rotating from left sibling first
 	rotatedLeft, err := btree.Rotate(nodeIndex, nodeKeys, parentKeys, siblings, true)
@@ -115,7 +115,7 @@ func (btree *BTree[T, U]) Underflow(node BTreeNode, nodeIndex int) error {
 	return btree.Merge(node, nodeIndex, nodeKeys, parentKeys, siblings)
 }
 
-func (btree *BTree[T, U]) Rotate(nodeIndex int, nodeKeys list.FixedSizeLinkedList[BTreeNodeKey], parentKeys list.FixedSizeLinkedList[BTreeNodeKey], siblings list.FixedSizeLinkedList[BTreeNode], rotateLeft bool) (bool, error) {
+func (btree *BTree[T, U]) Rotate(nodeIndex int, nodeKeys list.FixedSizeLinkedList[T], parentKeys list.FixedSizeLinkedList[T], siblings list.FixedSizeLinkedList[BTreeNode], rotateLeft bool) (bool, error) {
 
 	canRotate := false
 
@@ -143,7 +143,7 @@ func (btree *BTree[T, U]) Rotate(nodeIndex int, nodeKeys list.FixedSizeLinkedLis
 
 		return false, err
 	}
-	relevantKeys := list.From[BTreeNodeKey](btree.fileManager, relevantSibling.Keys)
+	relevantKeys := list.From[T](btree.fileManager, relevantSibling.Keys)
 
 	if relevantKeys.Size() <= btree.MinKeys() {
 
@@ -158,6 +158,7 @@ func (btree *BTree[T, U]) Rotate(nodeIndex int, nodeKeys list.FixedSizeLinkedLis
 		keyIndex = 0
 	}
 	keyToTransfer, err := relevantKeys.Index(keyIndex)
+
 	if err != nil {
 
 		return false, err
@@ -194,7 +195,7 @@ func (btree *BTree[T, U]) Rotate(nodeIndex int, nodeKeys list.FixedSizeLinkedLis
 }
 
 // merge combines a node with a sibling, pulling the separator key down from the parent
-func (btree *BTree[T, U]) Merge(node BTreeNode, nodeIndex int, nodeKeys list.FixedSizeLinkedList[BTreeNodeKey], parentKeys list.FixedSizeLinkedList[BTreeNodeKey], siblings list.FixedSizeLinkedList[BTreeNode]) error {
+func (btree *BTree[T, U]) Merge(node BTreeNode, nodeIndex int, nodeKeys list.FixedSizeLinkedList[T], parentKeys list.FixedSizeLinkedList[T], siblings list.FixedSizeLinkedList[BTreeNode]) error {
 
 	// Prefer merging with left sibling, otherwise right
 	var leftIndex, rightIndex int
@@ -225,9 +226,9 @@ func (btree *BTree[T, U]) Merge(node BTreeNode, nodeIndex int, nodeKeys list.Fix
 
 		return err
 	}
-	leftKeys := list.From[BTreeNodeKey](btree.fileManager, leftNode.Keys)
+	leftKeys := list.From[T](btree.fileManager, leftNode.Keys)
 
-	rightKeys := list.From[BTreeNodeKey](btree.fileManager, rightNode.Keys)
+	rightKeys := list.From[T](btree.fileManager, rightNode.Keys)
 
 	// Pull separator key down from parent into left node
 	separatorKey, err := parentKeys.Index(separatorIndex)

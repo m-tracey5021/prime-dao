@@ -5,19 +5,20 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
+	"golang.org/x/exp/constraints"
 )
 
-type DaoTransaction[T schema.Orderable] struct {
+type DaoTransaction[T schema.Orderable[U], U constraints.Ordered] struct {
 	requestIds map[uint64]struct{}
 
-	requests []IProcessableRequest[T]
+	requests []IProcessableRequest[T, U]
 
-	dependencyResolver *QueueDependencyResolver[T]
+	dependencyResolver *QueueDependencyResolver[T, U]
 
 	dependencies []uint64
 }
 
-func (transaction *DaoTransaction[T]) NewRequestId() uint64 {
+func (transaction *DaoTransaction[T, U]) NewRequestId() uint64 {
 
 	var id uint64 = 0
 
@@ -34,7 +35,7 @@ func (transaction *DaoTransaction[T]) NewRequestId() uint64 {
 	}
 }
 
-func (transaction *DaoTransaction[T]) AddRequest(request IProcessableRequest[T]) uint64 {
+func (transaction *DaoTransaction[T, U]) AddRequest(request IProcessableRequest[T, U]) uint64 {
 
 	if len(transaction.dependencies) > 0 {
 
@@ -51,11 +52,11 @@ func (transaction *DaoTransaction[T]) AddRequest(request IProcessableRequest[T])
 	return request.RequestId()
 }
 
-func (transaction *DaoTransaction[T]) Save(object T) uint64 {
+func (transaction *DaoTransaction[T, U]) Save(object T) uint64 {
 
 	return transaction.AddRequest(
 
-		&DaoSaveRequest[T]{
+		&DaoSaveRequest[T, U]{
 
 			requestId: transaction.NewRequestId(),
 
@@ -66,11 +67,11 @@ func (transaction *DaoTransaction[T]) Save(object T) uint64 {
 	)
 }
 
-func (transaction *DaoTransaction[T]) Get(objectId uuid.UUID) uint64 {
+func (transaction *DaoTransaction[T, U]) Get(objectId uuid.UUID) uint64 {
 
 	return transaction.AddRequest(
 
-		&DaoGetRequest[T]{
+		&DaoGetRequest[T, U]{
 
 			requestId: transaction.NewRequestId(),
 
@@ -81,11 +82,11 @@ func (transaction *DaoTransaction[T]) Get(objectId uuid.UUID) uint64 {
 	)
 }
 
-func (transaction *DaoTransaction[T]) Update(object T) uint64 {
+func (transaction *DaoTransaction[T, U]) Update(object T) uint64 {
 
 	return transaction.AddRequest(
 
-		&DaoUpdateRequest[T]{
+		&DaoUpdateRequest[T, U]{
 
 			requestId: transaction.NewRequestId(),
 
@@ -96,11 +97,11 @@ func (transaction *DaoTransaction[T]) Update(object T) uint64 {
 	)
 }
 
-func (transaction *DaoTransaction[T]) Delete(objectId uuid.UUID) uint64 {
+func (transaction *DaoTransaction[T, U]) Delete(objectId uuid.UUID) uint64 {
 
 	return transaction.AddRequest(
 
-		&DaoDeleteRequest[T]{
+		&DaoDeleteRequest[T, U]{
 
 			requestId: transaction.NewRequestId(),
 
@@ -111,16 +112,16 @@ func (transaction *DaoTransaction[T]) Delete(objectId uuid.UUID) uint64 {
 	)
 }
 
-func (transaction *DaoTransaction[T]) WithDependency(requestIds ...uint64) *DaoTransaction[T] {
+func (transaction *DaoTransaction[T, U]) WithDependency(requestIds ...uint64) *DaoTransaction[T, U] {
 
 	transaction.dependencies = requestIds
 
 	return transaction
 }
 
-func (transaction *DaoTransaction[T]) RemoveRequest(requestId uint64) {
+func (transaction *DaoTransaction[T, U]) RemoveRequest(requestId uint64) {
 
-	transaction.requests = slices.DeleteFunc(transaction.requests, func(element IProcessableRequest[T]) bool {
+	transaction.requests = slices.DeleteFunc(transaction.requests, func(element IProcessableRequest[T, U]) bool {
 
 		return element.RequestId() == requestId
 	})

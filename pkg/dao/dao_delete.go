@@ -8,7 +8,7 @@ import (
 	"github.com/m-tracey5021/prime-dao/pkg/fm"
 )
 
-func (dao *Dao[T]) UpdateMetadataForDeletion(table *os.File, index DaoIndex) error {
+func (dao *Dao[T, U]) UpdateMetadataForDeletion(table *os.File, index DaoIndex) error {
 
 	// dao.metadata.ObjectIdStore.DeleteId(index.id, &dao.idMutex)
 
@@ -42,7 +42,7 @@ func (dao *Dao[T]) UpdateMetadataForDeletion(table *os.File, index DaoIndex) err
 	return nil
 }
 
-func (dao *Dao[T]) Delete(objectId uuid.UUID) (int, error) {
+func (dao *Dao[T, U]) Delete(objectId uuid.UUID) (int, error) {
 
 	index, err := dao.indexHashTable.Get(objectId)
 

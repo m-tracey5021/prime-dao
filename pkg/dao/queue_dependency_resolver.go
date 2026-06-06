@@ -4,25 +4,26 @@ import (
 	"slices"
 
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
+	"golang.org/x/exp/constraints"
 )
 
-type QueueDependencyResolver[T schema.Orderable] struct {
-	dependentProcesses map[IProcessableRequest[T]][]uint64 // e.g. process 0 depends on processes 1, 2, 3
+type QueueDependencyResolver[T schema.Orderable[U], U constraints.Ordered] struct {
+	dependentProcesses map[IProcessableRequest[T, U]][]uint64 // e.g. process 0 depends on processes 1, 2, 3
 
 	completed chan uint64
 }
 
-func NewResolver[T schema.Orderable]() *QueueDependencyResolver[T] {
+func NewResolver[T schema.Orderable[U], U constraints.Ordered]() *QueueDependencyResolver[T, U] {
 
-	return &QueueDependencyResolver[T]{
+	return &QueueDependencyResolver[T, U]{
 
-		dependentProcesses: make(map[IProcessableRequest[T]][]uint64),
+		dependentProcesses: make(map[IProcessableRequest[T, U]][]uint64),
 
 		completed: make(chan uint64, 100),
 	}
 }
 
-func (resolver *QueueDependencyResolver[T]) ListenForCompletedDependencies() {
+func (resolver *QueueDependencyResolver[T, U]) ListenForCompletedDependencies() {
 
 	go func() {
 
@@ -41,7 +42,7 @@ func (resolver *QueueDependencyResolver[T]) ListenForCompletedDependencies() {
 	}()
 }
 
-func (resolver *QueueDependencyResolver[T]) AddDependency(request IProcessableRequest[T], dependencies ...uint64) {
+func (resolver *QueueDependencyResolver[T, U]) AddDependency(request IProcessableRequest[T, U], dependencies ...uint64) {
 
 	_, found := resolver.dependentProcesses[request]
 
@@ -55,7 +56,7 @@ func (resolver *QueueDependencyResolver[T]) AddDependency(request IProcessableRe
 	}
 }
 
-func (resolver *QueueDependencyResolver[T]) RemoveDependencies(requestId uint64) {
+func (resolver *QueueDependencyResolver[T, U]) RemoveDependencies(requestId uint64) {
 
 	for request := range resolver.dependentProcesses {
 

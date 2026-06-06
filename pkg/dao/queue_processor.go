@@ -3,9 +3,10 @@ package dao
 import (
 	"github.com/google/uuid"
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
+	"golang.org/x/exp/constraints"
 )
 
-type IProcessableRequest[T schema.Orderable] interface {
+type IProcessableRequest[T schema.Orderable[U], U constraints.Ordered] interface {
 	RequestId() uint64
 
 	ObjectId() uuid.UUID
@@ -16,7 +17,7 @@ type IProcessableRequest[T schema.Orderable] interface {
 
 	GetNumDeps() int
 
-	Process(*Dao[T]) IResult[T]
+	Process(*Dao[T, U]) IResult[T]
 }
 
 type IResult[T any] interface {

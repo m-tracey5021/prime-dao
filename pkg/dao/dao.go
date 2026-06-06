@@ -10,11 +10,12 @@ import (
 	"github.com/m-tracey5021/prime-dao/pkg/fm"
 	"github.com/m-tracey5021/prime-dao/pkg/ht"
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
+	"golang.org/x/exp/constraints"
 )
 
 // U is the sort key type
 
-type Dao[T schema.Orderable] struct {
+type Dao[T schema.Orderable[U], U constraints.Ordered] struct {
 	fileManager fm.IFileManager
 
 	metadata DaoMetadata[T]
@@ -23,7 +24,7 @@ type Dao[T schema.Orderable] struct {
 
 	indexHashTable ht.ITSFHashTable[DaoIndex]
 
-	indexBTree bt.BTree[DaoIndex, T]
+	indexBTree bt.BTree[DaoIndex, U]
 
 	objectIO dataio.DataIO[T]
 
@@ -34,7 +35,7 @@ type Dao[T schema.Orderable] struct {
 	metadataMutex sync.Mutex
 }
 
-func From[T schema.Orderable](fileManager fm.IFileManager) (*Dao[T], error) {
+func From[T schema.Orderable[U], U constraints.Ordered](fileManager fm.IFileManager) (*Dao[T, U], error) {
 
 	var described T
 
@@ -46,13 +47,13 @@ func From[T schema.Orderable](fileManager fm.IFileManager) (*Dao[T], error) {
 
 	if err != nil {
 
-		return &Dao[T]{}, err
+		return &Dao[T, U]{}, err
 	}
 	size, err := fileManager.Size(daoMetadataFile)
 
 	if err != nil {
 
-		return &Dao[T]{}, err
+		return &Dao[T, U]{}, err
 	}
 	metadataIO := dataio.DataIO[DaoMetadata[T]]{}
 
@@ -64,7 +65,7 @@ func From[T schema.Orderable](fileManager fm.IFileManager) (*Dao[T], error) {
 
 		if err != nil {
 
-			return &Dao[T]{}, err
+			return &Dao[T, U]{}, err
 		}
 
 	} else {
@@ -89,10 +90,10 @@ func From[T schema.Orderable](fileManager fm.IFileManager) (*Dao[T], error) {
 		}
 		if _, err := metadataIO.WriteSizePrefixed(daoMetadataFile, metadata); err != nil {
 
-			return &Dao[T]{}, err
+			return &Dao[T, U]{}, err
 		}
 	}
-	dao := Dao[T]{
+	dao := Dao[T, U]{
 
 		fileManager: fileManager,
 
@@ -102,11 +103,11 @@ func From[T schema.Orderable](fileManager fm.IFileManager) (*Dao[T], error) {
 
 		indexHashTable: ht.FromFileManager[DaoIndex](fileManager.Concatenate("idx")),
 
-		indexBTree: bt.BTree[DaoIndex, T]{},
+		indexBTree: bt.BTree[DaoIndex, U]{},
 
 		objectIO: dataio.DataIO[T]{},
 	}
-	btree, err := bt.NewBTree[DaoIndex, T](3, fileManager, dao.GetCompareValue)
+	btree, err := bt.NewBTree[DaoIndex, U](3, fileManager, dao.GetCompareValue)
 	/*
 		TODO do this a bit cleaner, it is odd creating the dao, then
 		setting the function on the btree from the dao, to then add
@@ -116,20 +117,20 @@ func From[T schema.Orderable](fileManager fm.IFileManager) (*Dao[T], error) {
 
 	if err != nil {
 
-		return &Dao[T]{}, err
+		return &Dao[T, U]{}, err
 	}
 	dao.indexBTree = btree
 
 	return &dao, nil
 }
 
-func (dao *Dao[T]) NewTransaction() DaoTransaction[T] {
+func (dao *Dao[T, U]) NewTransaction() DaoTransaction[T, U] {
 
-	return DaoTransaction[T]{
+	return DaoTransaction[T, U]{
 
 		requestIds: map[uint64]struct{}{},
 
-		requests: []IProcessableRequest[T]{},
+		requests: []IProcessableRequest[T, U]{},
 
 		dependencyResolver: NewResolver[T](),
 
@@ -137,11 +138,11 @@ func (dao *Dao[T]) NewTransaction() DaoTransaction[T] {
 	}
 }
 
-func (dao *Dao[T]) ExecuteTransaction(transaction DaoTransaction[T]) (map[uint64]IResult[T], error) {
+func (dao *Dao[T, U]) ExecuteTransaction(transaction DaoTransaction[T, U]) (map[uint64]IResult[T], error) {
 
 	mappedResults := make(map[uint64]IResult[T])
 
-	transactionQueue := NewQueue[T](10, 10, 100)
+	transactionQueue := NewQueue[T, U](10, 10, 100)
 
 	transactionQueue.Start(transaction.dependencyResolver, dao)
 
@@ -172,7 +173,7 @@ func (dao *Dao[T]) ExecuteTransaction(transaction DaoTransaction[T]) (map[uint64
 	and build the btree based on that order
 */
 
-func (dao *Dao[T]) Compare(a, b DaoIndex) int {
+func (dao *Dao[T, U]) Compare(a, b DaoIndex) int {
 
 	objectA, err := dao.Get(a.id)
 
@@ -187,9 +188,17 @@ func (dao *Dao[T]) Compare(a, b DaoIndex) int {
 	return uuidCompare
 }
 
-func (dao *Dao[T]) GetCompareValue(indexId uuid.UUID) (*T, error) {
+func (dao *Dao[T, U]) GetCompareValue(indexId uuid.UUID) (*U, error) {
 
-	return dao.Get(indexId)
+	t, err := dao.Get(indexId)
+
+	if err != nil {
+
+		return nil, err
+	}
+	result := any(*t).(schema.Orderable[U]).SortKeyValue()
+
+	return &result, nil
 }
 
 func CompareUUIDs(a, b uuid.UUID) int {

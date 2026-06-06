@@ -1,5 +1,7 @@
 package schema
 
+import "golang.org/x/exp/constraints"
+
 type Order int
 
 const (
@@ -10,10 +12,10 @@ const (
 	Larger
 )
 
-type Orderable interface {
+type Orderable[T constraints.Ordered] interface {
 	Identifiable
 
-	SortKeyValue() any
+	SortKeyValue() T
 
-	Compare(Orderable) Order
+	Compare(Orderable[T]) Order
 }

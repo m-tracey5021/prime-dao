@@ -5,9 +5,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
+	"golang.org/x/exp/constraints"
 )
 
-type ComponentStore[T schema.Orderable] struct {
+type ComponentStore[T schema.Orderable[U], U constraints.Ordered] struct {
 	objectsOnDisk map[uuid.UUID]T
 
 	objectsInMemory map[uuid.UUID]T
@@ -16,14 +17,14 @@ type ComponentStore[T schema.Orderable] struct {
 
 	updateRequests map[uuid.UUID]uint64
 
-	objectDao *Dao[T]
+	objectDao *Dao[T, U]
 
-	transaction DaoTransaction[T]
+	transaction DaoTransaction[T, U]
 }
 
-func NewComponentStore[T schema.Orderable](dao *Dao[T]) ComponentStore[T] {
+func NewComponentStore[T schema.Orderable[U], U constraints.Ordered](dao *Dao[T, U]) ComponentStore[T, U] {
 
-	return ComponentStore[T]{
+	return ComponentStore[T, U]{
 		objectsOnDisk: map[uuid.UUID]T{},
 
 		objectsInMemory: map[uuid.UUID]T{},
@@ -38,12 +39,12 @@ func NewComponentStore[T schema.Orderable](dao *Dao[T]) ComponentStore[T] {
 	}
 }
 
-func (manager *ComponentStore[T]) Objects() map[uuid.UUID]T {
+func (manager *ComponentStore[T, U]) Objects() map[uuid.UUID]T {
 
 	return manager.objectsOnDisk
 }
 
-func (manager *ComponentStore[T]) AddObject(object T) {
+func (manager *ComponentStore[T, U]) AddObject(object T) {
 
 	object.SetId(uuid.New()) // set a tmp id, this will be overwritten when saved
 
@@ -54,7 +55,7 @@ func (manager *ComponentStore[T]) AddObject(object T) {
 	manager.saveRequests[object.Id()] = requestId
 }
 
-func (manager *ComponentStore[T]) GetCachedObject(id uuid.UUID) (*T, bool) {
+func (manager *ComponentStore[T, U]) GetCachedObject(id uuid.UUID) (*T, bool) {
 
 	object, ok := manager.objectsOnDisk[id]
 
@@ -71,7 +72,7 @@ func (manager *ComponentStore[T]) GetCachedObject(id uuid.UUID) (*T, bool) {
 	return nil, false
 }
 
-func (manager *ComponentStore[T]) ReadObject(id uuid.UUID) (*T, error) {
+func (manager *ComponentStore[T, U]) ReadObject(id uuid.UUID) (*T, error) {
 
 	cached, _ := manager.GetCachedObject(id)
 
@@ -97,7 +98,7 @@ func (manager *ComponentStore[T]) ReadObject(id uuid.UUID) (*T, error) {
 	}
 }
 
-func (manager *ComponentStore[T]) ReadObjects(ids ...uuid.UUID) ([]T, error) {
+func (manager *ComponentStore[T, U]) ReadObjects(ids ...uuid.UUID) ([]T, error) {
 
 	objects := []T{}
 
@@ -149,14 +150,14 @@ func (manager *ComponentStore[T]) ReadObjects(ids ...uuid.UUID) ([]T, error) {
 	return objects, nil
 }
 
-// func (manager *ComponentStore[T]) ReadAll() ([]T, error) {
+// func (manager *ComponentStore[T, U]) ReadAll() ([]T, error) {
 
 // 	ids := manager.objectDao.AllObjectIds()
 
 // 	return manager.ReadObjects(ids...)
 // }
 
-// func (manager *ComponentStore[T]) ReadObjectIntoMemByCondition(condition func(T) bool) (*T, error) {
+// func (manager *ComponentStore[T, U]) ReadObjectIntoMemByCondition(condition func(T) bool) (*T, error) {
 
 // 	for _, object := range manager.Objects() {
 
@@ -181,7 +182,7 @@ func (manager *ComponentStore[T]) ReadObjects(ids ...uuid.UUID) ([]T, error) {
 // 	return nil, nil
 // }
 
-func (manager *ComponentStore[T]) UpdateObject(object T) {
+func (manager *ComponentStore[T, U]) UpdateObject(object T) {
 
 	cached, onDisk := manager.GetCachedObject(object.Id())
 
@@ -230,7 +231,7 @@ func (manager *ComponentStore[T]) UpdateObject(object T) {
 	}
 }
 
-func (manager *ComponentStore[T]) DeleteObject(object T) {
+func (manager *ComponentStore[T, U]) DeleteObject(object T) {
 
 	cached, onDisk := manager.GetCachedObject(object.Id())
 
@@ -267,7 +268,7 @@ func (manager *ComponentStore[T]) DeleteObject(object T) {
 	}
 }
 
-func (manager *ComponentStore[T]) DeletePossibleUpdateRequest(objectId uuid.UUID) bool {
+func (manager *ComponentStore[T, U]) DeletePossibleUpdateRequest(objectId uuid.UUID) bool {
 
 	updateRequestId, existingUpdate := manager.updateRequests[objectId]
 
@@ -282,7 +283,7 @@ func (manager *ComponentStore[T]) DeletePossibleUpdateRequest(objectId uuid.UUID
 	return false
 }
 
-func (manager *ComponentStore[T]) DeletePossibleSaveRequest(objectId uuid.UUID) bool {
+func (manager *ComponentStore[T, U]) DeletePossibleSaveRequest(objectId uuid.UUID) bool {
 
 	saveRequestId, existingSave := manager.saveRequests[objectId]
 
@@ -297,7 +298,7 @@ func (manager *ComponentStore[T]) DeletePossibleSaveRequest(objectId uuid.UUID) 
 	return false
 }
 
-func (manager *ComponentStore[T]) Commit() error {
+func (manager *ComponentStore[T, U]) Commit() error {
 
 	result, err := manager.objectDao.ExecuteTransaction(manager.transaction)
 

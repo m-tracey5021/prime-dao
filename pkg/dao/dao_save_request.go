@@ -3,9 +3,10 @@ package dao
 import (
 	"github.com/google/uuid"
 	"github.com/m-tracey5021/prime-dao/pkg/schema"
+	"golang.org/x/exp/constraints"
 )
 
-type DaoSaveRequest[T schema.Orderable] struct {
+type DaoSaveRequest[T schema.Orderable[U], U constraints.Ordered] struct {
 	requestId uint64
 
 	object T
@@ -15,32 +16,32 @@ type DaoSaveRequest[T schema.Orderable] struct {
 	numberOfDependencies int
 }
 
-func (processor *DaoSaveRequest[T]) RequestId() uint64 {
+func (processor *DaoSaveRequest[T, U]) RequestId() uint64 {
 
 	return processor.requestId
 }
 
-func (processor *DaoSaveRequest[T]) ObjectId() uuid.UUID {
+func (processor *DaoSaveRequest[T, U]) ObjectId() uuid.UUID {
 
 	return processor.object.Id()
 }
 
-func (processor *DaoSaveRequest[T]) Dependencies() chan uint64 {
+func (processor *DaoSaveRequest[T, U]) Dependencies() chan uint64 {
 
 	return processor.dependencies
 }
 
-func (processor *DaoSaveRequest[T]) GetNumDeps() int {
+func (processor *DaoSaveRequest[T, U]) GetNumDeps() int {
 
 	return processor.numberOfDependencies
 }
 
-func (processor *DaoSaveRequest[T]) SetNumDeps(deps int) {
+func (processor *DaoSaveRequest[T, U]) SetNumDeps(deps int) {
 
 	processor.numberOfDependencies = deps
 }
 
-func (processor *DaoSaveRequest[T]) Process(dao *Dao[T]) IResult[T] {
+func (processor *DaoSaveRequest[T, U]) Process(dao *Dao[T, U]) IResult[T] {
 
 	size, err := dao.Save(processor.object)
 
